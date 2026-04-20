@@ -3,7 +3,7 @@
 Spec completa da **Fundação** do Evoluteam: autenticação, multi-tenant, empresa, convites, permissões, layout autenticado, configurações básicas.
 Equivale ao **Sprint 1** de `docs/ESTRUTURA.md` §18.
 Pré-requisito para FT-1 a FT-5.
-Última atualização: 2026-04-19.
+Última atualização: 2026-04-19 (ajustada após decisão de unificação em `docs/dev/02-ft-1-colaboradores.md`).
 
 > **Leia primeiro:** `docs/dev/00-decisoes-transversais.md` — decisões que valem para toda a aplicação.
 
@@ -27,7 +27,7 @@ Entregar a infraestrutura mínima para uma empresa existir no Evoluteam:
 - Aceite de convite com criação de `auth.user`, `profiles`, link em `employees`.
 - Layout autenticado com sidebar escura + user card embaixo.
 - `/configuracoes/empresa` — edição de dados da empresa.
-- `/configuracoes/usuarios` — listagem + convite + gerenciamento de papéis.
+- `/colaboradores` — listagem unificada (HR + acesso) com cadastro + convite + gerenciamento de papéis. **Nota:** esta tela nasce em Fase 0 como a base da FT-1; a expansão completa (perfil detalhado, filtros avançados, CRUD de departamentos e cargos, validações de gestor direto) acontece na FT-1.
 - `/configuracoes/perfil` — edição do próprio perfil.
 - `/configuracoes/auditoria` — listagem de activity_logs (admin_rh).
 - `/dashboard` — stub com KPIs básicos + checklist de primeiros passos.
@@ -99,15 +99,18 @@ Baseadas em `docs/PRD-GERAL.md §8 Fase 0` e `docs/USERS-ABLE.md §1`:
 ```
 /onboarding/criar-empresa         (só se user sem company)
 /dashboard                        (todos os roles)
+/colaboradores                    (todos os roles; ações de escrita = admin_rh)
+/colaboradores/novo               (admin_rh; abre listagem + side sheet de cadastro)
 /configuracoes                    (redirect para /configuracoes/empresa)
 /configuracoes/empresa            (admin_rh)
-/configuracoes/usuarios           (admin_rh)
 /configuracoes/departamentos      (admin_rh, stub — CRUD na FT-1)
 /configuracoes/cargos             (admin_rh, stub — CRUD na FT-1)
 /configuracoes/competencias       (admin_rh, stub — CRUD na FT-2)
 /configuracoes/auditoria          (admin_rh)
 /configuracoes/perfil             (todos os roles)
 ```
+
+> **Nota de unificação:** `/configuracoes/usuarios` previsto em `docs/ESTRUTURA.md §16` **não existe mais** — foi unificado com `/colaboradores` (decisão tomada no brainstorm da FT-1). Um mesmo usuário é tanto "colaborador" (dados RH) quanto "usuário com acesso" (role/login); gerir tudo na mesma tela reduz duplicação.
 
 ## 5. Schema SQL
 
@@ -355,9 +358,11 @@ src/
       layout.tsx                    # layout minimal
     (app)/
       dashboard/page.tsx            # stub Fase 0
+      colaboradores/
+        page.tsx                    # listagem unificada (HR + acesso)
+        novo/page.tsx               # deep link que abre listagem + side sheet
       configuracoes/
         empresa/page.tsx
-        usuarios/page.tsx
         departamentos/page.tsx      # stub até FT-1
         cargos/page.tsx             # stub até FT-1
         competencias/page.tsx       # stub até FT-2
@@ -402,15 +407,16 @@ src/
         OnboardingStep3Review.tsx
         OnboardingStep4Confirm.tsx
         CompanyEditForm.tsx
-    users/
-      schema.ts                     # InviteSchema, UpdateRoleSchema
-      queries.ts                    # listUsers (profiles + invites unified)
-      actions.ts                    # inviteUser, revokeInvite, resendInvite, updateRole, deactivateUser
-      permissions.ts                # canManageUser(actor, target)
+    employees/
+      schema.ts                     # EmployeeSchema, InviteSchema, UpdateRoleSchema
+      queries.ts                    # listEmployees (inclui invites pendentes), getEmployee
+      actions.ts                    # createEmployee, updateEmployee, inviteUser,
+                                    # revokeInvite, resendInvite, updateRole, deactivateEmployee
+      permissions.ts                # canManageEmployee(actor, target)
       components/
-        UsersList.tsx               # TanStack Table
-        InviteSheet.tsx             # side sheet
-        AcceptInviteForm.tsx
+        EmployeesList.tsx           # TanStack Table em /colaboradores
+        EmployeeSheet.tsx           # side sheet (create + edit + invite)
+        AcceptInviteForm.tsx        # form em /convite/[token]
     profile/
       schema.ts
       queries.ts                    # getCurrentProfile
@@ -474,10 +480,11 @@ export async function middleware(req: NextRequest) {
   if (!session) return redirect(`/login?continue=${encodeURIComponent(path)}`);
 
   // 3) Estado da conta
-  if (session.employeeStatus === 'inactive') {
+  if (session.employeeStatus === 'terminated') {
     await signOut();
-    return redirect('/login?error=conta_inativa');
+    return redirect('/login?error=conta_desligada');
   }
+  // inactive mantém acesso — não aparece em ciclos novos, mas pode navegar
   if (session.companyStatus === 'suspended' && path !== '/conta-suspensa') {
     return redirect('/conta-suspensa');
   }
@@ -590,11 +597,11 @@ O middleware chama `createServerClient()`, pega `auth.getUser()`, e (se existir)
 ### 8.6. App shell autenticado (layout `(app)/layout.tsx`)
 - **Sidebar escura** (fundo `#1f1f1f`):
   - Logo "Evoluteam" em laranja no topo.
-  - Grupo **PRINCIPAL**: Dashboard, Colaboradores, Avaliações (disabled), Feedbacks (disabled), PDI (disabled).
-  - Grupo **CONFIGURAÇÕES**: Empresa, Usuários, Departamentos, Cargos, Competências, Auditoria (todos visíveis só pra admin_rh) + Perfil (todos).
+  - Grupo **PRINCIPAL**: Dashboard, **Colaboradores**, Avaliações (disabled), Feedbacks (disabled), PDI (disabled).
+  - Grupo **CONFIGURAÇÕES**: Empresa, Departamentos, Cargos, Competências, Auditoria (todos visíveis só pra admin_rh) + Perfil (todos).
   - **User card** no rodapé: avatar, nome, "nome da empresa".
 - **TopBar** clara no topo do conteúdo:
-  - Breadcrumbs (ex: "Configurações › Usuários").
+  - Breadcrumbs (ex: "Colaboradores").
   - Ícone de notificação com badge (polling 30s).
   - (sem search global no MVP).
 - Conteúdo principal à direita.
@@ -604,37 +611,43 @@ O middleware chama `createServerClient()`, pega `auth.getUser()`, e (se existir)
 - 3 KPI cards: Colaboradores ativos, Convites pendentes, Departamentos.
 - Checklist "Primeiros passos":
   - ✓ Criar empresa (sempre completo ao ver essa tela)
-  - ○ Convidar colaboradores → link `/configuracoes/usuarios`
+  - ○ Convidar colaboradores → link `/colaboradores`
   - ○ Definir departamentos → link `/configuracoes/departamentos`
   - ○ Criar primeiro ciclo (disabled, "Em breve")
 - Aviso: *"Dashboard completo em breve. Quando você tiver ciclos de avaliação ativos, métricas aparecerão aqui."*
 
-### 8.8. `/configuracoes/usuarios`
-- Header com "+ Convidar usuário" (abre side sheet).
-- Busca, filtro de status, filtro de role.
-- Tabela (TanStack):
-  - Coluna **Nome/E-mail** (nome em bold, e-mail cinza abaixo; se for o admin logado, tag "(você)").
-  - Coluna **Cargo**.
-  - Coluna **Papel** (pill colorida).
-  - Coluna **Status** (Ativo/Pendente/Expirado).
-  - Coluna **Ações** (kebab): editar papel, reenviar convite, revogar convite, desativar usuário.
-- Paginação 20/página (só aparece se >20).
-- Lista inclui:
-  - `profiles` ativos (`auth.users` linkados) +
-  - `invites` não aceitos (pending/expired/revoked), cada um com employee_id mostrando os dados do employee que será criado.
+### 8.8. `/colaboradores` (base — será expandida em FT-1)
 
-### 8.9. Side sheet `InviteSheet`
+Versão mínima entregue em Fase 0 (FT-1 acrescenta profile detalhado, filtros avançados, CRUD de departamentos e cargos, validações de hierarquia):
+
+- Header com "+ Novo colaborador" (abre side sheet).
+- Busca por nome/e-mail, filtro de status (ativo, convite pendente/expirado, sem acesso), filtro de papel.
+- Tabela (TanStack):
+  - Coluna **Nome/E-mail** (nome em bold, e-mail cinza abaixo; se for o user logado, tag "(você)").
+  - Coluna **Cargo**.
+  - Coluna **Departamento**.
+  - Coluna **Gestor direto** (nome; "—" se topo de hierarquia).
+  - Coluna **Status** derivado (Ativo / Convite pendente / Convite expirado / Sem acesso).
+  - Coluna **Ações** (kebab): ver perfil (FT-1), editar, reenviar convite, revogar convite, desativar.
+- Paginação 20/página.
+- Fonte de dados: JOIN de `employees` + `invites` pendentes. Lista inclui employees com `user_id` ativo, com convite pendente, com convite expirado, e sem nenhum.
+- **Não inclui** nesta Fase 0: perfil detalhado `/colaboradores/[id]`, filtros de departamento/gestor, validações de ciclo na hierarquia, observações internas, status inativo/desligado. Tudo entra na FT-1.
+
+### 8.9. Side sheet `EmployeeSheet`
 - 440px, slide da direita, overlay escuro.
-- Campos: nome*, e-mail*, cargo*, papel*, departamento (opcional, com "+ Criar novo" inline), gestor direto (autocomplete, opcional), data de admissão*, checkbox **"Enviar convite agora"** (default on).
-- Botão final muda de copy: "Cadastrar e enviar" vs "Cadastrar sem enviar".
-- `inviteUser()` action:
+- Modo **create** ou **edit** (mesmo componente).
+- Campos: nome completo*, e-mail*, cargo*, papel*, departamento (opcional, com "+ Criar novo" inline), gestor direto (autocomplete, opcional), data de admissão*, telefone (opcional), checkbox **"Enviar convite agora"** (default on, visível só em modo create).
+- Botão final (modo create) muda de copy: "Cadastrar e enviar" vs "Cadastrar sem enviar". Em modo edit: "Salvar".
+- `createEmployee()` action (modo create):
   1. Valida input (Zod).
   2. INSERT `employees` (user_id NULL).
-  3. INSERT `invites` (token = `crypto.randomUUID()`, expires_at = now + 7 days).
-  4. Se checkbox on: envia e-mail via Resend (template HTML simples com botão "Aceitar convite").
-  5. `logActivity({ action: 'invite.sent', entityId: inviteId })`.
-  6. revalidatePath + toast.
-  7. Falha no envio de e-mail **não** aborta — toast "Cadastrado, mas o envio falhou. Reenvie pelo menu ⋯".
+  3. Se checkbox "enviar convite" on:
+     - INSERT `invites` (token = `crypto.randomUUID()`, expires_at = now + 7 days).
+     - Envia e-mail via Resend (template HTML simples com botão "Aceitar convite").
+     - `logActivity({ action: 'invite.sent', entityId: inviteId })`.
+  4. `logActivity({ action: 'employee.created', entityId: employeeId })`.
+  5. revalidatePath + toast.
+  6. Falha no envio de e-mail **não** aborta criação — toast "Cadastrado, mas o envio falhou. Reenvie pelo menu ⋯".
 
 ### 8.10. `/configuracoes/empresa`
 - Form com os mesmos campos do passo 1 do wizard + upload de logo (bucket Supabase Storage).
@@ -669,7 +682,8 @@ Ver `docs/dev/00-decisoes-transversais.md` §17 e a tabela completa abaixo:
 | | Token revogado | Página "Convite inválido" |
 | | E-mail já em uso | Constraint UNIQUE bloqueia; toast "Usuário já cadastrado" |
 | **Login** | Credencial errada | "E-mail ou senha inválidos" (genérico) |
-| | Conta desativada | Força logout + redirect `/login?error=conta_inativa` |
+| | Conta desligada (`terminated`) | Força logout + redirect `/login?error=conta_desligada` |
+| | Conta inativa (`inactive`) | Login ok; apenas não aparece em ciclos novos (ver FT-2) |
 | | Empresa suspensa | Redirect `/conta-suspensa` (bloqueia tudo exceto logout) |
 | | Rate limit | "Muitas tentativas. Aguarde alguns minutos." |
 | **Usuários** | Admin tenta auto-desativar | Botão disabled + validação server-side |
@@ -691,10 +705,11 @@ Ver `docs/dev/00-decisoes-transversais.md` §17 e a tabela completa abaixo:
 - [ ] Admin sem empresa é redirecionado para `/onboarding/criar-empresa`.
 - [ ] Admin completa os 4 passos do wizard e cai em `/dashboard`.
 - [ ] Empresa, departamento inline (se preenchido), 4 cargos, 7 competências, 1 employee do admin, 1 profile do admin são criados na mesma transação.
-- [ ] Admin convida Ana por `/configuracoes/usuarios` com checkbox "enviar agora" marcado.
+- [ ] Admin convida Ana por `/colaboradores` com checkbox "enviar agora" marcado.
 - [ ] Ana recebe e-mail via Resend, clica no link, preenche nome/senha, entra direto em `/dashboard` — como `user`, ligada à empresa correta.
 - [ ] Marcio (admin) vê notificação "Ana aceitou o convite".
 - [ ] Ana NÃO vê `/configuracoes/empresa` (403 via middleware).
+- [ ] Ana consegue ver `/colaboradores` mas não vê botões de escrita (create/edit/delete/role change).
 - [ ] Marcio tenta desativar a si mesmo — botão disabled; se tentar via API, server valida e bloqueia.
 - [ ] Token de convite expirado mostra a tela apropriada; admin reenvia.
 - [ ] `/configuracoes/auditoria` lista os eventos (`company.created`, `invite.sent`, `invite.accepted`).
@@ -718,9 +733,9 @@ Ver `docs/dev/00-decisoes-transversais.md` §17 e a tabela completa abaixo:
 8. **Onboarding wizard** — 4 passos + `createCompany()`.
 9. **`/configuracoes/perfil`** — form simples.
 10. **`/configuracoes/empresa`** — form com upload de logo.
-11. **`/configuracoes/usuarios`** — lista + side sheet de convite + `inviteUser()`.
+11. **`/colaboradores` base** — lista + side sheet `EmployeeSheet` (create + edit) + `createEmployee()` + `inviteUser()`.
 12. **Fluxo de aceite** — `/convite/[token]` + `acceptInvite()`.
-13. **Ações de gestão** — revogar, reenviar, editar papel, desativar usuário.
+13. **Ações de gestão** — revogar, reenviar, editar papel, desativar colaborador (via kebab).
 14. **Notifications base** — `notify()`, badge com polling, lista.
 15. **Activity logs base** — `logActivity()`, `/configuracoes/auditoria`.
 16. **Dashboard stub** — KPIs + checklist.
