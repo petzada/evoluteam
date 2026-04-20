@@ -1,0 +1,121 @@
+<h2>Layout do app autenticado (shell)</h2>
+<p class="subtitle">Mesmo shell para todas as páginas autenticadas. Clique na preferência.</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="sidebar" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="mockup" style="box-shadow:none;border-radius:8px">
+        <div class="mockup-header" style="background:#fff;padding:0">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-bottom:1px solid #eee">
+            <div style="font-weight:700;color:#f97316;font-size:14px">Evoluteam</div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <div style="font-size:12px;color:#999">🔔 3</div>
+              <div style="width:24px;height:24px;border-radius:50%;background:#fff7ed;color:#9a3412;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600">MS</div>
+            </div>
+          </div>
+        </div>
+        <div class="mockup-body" style="padding:0;display:flex;min-height:220px">
+          <div style="width:38%;background:#fafafa;padding:12px 8px;border-right:1px solid #eee;font-size:11px">
+            <div style="color:#999;padding:4px 8px;font-size:9px;letter-spacing:.5px">PRINCIPAL</div>
+            <div style="padding:6px 10px;border-radius:4px;background:#fff7ed;color:#9a3412;font-weight:600;margin-bottom:2px">📊 Dashboard</div>
+            <div style="padding:6px 10px;border-radius:4px;color:#555;margin-bottom:2px">👥 Colaboradores</div>
+            <div style="padding:6px 10px;border-radius:4px;color:#999;margin-bottom:2px">📝 Avaliações</div>
+            <div style="padding:6px 10px;border-radius:4px;color:#999;margin-bottom:2px">💬 Feedbacks</div>
+            <div style="padding:6px 10px;border-radius:4px;color:#999;margin-bottom:2px">🎯 PDI</div>
+            <div style="color:#999;padding:4px 8px;font-size:9px;letter-spacing:.5px;margin-top:10px">CONFIGURAÇÕES</div>
+            <div style="padding:6px 10px;border-radius:4px;color:#555;margin-bottom:2px">⚙️ Configurações</div>
+          </div>
+          <div style="flex:1;padding:16px">
+            <div style="font-size:11px;color:#999;margin-bottom:4px">Acme Indústria</div>
+            <h3 style="margin:0 0 16px;font-size:15px">Dashboard</h3>
+            <div class="placeholder" style="height:80px;margin-bottom:8px">Conteúdo da página</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — Sidebar esquerda + topbar fino</h3>
+      <p>Padrão Linear/Notion/Qulture. Navegação sempre visível, topbar só com sino + avatar. Limpo, escala até 10+ itens.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="topnav" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="mockup" style="box-shadow:none;border-radius:8px">
+        <div class="mockup-header" style="background:#fff;padding:0">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-bottom:1px solid #eee">
+            <div style="display:flex;align-items:center;gap:18px">
+              <div style="font-weight:700;color:#f97316;font-size:14px">Evoluteam</div>
+              <div style="display:flex;gap:14px;font-size:11px">
+                <span style="color:#9a3412;font-weight:600;border-bottom:2px solid #f97316;padding-bottom:4px">Dashboard</span>
+                <span style="color:#555">Colaboradores</span>
+                <span style="color:#999">Avaliações</span>
+                <span style="color:#999">Feedbacks</span>
+                <span style="color:#999">PDI</span>
+                <span style="color:#555">Configurações</span>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <div style="font-size:12px;color:#999">🔔 3</div>
+              <div style="width:24px;height:24px;border-radius:50%;background:#fff7ed;color:#9a3412;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600">MS</div>
+            </div>
+          </div>
+        </div>
+        <div class="mockup-body" style="padding:16px;min-height:220px">
+          <div style="font-size:11px;color:#999;margin-bottom:4px">Acme Indústria</div>
+          <h3 style="margin:0 0 16px;font-size:15px">Dashboard</h3>
+          <div class="placeholder" style="height:80px;margin-bottom:8px">Conteúdo da página</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Topbar único com nav horizontal</h3>
+      <p>Padrão Linear "simples" / Stripe. Menos real estate pra nav (fica apertado com 6–8 itens). Mais espaço vertical pro conteúdo.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="sidebar-wide" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="mockup" style="box-shadow:none;border-radius:8px">
+        <div class="mockup-header" style="background:#fff;padding:0;display:none"></div>
+        <div class="mockup-body" style="padding:0;display:flex;min-height:260px">
+          <div style="width:46%;background:#1f1f1f;color:#fff;padding:14px 10px;font-size:11px">
+            <div style="font-weight:700;color:#f97316;font-size:14px;margin-bottom:14px">Evoluteam</div>
+            <div style="color:#999;padding:4px 8px;font-size:9px;letter-spacing:.5px">PRINCIPAL</div>
+            <div style="padding:6px 10px;border-radius:4px;background:#f97316;color:#fff;font-weight:600;margin-bottom:2px">📊 Dashboard</div>
+            <div style="padding:6px 10px;border-radius:4px;color:#ddd;margin-bottom:2px">👥 Colaboradores</div>
+            <div style="padding:6px 10px;border-radius:4px;color:#777;margin-bottom:2px">📝 Avaliações</div>
+            <div style="padding:6px 10px;border-radius:4px;color:#777;margin-bottom:2px">💬 Feedbacks</div>
+            <div style="padding:6px 10px;border-radius:4px;color:#777;margin-bottom:2px">🎯 PDI</div>
+            <div style="color:#999;padding:4px 8px;font-size:9px;letter-spacing:.5px;margin-top:10px">CONFIGURAÇÕES</div>
+            <div style="padding:6px 10px;border-radius:4px;color:#ddd;margin-bottom:2px">⚙️ Configurações</div>
+            <div style="margin-top:30px;padding:8px 10px;border-top:1px solid #333;display:flex;align-items:center;gap:8px">
+              <div style="width:22px;height:22px;border-radius:50%;background:#f97316;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600">MS</div>
+              <div>
+                <div style="font-size:11px;font-weight:600">Marcio Silva</div>
+                <div style="font-size:9px;color:#999">Acme Indústria</div>
+              </div>
+            </div>
+          </div>
+          <div style="flex:1;padding:16px;background:#fff">
+            <div style="display:flex;justify-content:flex-end;margin-bottom:14px">
+              <div style="font-size:12px;color:#999">🔔 3</div>
+            </div>
+            <h3 style="margin:0 0 16px;font-size:15px">Dashboard</h3>
+            <div class="placeholder" style="height:80px;margin-bottom:8px">Conteúdo da página</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — Sidebar escura + user card embaixo</h3>
+      <p>Padrão Supabase/Vercel/Prisma Studio. Mais "dev tool". Usuário fica no rodapé da sidebar. Dark sidebar contrasta com conteúdo claro.</p>
+    </div>
+  </div>
+
+</div>
+
+<div style="margin-top:20px;padding:12px;background:#fafafa;border-radius:6px;font-size:13px;color:#555">
+  <strong>Itens em cinza escuro</strong> (Avaliações, Feedbacks, PDI) estão no menu mas <strong>desabilitados no MVP Fase 0</strong> — só ficam ativos quando FT-2/3/4 forem implementadas. Admin vê o menu completo desde o início (sabe o que vem aí).
+</div>

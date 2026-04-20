@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bash *)",
+      "Bash(find C:/Users/Marcio/Desktop/evoluteam/.superpowers/brainstorm/ -name \"server-info\" -exec cat {} \\\\;)"
+    ]
+  }
+}

@@ -1,9 +1,3 @@
-# Claude Code workspace
-.superpowers/
-.agents/
-.claude/
-skills-lock.json
-
 # Node / Next.js (pré-scaffold)
 node_modules/
 .next/

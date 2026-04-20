@@ -1,0 +1,84 @@
+<h2>/configuracoes/departamentos e /configuracoes/cargos (FT-1)</h2>
+<p class="subtitle">Mesma estrutura de tela para os dois. Mockup mostra departamentos; cargos é idêntico.</p>
+
+<div class="mockup" style="box-shadow:0 0 0 1px #eee;border-radius:8px">
+  <div class="mockup-body" style="padding:0;min-height:480px">
+
+    <div style="padding:14px 24px;border-bottom:1px solid #eee;font-size:11px;color:#999">
+      Configurações › Departamentos
+    </div>
+
+    <div style="padding:20px 24px">
+
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
+        <div>
+          <h3 style="margin:0 0 4px;font-size:18px">Departamentos</h3>
+          <p style="margin:0;font-size:12px;color:#666">Organize colaboradores em unidades da empresa.</p>
+        </div>
+        <button class="mock-button" style="background:#f97316">+ Novo departamento</button>
+      </div>
+
+      <div style="display:flex;gap:6px;margin-bottom:14px">
+        <input class="mock-input" placeholder="🔍 Buscar" style="flex:1;max-width:260px">
+        <label style="display:flex;gap:4px;align-items:center;cursor:pointer;font-size:12px;color:#555">
+          <input type="checkbox" style="margin:0">
+          <span>Mostrar arquivados</span>
+        </label>
+      </div>
+
+      <div style="border:1px solid #eee;border-radius:8px;overflow:hidden">
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr 40px;gap:12px;padding:10px 14px;background:#fafafa;font-size:11px;color:#666;font-weight:600;border-bottom:1px solid #eee">
+          <div>NOME</div>
+          <div>COLABORADORES</div>
+          <div>STATUS</div>
+          <div></div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr 40px;gap:12px;padding:12px 14px;font-size:13px;border-bottom:1px solid #f3f3f3;align-items:center">
+          <div style="font-weight:600">RH</div>
+          <div><span style="color:#666">2 colaboradores</span></div>
+          <div><span style="color:#16a34a;font-size:11px">● Ativo</span></div>
+          <div style="color:#999;cursor:pointer;text-align:right">⋯</div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr 40px;gap:12px;padding:12px 14px;font-size:13px;border-bottom:1px solid #f3f3f3;align-items:center">
+          <div style="font-weight:600">Comercial</div>
+          <div><span style="color:#666">5 colaboradores</span></div>
+          <div><span style="color:#16a34a;font-size:11px">● Ativo</span></div>
+          <div style="color:#999;cursor:pointer;text-align:right">⋯</div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr 40px;gap:12px;padding:12px 14px;font-size:13px;border-bottom:1px solid #f3f3f3;align-items:center">
+          <div style="font-weight:600">Operações</div>
+          <div><span style="color:#666">4 colaboradores</span></div>
+          <div><span style="color:#16a34a;font-size:11px">● Ativo</span></div>
+          <div style="color:#999;cursor:pointer;text-align:right">⋯</div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr 40px;gap:12px;padding:12px 14px;font-size:13px;align-items:center">
+          <div style="font-weight:600;color:#999;text-decoration:line-through">Marketing</div>
+          <div><span style="color:#999">0 colaboradores</span></div>
+          <div><span style="color:#999;font-size:11px">● Arquivado</span></div>
+          <div style="color:#999;cursor:pointer;text-align:right">⋯</div>
+        </div>
+      </div>
+
+      <div style="margin-top:12px;font-size:11px;color:#999">3 ativos · 1 arquivado (oculto)</div>
+
+    </div>
+
+  </div>
+</div>
+
+<div style="margin-top:20px;padding:12px;background:#fafafa;border-radius:6px;font-size:13px;color:#555">
+  <strong>Decisões embutidas (valem para Departamentos E Cargos):</strong><br>
+  • <b>Criar</b>: botão "+ Novo" abre modal pequeno com um campo "Nome". Validação: <code>UNIQUE(company_id, name)</code> (já no schema Fase 0).<br>
+  • <b>Editar nome</b>: click no nome → modal com input pré-preenchido. Zod valida tamanho.<br>
+  • <b>Arquivar</b> (soft delete): <code>is_archived = true</code>. Departamento some dos selects novos, mas mantém vínculo nos employees existentes (<code>employees.department_id</code> continua apontando para ele — aparece no perfil como "Operações (arquivado)").<br>
+  • <b>Desarquivar</b>: <code>is_archived = false</code>. Volta a aparecer em selects.<br>
+  • <b>Deletar permanentemente</b>: disponível só se <strong>0 colaboradores</strong> vinculados (ativo OU arquivado). Caso contrário, item "Deletar" no kebab fica disabled com tooltip "Remova os colaboradores vinculados antes".<br>
+  • <b>Contagem "N colaboradores"</b>: conta employees ativos+inativos (não conta desligados). Link clicável → abre <code>/colaboradores?department=X</code>.<br>
+  • <b>Arquivados ocultos por default</b>, toggle "Mostrar arquivados" no topo.<br>
+  • <b>Kebab (⋯):</b> Editar, Arquivar/Desarquivar, Deletar (se possível).<br>
+  • <b>/configuracoes/cargos</b> é IDÊNTICO em estrutura — só muda copy e tabela subjacente (<code>positions</code>).
+</div>

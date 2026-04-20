@@ -1,0 +1,101 @@
+<h2>Formulário de convite (side sheet)</h2>
+<p class="subtitle">Abre sobre a listagem de usuários. Side sheet (slide da direita) em vez de modal centralizado — melhor para forms com 6+ campos e mantém contexto da lista visível por trás.</p>
+
+<div class="mockup" style="box-shadow:0 0 0 1px #eee;border-radius:8px;position:relative;overflow:hidden">
+  <div class="mockup-body" style="padding:0;display:flex;min-height:560px;position:relative">
+
+    <div style="width:220px;background:#1f1f1f;color:#fff;padding:14px 10px;font-size:11px;opacity:.45">
+      <div style="font-weight:700;color:#f97316;font-size:14px;margin-bottom:14px">Evoluteam</div>
+      <div style="padding:6px 10px;color:#ddd">Dashboard</div>
+      <div style="padding:6px 10px;color:#ddd">Colaboradores</div>
+      <div style="padding:6px 10px;background:#f97316;color:#fff;border-radius:4px">Usuários</div>
+    </div>
+
+    <div style="flex:1;background:#fff;padding:20px;opacity:.35">
+      <h3 style="margin:0 0 8px;font-size:16px">Usuários e convites</h3>
+      <div style="height:180px;background:#fafafa;border-radius:6px;margin-bottom:8px"></div>
+      <div style="height:120px;background:#fafafa;border-radius:6px"></div>
+    </div>
+
+    <div style="position:absolute;top:0;right:0;bottom:0;width:440px;background:#fff;box-shadow:-8px 0 24px rgba(0,0,0,.1);display:flex;flex-direction:column">
+
+      <div style="padding:18px 20px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <h3 style="margin:0 0 2px;font-size:16px">Convidar usuário</h3>
+          <p style="margin:0;font-size:12px;color:#666">Crie a ficha do colaborador e envie o convite de acesso.</p>
+        </div>
+        <span style="font-size:18px;color:#999;cursor:pointer">×</span>
+      </div>
+
+      <div style="padding:20px;flex:1;overflow:auto">
+
+        <div class="label" style="margin-bottom:4px">Nome completo *</div>
+        <input class="mock-input" placeholder="Ex: Ana Rocha" style="margin-bottom:12px">
+
+        <div class="label" style="margin-bottom:4px">E-mail *</div>
+        <input class="mock-input" placeholder="ana@acme.com.br" style="margin-bottom:12px">
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+          <div>
+            <div class="label" style="margin-bottom:4px">Cargo *</div>
+            <select class="mock-input" style="padding:8px;width:100%">
+              <option>Colaborador</option>
+              <option>Líder/Supervisor</option>
+              <option>Coordenador</option>
+              <option>Administrativo/RH</option>
+            </select>
+          </div>
+          <div>
+            <div class="label" style="margin-bottom:4px">Papel *</div>
+            <select class="mock-input" style="padding:8px;width:100%">
+              <option>user</option>
+              <option>admin_rh</option>
+              <option>director</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="label" style="margin-bottom:4px">Departamento <span style="text-transform:none;color:#999">(opcional)</span></div>
+        <select class="mock-input" style="padding:8px;width:100%;margin-bottom:12px">
+          <option>Nenhum</option>
+          <option>RH</option>
+          <option>+ Criar novo departamento</option>
+        </select>
+
+        <div class="label" style="margin-bottom:4px">Gestor direto <span style="text-transform:none;color:#999">(opcional)</span></div>
+        <input class="mock-input" placeholder="Buscar colaborador..." style="margin-bottom:12px">
+
+        <div class="label" style="margin-bottom:4px">Data de admissão *</div>
+        <input class="mock-input" type="date" value="2026-04-19" style="margin-bottom:16px">
+
+        <div style="border-top:1px solid #eee;padding-top:14px;margin-top:6px">
+          <label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer">
+            <input type="checkbox" checked style="margin-top:2px">
+            <span>
+              <span style="font-size:13px;font-weight:600;display:block;margin-bottom:2px">Enviar convite agora</span>
+              <span style="font-size:11px;color:#666">Um e-mail com link de cadastro (válido por 7 dias) será enviado para o usuário.</span>
+            </span>
+          </label>
+        </div>
+
+      </div>
+
+      <div style="padding:16px 20px;border-top:1px solid #eee;display:flex;justify-content:space-between;gap:8px">
+        <button class="mock-button" style="background:#fff;color:#333;border:1px solid #ddd">Cancelar</button>
+        <button class="mock-button" style="background:#f97316">Cadastrar e enviar</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div style="margin-top:20px;padding:12px;background:#fafafa;border-radius:6px;font-size:13px;color:#555">
+  <strong>Decisões embutidas:</strong><br>
+  • Side sheet 440px, slide da direita, overlay escurece o resto.<br>
+  • <b>Cria employee + envia convite</b> na mesma ação (decisão #6 — checkbox controla envio imediato ou não).<br>
+  • Se checkbox <strong>desmarcado</strong>: só cria o employee, aparece na lista com status "Convite pendente (não enviado)". Admin pode enviar depois via kebab.<br>
+  • "Departamento" tem opção "+ Criar novo" inline (abre mini-dialog sobre o sheet).<br>
+  • "Gestor direto" é autocomplete de employees ativos da empresa.<br>
+  • Botão final muda de copy: "Cadastrar e enviar" (checkbox on) vs "Cadastrar sem enviar" (checkbox off).<br>
+  • Erro no envio do e-mail NÃO bloqueia a criação do employee — admin recebe toast "Cadastrado, mas o convite falhou. Reenvie pelo menu ⋯"
+</div>

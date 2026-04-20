@@ -1,0 +1,178 @@
+<h2>/avaliacoes (listagem) e /avaliacoes/[cycleId] (acompanhamento)</h2>
+<p class="subtitle">Listagem simples de ciclos + detalhe com progresso e ações.</p>
+
+<div class="split" style="gap:16px">
+
+  <div class="mockup">
+    <div class="mockup-header" style="background:#fafafa">/avaliacoes</div>
+    <div class="mockup-body" style="padding:16px;min-height:400px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">
+        <div>
+          <h3 style="margin:0 0 2px;font-size:16px">Ciclos de avaliação</h3>
+          <p style="margin:0;font-size:11px;color:#666">Gerencie e acompanhe os ciclos da empresa.</p>
+        </div>
+        <button class="mock-button" style="background:#f97316;font-size:11px">+ Novo ciclo</button>
+      </div>
+
+      <div style="display:flex;gap:4px;margin-bottom:12px">
+        <input class="mock-input" placeholder="🔍 Buscar" style="flex:1;font-size:11px">
+        <select class="mock-input" style="font-size:11px;padding:4px 8px">
+          <option>Status: Todos</option>
+        </select>
+      </div>
+
+      <div style="font-size:10px;color:#999;margin-bottom:6px">PENDENTES PARA VOCÊ</div>
+      <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:6px;padding:10px;margin-bottom:12px">
+        <div style="font-size:12px;font-weight:600;color:#9a3412;margin-bottom:2px">Avaliar Beto Lima</div>
+        <div style="font-size:10px;color:#9a3412">Avaliação Semestral 2026.1 · até 30/04</div>
+      </div>
+
+      <div style="font-size:10px;color:#999;margin-bottom:6px">TODOS OS CICLOS</div>
+      <div style="border:1px solid #eee;border-radius:6px;overflow:hidden">
+
+        <div style="padding:10px 12px;border-bottom:1px solid #f3f3f3;display:flex;justify-content:space-between;align-items:center;cursor:pointer">
+          <div>
+            <div style="font-size:13px;font-weight:600">Avaliação Semestral 2026.1</div>
+            <div style="font-size:10px;color:#666">01/01 – 30/06/2026 · Prazo resposta 30/04</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:11px;color:#16a34a">● Em andamento</div>
+            <div style="font-size:10px;color:#666">14/24 enviadas</div>
+          </div>
+        </div>
+
+        <div style="padding:10px 12px;border-bottom:1px solid #f3f3f3;display:flex;justify-content:space-between;align-items:center;cursor:pointer">
+          <div>
+            <div style="font-size:13px;font-weight:600">90 dias — João Silva</div>
+            <div style="font-size:10px;color:#666">15/02 – 15/05/2026 · Prazo resposta 20/04</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:11px;color:#ca8a04">● Agendado</div>
+            <div style="font-size:10px;color:#666">0/2 enviadas</div>
+          </div>
+        </div>
+
+        <div style="padding:10px 12px;border-bottom:1px solid #f3f3f3;display:flex;justify-content:space-between;align-items:center;cursor:pointer">
+          <div>
+            <div style="font-size:13px;font-weight:600;color:#999">Avaliação Q4 2025</div>
+            <div style="font-size:10px;color:#999">01/10 – 31/12/2025</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:11px;color:#666">● Encerrado</div>
+            <div style="font-size:10px;color:#666">18/18 enviadas</div>
+          </div>
+        </div>
+
+        <div style="padding:10px 12px;display:flex;justify-content:space-between;align-items:center;cursor:pointer">
+          <div>
+            <div style="font-size:13px;font-weight:600;color:#bbb">Clima Piloto</div>
+            <div style="font-size:10px;color:#bbb">Rascunho · editado ontem</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:11px;color:#bbb">○ Rascunho</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="mockup">
+    <div class="mockup-header" style="background:#fafafa">/avaliacoes/[cycleId]</div>
+    <div class="mockup-body" style="padding:16px;min-height:400px">
+      <div style="font-size:10px;color:#999;margin-bottom:4px">Avaliações › Avaliação Semestral 2026.1</div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">
+        <div>
+          <h3 style="margin:0 0 2px;font-size:15px">Avaliação Semestral 2026.1</h3>
+          <div style="font-size:10px;color:#666">01/01 – 30/06 · Resposta até 30/04 · <span style="color:#16a34a;font-weight:600">Em andamento</span></div>
+        </div>
+        <div style="display:flex;gap:4px">
+          <button class="mock-button" style="background:#fff;color:#333;border:1px solid #ddd;font-size:10px">Editar</button>
+          <button class="mock-button" style="background:#fff;color:#333;border:1px solid #ddd;font-size:10px">⋯</button>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:14px">
+        <div style="background:#f3f4f6;padding:10px;border-radius:6px;text-align:center">
+          <div style="font-size:9px;color:#666">Participantes</div>
+          <div style="font-size:16px;font-weight:700">12</div>
+        </div>
+        <div style="background:#f3f4f6;padding:10px;border-radius:6px;text-align:center">
+          <div style="font-size:9px;color:#666">Assignments</div>
+          <div style="font-size:16px;font-weight:700">24</div>
+        </div>
+        <div style="background:#fff7ed;padding:10px;border-radius:6px;text-align:center">
+          <div style="font-size:9px;color:#9a3412">Progresso</div>
+          <div style="font-size:16px;font-weight:700;color:#9a3412">58%</div>
+        </div>
+        <div style="background:#fef2f2;padding:10px;border-radius:6px;text-align:center">
+          <div style="font-size:9px;color:#991b1b">Atrasadas</div>
+          <div style="font-size:16px;font-weight:700;color:#991b1b">0</div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:4px;border-bottom:1px solid #eee;margin-bottom:10px">
+        <div style="padding:6px 10px;font-size:11px;color:#9a3412;border-bottom:2px solid #f97316;font-weight:600">Progresso</div>
+        <div style="padding:6px 10px;font-size:11px;color:#555">Participantes</div>
+        <div style="padding:6px 10px;font-size:11px;color:#555">Formulário</div>
+        <div style="padding:6px 10px;font-size:11px;color:#555">Resultados</div>
+      </div>
+
+      <div style="font-size:10px;color:#999;margin-bottom:4px">POR COLABORADOR AVALIADO</div>
+      <div style="border:1px solid #eee;border-radius:6px;overflow:hidden;font-size:11px">
+        <div style="display:grid;grid-template-columns:1.5fr 60px 60px 80px;gap:8px;padding:8px 10px;background:#fafafa;font-size:9px;color:#666;font-weight:600;border-bottom:1px solid #eee">
+          <div>COLABORADOR</div>
+          <div style="text-align:center">SELF</div>
+          <div style="text-align:center">GESTOR</div>
+          <div style="text-align:right">AÇÕES</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1.5fr 60px 60px 80px;gap:8px;padding:8px 10px;border-bottom:1px solid #f3f3f3;align-items:center">
+          <div>Ana Rocha</div>
+          <div style="text-align:center;color:#16a34a">✓</div>
+          <div style="text-align:center;color:#16a34a">✓</div>
+          <div style="text-align:right;color:#999;cursor:pointer">⋯</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1.5fr 60px 60px 80px;gap:8px;padding:8px 10px;border-bottom:1px solid #f3f3f3;align-items:center">
+          <div>Beto Lima</div>
+          <div style="text-align:center;color:#ca8a04">●</div>
+          <div style="text-align:center;color:#d1d5db">○</div>
+          <div style="text-align:right;color:#999;cursor:pointer">⋯</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1.5fr 60px 60px 80px;gap:8px;padding:8px 10px;align-items:center">
+          <div>Carla Dias</div>
+          <div style="text-align:center;color:#d1d5db">○</div>
+          <div style="text-align:center;color:#d1d5db">○</div>
+          <div style="text-align:right;color:#999;cursor:pointer">⋯</div>
+        </div>
+      </div>
+
+      <div style="margin-top:10px;display:flex;gap:4px;flex-wrap:wrap;font-size:10px;color:#666">
+        <span>✓ Enviada</span>
+        <span>·</span>
+        <span>● Em andamento</span>
+        <span>·</span>
+        <span>○ Não iniciada</span>
+      </div>
+
+      <div style="margin-top:16px;display:flex;gap:6px">
+        <button class="mock-button" style="background:#fff;color:#333;border:1px solid #ddd;font-size:11px">Reenviar lembretes</button>
+        <button class="mock-button" style="background:#fff;color:#333;border:1px solid #ddd;font-size:11px">Encerrar ciclo</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div style="margin-top:20px;padding:12px;background:#fafafa;border-radius:6px;font-size:13px;color:#555">
+  <strong>Decisões embutidas:</strong><br>
+  • <b>/avaliacoes</b>: listagem simples. Seção destacada "Pendentes para você" no topo (assignments do próprio user) + lista de todos os ciclos da empresa. Click → <code>/avaliacoes/[cycleId]</code>.<br>
+  • <b>Filtros em /avaliacoes</b>: busca + status (rascunho/agendado/em andamento/encerrado/arquivado).<br>
+  • <b>/avaliacoes/[cycleId]</b>: header com metadados, 4 KPI cards (participantes, assignments, progresso %, atrasadas), 4 tabs (Progresso · Participantes · Formulário · Resultados).<br>
+  • <b>Tab Progresso</b>: tabela de participantes × self/gestor, status visual (✓ / ● / ○). Kebab por linha: reenviar lembrete individual, ver detalhes, cancelar assignment, reatribuir reviewer.<br>
+  • <b>Tab Participantes</b>: gerenciar quem está no ciclo (adicionar/remover pós-publish).<br>
+  • <b>Tab Formulário</b>: read-only após publicar (só admin_rh pode ver as perguntas).<br>
+  • <b>Tab Resultados</b>: disabled enquanto ciclo não está <code>closed</code>. Quando closed, mostra resumo + link pro resultado individual de cada colaborador.<br>
+  • <b>Botões de ação</b>: "Reenviar lembretes" (envia e-mail via Resend para todos com assignments <code>pending/in_progress</code>), "Encerrar ciclo" (<code>status = closed</code>, modal de confirmação "Isso impedirá novos envios. Confirma?").<br>
+  • <b>"Pendentes para você"</b> aparece também no Dashboard stub (FT-5 já lança).<br>
+  • <b>Rascunhos</b>: linha em cinza, sem progresso; clicar leva para o wizard no passo correspondente.
+</div>
