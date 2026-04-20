@@ -23,7 +23,7 @@ const MAIN_NAV: NavItem[] = [
   { label: 'Colaboradores', href: '/colaboradores', icon: Users },
   { label: 'Avaliações', href: '/avaliacoes', icon: ClipboardList },
   { label: 'Feedbacks', href: '/feedbacks', icon: MessageSquare },
-  { label: 'PDI', href: '/pdi', icon: TrendingUp, disabled: true },
+  { label: 'PDI', href: '/pdi', icon: TrendingUp },
 ];
 
 const CONFIG_NAV: NavItem[] = [

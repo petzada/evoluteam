@@ -380,6 +380,132 @@ export type Database = {
           },
         ]
       }
+      development_plans: {
+        Row: {
+          id: string
+          company_id: string
+          employee_id: string
+          cycle_id: string | null
+          competency_id: string | null
+          objective: string
+          due_date: string
+          status: string
+          created_by: string
+          concluded_at: string | null
+          cancelled_at: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          company_id: string
+          employee_id: string
+          cycle_id?: string | null
+          competency_id?: string | null
+          objective: string
+          due_date: string
+          status?: string
+          created_by: string
+          concluded_at?: string | null
+          cancelled_at?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          company_id?: string
+          employee_id?: string
+          cycle_id?: string | null
+          competency_id?: string | null
+          objective?: string
+          due_date?: string
+          status?: string
+          created_by?: string
+          concluded_at?: string | null
+          cancelled_at?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      development_plan_actions: {
+        Row: {
+          id: string
+          plan_id: string
+          company_id: string
+          title: string
+          due_date: string
+          status: string
+          responsible_employee_id: string
+          sort_order: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          plan_id: string
+          company_id: string
+          title: string
+          due_date: string
+          status?: string
+          responsible_employee_id: string
+          sort_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          plan_id?: string
+          company_id?: string
+          title?: string
+          due_date?: string
+          status?: string
+          responsible_employee_id?: string
+          sort_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      development_plan_comments: {
+        Row: {
+          id: string
+          plan_id: string
+          company_id: string
+          author_id: string
+          body: string
+          created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
+        }
+        Insert: {
+          id?: string
+          plan_id: string
+          company_id: string
+          author_id: string
+          body: string
+          created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+        }
+        Update: {
+          id?: string
+          plan_id?: string
+          company_id?: string
+          author_id?: string
+          body?: string
+          created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+        }
+        Relationships: []
+      }
       feedbacks: {
         Row: {
           company_id: string

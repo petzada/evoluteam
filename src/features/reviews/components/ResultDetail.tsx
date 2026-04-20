@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -11,6 +12,13 @@ import { cn } from '@/lib/utils';
 import { formatDate } from '@/lib/date';
 import { releaseResult, hideResult } from '../actions';
 import type { ResultOverview, CycleComment } from '../queries';
+import type { PlanRow } from '@/features/pdi/queries';
+import {
+  PdiSheet, type EmployeeOption as PdiEmployeeOption, type CompetencyOption as PdiCompetencyOption,
+  type CycleOption as PdiCycleOption,
+} from '@/features/pdi/components/PdiSheet';
+import { computePdiStatus, pdiStatusColor } from '@/features/pdi/utils';
+import { PDI_STATUS_LABELS } from '@/features/pdi/schema';
 
 interface Props {
   cycleId: string;
@@ -24,12 +32,20 @@ interface Props {
   overview: ResultOverview;
   comments: CycleComment[];
   isAdmin: boolean;
+  existingPdi: PlanRow | null;
+  canCreatePdi: boolean;
+  pdiEmployees: PdiEmployeeOption[];
+  pdiCompetencies: PdiCompetencyOption[];
+  pdiCycles: PdiCycleOption[];
+  actorEmployeeId: string | null;
 }
 
 export function ResultDetail({
   cycleId, cycleName, employee, overview, comments, isAdmin,
+  existingPdi, canCreatePdi, pdiEmployees, pdiCompetencies, pdiCycles, actorEmployeeId,
 }: Props) {
   const router = useRouter();
+  const [pdiSheetOpen, setPdiSheetOpen] = useState(false);
 
   async function toggleRelease() {
     const fn = overview.isReleased ? hideResult : releaseResult;
@@ -141,16 +157,15 @@ export function ResultDetail({
             )}
           </section>
 
-          <Tooltip>
-            <TooltipTrigger
-              render={
-                <Button variant="outline" disabled className="w-full">
-                  Criar PDI com este resultado
-                </Button>
-              }
-            />
-            <TooltipContent>Disponível após FT-4</TooltipContent>
-          </Tooltip>
+          {existingPdi ? (
+            <Link href={`/pdi/${existingPdi.id}`}>
+              <Button variant="outline" className="w-full">Ver PDI deste ciclo</Button>
+            </Link>
+          ) : canCreatePdi ? (
+            <Button variant="outline" className="w-full" onClick={() => setPdiSheetOpen(true)}>
+              Criar PDI com este resultado
+            </Button>
+          ) : null}
         </aside>
 
         <main className="space-y-6">
@@ -212,6 +227,47 @@ export function ResultDetail({
           </section>
 
           <section>
+            <h2 className="text-base font-semibold mb-3">PDI gerado</h2>
+            {existingPdi ? (
+              <Link
+                href={`/pdi/${existingPdi.id}`}
+                className="block rounded-md border p-4 hover:bg-muted/30 transition-colors"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <p className="text-sm line-clamp-2">{existingPdi.objective}</p>
+                  {(() => {
+                    const computed = computePdiStatus(existingPdi);
+                    return (
+                      <span
+                        className={cn(
+                          'inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium shrink-0',
+                          pdiStatusColor(computed),
+                        )}
+                      >
+                        {PDI_STATUS_LABELS[computed]}
+                      </span>
+                    );
+                  })()}
+                </div>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  {existingPdi.actions_done} de {existingPdi.actions_count} ações concluídas · Prazo {formatDate(existingPdi.due_date)}
+                </p>
+              </Link>
+            ) : canCreatePdi ? (
+              <div className="rounded-md border border-dashed p-6 text-center">
+                <p className="text-sm text-muted-foreground mb-3">
+                  Transforme este resultado em um plano de desenvolvimento.
+                </p>
+                <Button onClick={() => setPdiSheetOpen(true)}>
+                  Criar PDI com base nesta avaliação
+                </Button>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground italic">Nenhum PDI vinculado a este ciclo.</p>
+            )}
+          </section>
+
+          <section>
             <h2 className="text-base font-semibold mb-3">Comentários</h2>
             {comments.length === 0 ? (
               <p className="text-sm text-muted-foreground italic">Sem comentários.</p>
@@ -237,6 +293,19 @@ export function ResultDetail({
           </section>
         </main>
       </div>
+
+      <PdiSheet
+        open={pdiSheetOpen}
+        onOpenChange={setPdiSheetOpen}
+        employees={pdiEmployees}
+        competencies={pdiCompetencies}
+        cycles={pdiCycles}
+        isAdmin={isAdmin}
+        actorEmployeeId={actorEmployeeId}
+        presetEmployeeId={employee.id}
+        presetCycleId={cycleId}
+        presetCompetencyId={weaknesses[0]?.competencyId ?? null}
+      />
     </div>
   );
 }

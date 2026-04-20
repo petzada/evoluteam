@@ -5,6 +5,7 @@ import {
   getActorEmployeeId, getActorDescendants,
 } from '@/features/reviews/queries';
 import { ResultDetail } from '@/features/reviews/components/ResultDetail';
+import { getPdiForCycleAndEmployee } from '@/features/pdi/queries';
 
 export default async function ResultadoIndividualPage({
   params,
@@ -57,7 +58,37 @@ export default async function ResultadoIndividualPage({
     }
   }
 
-  const comments = await getCycleComments(cycleId, employeeId);
+  const [comments, existingPdi, employeeRow, { data: pdiEmployees }, { data: pdiCompetencies }, { data: pdiCycles }] = await Promise.all([
+    getCycleComments(cycleId, employeeId),
+    getPdiForCycleAndEmployee(cycleId, employeeId),
+    supabase
+      .from('employees')
+      .select('manager_id')
+      .eq('id', employeeId)
+      .maybeSingle(),
+    supabase
+      .from('employees')
+      .select('id, full_name, email, status, manager_id, position:positions(id, name)')
+      .eq('company_id', profile.company_id)
+      .in('status', ['active', 'inactive'])
+      .order('full_name'),
+    supabase
+      .from('competencies')
+      .select('id, name')
+      .eq('company_id', profile.company_id)
+      .eq('is_archived', false)
+      .order('name'),
+    supabase
+      .from('review_cycles')
+      .select('id, name, status')
+      .eq('company_id', profile.company_id)
+      .in('status', ['published', 'closed'])
+      .order('created_at', { ascending: false }),
+  ]);
+
+  const canCreatePdi =
+    isAdmin
+    || (actorEmployeeId !== null && employeeRow.data?.manager_id === actorEmployeeId);
 
   return (
     <ResultDetail
@@ -67,6 +98,12 @@ export default async function ResultadoIndividualPage({
       overview={overview}
       comments={comments}
       isAdmin={isAdmin}
+      existingPdi={existingPdi}
+      canCreatePdi={canCreatePdi}
+      pdiEmployees={(pdiEmployees ?? []) as Parameters<typeof ResultDetail>[0]['pdiEmployees']}
+      pdiCompetencies={pdiCompetencies ?? []}
+      pdiCycles={pdiCycles ?? []}
+      actorEmployeeId={actorEmployeeId}
     />
   );
 }

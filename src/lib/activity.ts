@@ -67,7 +67,10 @@ export const ACTIVITY_LABELS: Record<string, string> = {
   'feedback.created': 'Feedback enviado',
   'feedback.deleted': 'Feedback removido',
   'pdi.created': 'PDI criado',
+  'pdi.updated': 'PDI atualizado',
   'pdi.concluded': 'PDI concluído',
   'pdi.cancelled': 'PDI cancelado',
   'pdi.deleted': 'PDI removido',
+  'pdi_action.created': 'Ação do PDI adicionada',
+  'pdi_action.updated': 'Ação do PDI atualizada',
 };

@@ -18,6 +18,17 @@ import { EmployeeSheet, type ExistingEmployee } from './EmployeeSheet';
 import { ConfirmStatusDialog, type StatusAction } from './ConfirmStatusDialog';
 import { FeedbackCard } from '@/features/feedbacks/components/FeedbackCard';
 import type { FeedbackRow } from '@/features/feedbacks/queries';
+import { PdiCard } from '@/features/pdi/components/PdiCard';
+import {
+  PdiSheet, type EmployeeOption as PdiEmployeeOption, type CompetencyOption as PdiCompetencyOption,
+  type CycleOption as PdiCycleOption,
+} from '@/features/pdi/components/PdiSheet';
+import type { PlanRow } from '@/features/pdi/queries';
+import { computePdiStatus } from '@/features/pdi/utils';
+import {
+  PDI_STATUSES, PDI_STATUS_LABELS, type PdiComputedStatus,
+} from '@/features/pdi/schema';
+import { MultiSelectFilter } from '@/components/MultiSelectFilter';
 import { formatDate, formatDateTime } from '@/lib/date';
 import { ACTIVITY_LABELS } from '@/lib/activity';
 import { resendInvite, revokeInvite, updateRole } from '../actions';
@@ -77,6 +88,12 @@ interface Props {
   actors: Record<string, string>;
   feedbacks: FeedbackRow[];
   initialTab?: string;
+  pdis: PlanRow[];
+  canCreatePdi: boolean;
+  pdiEmployees: PdiEmployeeOption[];
+  pdiCompetencies: PdiCompetencyOption[];
+  pdiCycles: PdiCycleOption[];
+  actorEmployeeId: string | null;
 }
 
 const ROLE_LABELS: Record<Role, string> = {
@@ -96,19 +113,23 @@ function initials(name: string) {
   return parts.map((p) => p[0]?.toUpperCase()).join('');
 }
 
-const VALID_TABS = ['dados', 'acesso', 'historico', 'feedbacks'] as const;
+const VALID_TABS = ['dados', 'acesso', 'historico', 'feedbacks', 'pdi'] as const;
 
 export function EmployeeProfile({
   employee, directReports, activityLog, role, lastSignInAt, isAdmin, isSelf,
   canSeeInternalNotes, positions, departments, managers, descendantIds,
   subordinatesCount, actors, feedbacks, initialTab,
+  pdis, canCreatePdi, pdiEmployees, pdiCompetencies, pdiCycles, actorEmployeeId,
 }: Props) {
   const resolvedInitialTab = VALID_TABS.includes(initialTab as typeof VALID_TABS[number])
     ? (initialTab as typeof VALID_TABS[number])
     : 'dados';
   const router = useRouter();
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [pdiSheetOpen, setPdiSheetOpen] = useState(false);
   const [statusAction, setStatusAction] = useState<StatusAction | null>(null);
+  const [pdiStatusFilter, setPdiStatusFilter] = useState<string[]>([]);
+  const [pdiCompetencyFilter, setPdiCompetencyFilter] = useState<string[]>([]);
 
   const existing: ExistingEmployee = {
     id: employee.id,
@@ -236,7 +257,7 @@ export function EmployeeProfile({
           <TabsTrigger value="historico">Histórico</TabsTrigger>
           <TabDisabled label="Avaliações" tip="Disponível quando FT-2 for implementada" />
           <TabsTrigger value="feedbacks">Feedbacks</TabsTrigger>
-          <TabDisabled label="PDI" tip="Disponível quando FT-4 for implementada" />
+          <TabsTrigger value="pdi">PDI</TabsTrigger>
         </TabsList>
 
         <TabsContent value="dados" className="mt-6">
@@ -465,6 +486,62 @@ export function EmployeeProfile({
             </ul>
           )}
         </TabsContent>
+
+        <TabsContent value="pdi" className="mt-6">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <p className="text-sm text-muted-foreground">
+              {pdis.length} PDI{pdis.length === 1 ? '' : 's'}
+              <span className="text-muted-foreground/70"> · conforme sua visibilidade</span>
+            </p>
+            {canCreatePdi && (
+              <Button size="sm" onClick={() => setPdiSheetOpen(true)}>
+                Criar PDI
+              </Button>
+            )}
+          </div>
+          <div className="flex flex-wrap items-center gap-2 mb-4">
+            <MultiSelectFilter
+              label="Status"
+              options={([...PDI_STATUSES, 'atrasado'] as PdiComputedStatus[]).map((s) => ({
+                value: s, label: PDI_STATUS_LABELS[s],
+              }))}
+              value={pdiStatusFilter}
+              onChange={setPdiStatusFilter}
+              width="w-44"
+            />
+            <MultiSelectFilter
+              label="Competências"
+              options={[
+                { value: '__none__', label: 'Sem competência' },
+                ...pdiCompetencies.map((c) => ({ value: c.id, label: c.name })),
+              ]}
+              value={pdiCompetencyFilter}
+              onChange={setPdiCompetencyFilter}
+              width="w-52"
+            />
+          </div>
+          {(() => {
+            const filtered = pdis.filter((p) => {
+              if (pdiStatusFilter.length && !pdiStatusFilter.includes(computePdiStatus(p))) return false;
+              if (pdiCompetencyFilter.length && !pdiCompetencyFilter.includes(p.competency_id ?? '__none__')) return false;
+              return true;
+            });
+            if (filtered.length === 0) {
+              return (
+                <p className="text-sm text-muted-foreground italic">Nenhum PDI para exibir.</p>
+              );
+            }
+            return (
+              <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {filtered.map((p) => (
+                  <li key={p.id}>
+                    <PdiCard plan={p} showEmployee={false} />
+                  </li>
+                ))}
+              </ul>
+            );
+          })()}
+        </TabsContent>
       </Tabs>
 
       <EmployeeSheet
@@ -475,6 +552,17 @@ export function EmployeeProfile({
         managers={managers}
         employee={existing}
         isAdmin={isAdmin}
+      />
+
+      <PdiSheet
+        open={pdiSheetOpen}
+        onOpenChange={setPdiSheetOpen}
+        employees={pdiEmployees}
+        competencies={pdiCompetencies}
+        cycles={pdiCycles}
+        isAdmin={isAdmin}
+        actorEmployeeId={actorEmployeeId}
+        presetEmployeeId={employee.id}
       />
 
       <ConfirmStatusDialog

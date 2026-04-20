@@ -15,6 +15,7 @@ import {
 import { canViewEmployee, canSeeInternalNotes } from '@/features/employees/permissions';
 import { EmployeeProfile } from '@/features/employees/components/EmployeeProfile';
 import { listFeedbacksForEmployee } from '@/features/feedbacks/queries';
+import { listPdisForEmployee } from '@/features/pdi/queries';
 
 export default async function EmployeeProfilePage({
   params,
@@ -62,7 +63,11 @@ export default async function EmployeeProfilePage({
     redirect('/colaboradores');
   }
 
-  const [directReports, subordinatesCount, activityLog, positions, departments, managers, feedbacks] = await Promise.all([
+  const [
+    directReports, subordinatesCount, activityLog, positions, departments, managers,
+    feedbacks, pdis,
+    { data: pdiEmployees }, { data: pdiCompetencies }, { data: pdiCycles },
+  ] = await Promise.all([
     getDirectReports(id),
     countDirectReports(id),
     getEmployeeActivityLog(profile.company_id, id, employee.user_id),
@@ -70,7 +75,30 @@ export default async function EmployeeProfilePage({
     getDepartments(profile.company_id),
     getManagerCandidates(profile.company_id, id),
     listFeedbacksForEmployee(id),
+    listPdisForEmployee(id),
+    supabase
+      .from('employees')
+      .select('id, full_name, email, status, manager_id, position:positions(id, name)')
+      .eq('company_id', profile.company_id)
+      .in('status', ['active', 'inactive'])
+      .order('full_name'),
+    supabase
+      .from('competencies')
+      .select('id, name')
+      .eq('company_id', profile.company_id)
+      .eq('is_archived', false)
+      .order('name'),
+    supabase
+      .from('review_cycles')
+      .select('id, name, status')
+      .eq('company_id', profile.company_id)
+      .in('status', ['published', 'closed'])
+      .order('created_at', { ascending: false }),
   ]);
+
+  const canCreatePdiHere =
+    actorRole === 'admin_rh'
+    || (actorEmployeeId !== null && employee.manager?.id === actorEmployeeId);
 
   // Último login via admin auth
   let lastSignInAt: string | null = null;
@@ -126,6 +154,12 @@ export default async function EmployeeProfilePage({
       actors={actors}
       feedbacks={feedbacks}
       initialTab={search.tab}
+      pdis={pdis}
+      canCreatePdi={canCreatePdiHere}
+      pdiEmployees={(pdiEmployees ?? []) as Parameters<typeof EmployeeProfile>[0]['pdiEmployees']}
+      pdiCompetencies={pdiCompetencies ?? []}
+      pdiCycles={pdiCycles ?? []}
+      actorEmployeeId={actorEmployeeId}
     />
   );
 }

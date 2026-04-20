@@ -21,7 +21,17 @@
       "Bash(mkdir -p \"src/app/\\(app\\)/dashboard\" \"src/app/\\(app\\)/colaboradores/novo\" \"src/app/\\(app\\)/colaboradores/[id]\")",
       "Bash(git rm *)",
       "Bash(git commit *)",
-      "Bash(pnpm approve-builds *)"
+      "Bash(pnpm approve-builds *)",
+      "Bash(node *)",
+      "Bash(pnpm tsc *)",
+      "Bash(pnpm test:run)",
+      "Bash(pnpm exec *)",
+      "Bash(tee /tmp/tsc.log)",
+      "Bash(echo \"EXITCODE=$?\")",
+      "Bash(pnpm lint *)",
+      "Bash(git stash *)",
+      "Bash(git push *)",
+      "Bash(echo \"EXIT=$?\")"
     ]
   }
 }
