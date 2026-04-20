@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'sonner';
@@ -20,6 +20,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { MultiSelectFilter } from '@/components/MultiSelectFilter';
+import { PaginationControls } from '@/components/PaginationControls';
 import { EmployeeSheet, type ExistingEmployee } from './EmployeeSheet';
 import { ConfirmStatusDialog, type StatusAction } from './ConfirmStatusDialog';
 import { resendInvite, revokeInvite } from '../actions';
@@ -232,6 +233,25 @@ export function EmployeesList({
     });
   }, [employees, search, statusFilter, positionFilter, departmentFilter, managerFilter, showTerminated, specialFilter, specialSet]);
 
+  const PAGE_SIZE = 20;
+  const [page, setPage] = useState(1);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const effectivePage = Math.min(page, totalPages);
+
+  const paged = useMemo(() => {
+    const start = (effectivePage - 1) * PAGE_SIZE;
+    return filtered.slice(start, start + PAGE_SIZE);
+  }, [filtered, effectivePage]);
+
+  const resetPage = useCallback(() => setPage(1), []);
+  const onSearchChange = (v: string) => { setSearch(v); resetPage(); };
+  const onStatusFilterChange = (v: string) => { setStatusFilter(v); resetPage(); };
+  const onPositionFilterChange = (v: string[]) => { setPositionFilter(v); resetPage(); };
+  const onDepartmentFilterChange = (v: string[]) => { setDepartmentFilter(v); resetPage(); };
+  const onManagerFilterChange = (v: string[]) => { setManagerFilter(v); resetPage(); };
+  const onShowTerminatedChange = (v: boolean) => { setShowTerminated(v); resetPage(); };
+
   function clearSpecialFilter() {
     const p = new URLSearchParams(searchParams?.toString() ?? '');
     p.delete('filter');
@@ -327,11 +347,11 @@ export function EmployeesList({
             <Input
               placeholder="Buscar por nome ou e-mail…"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => onSearchChange(e.target.value)}
               className="pl-9"
             />
           </div>
-          <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v ?? 'all')} items={STATUS_FILTER_ITEMS}>
+          <Select value={statusFilter} onValueChange={(v) => onStatusFilterChange(v ?? 'all')} items={STATUS_FILTER_ITEMS}>
             <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
             <SelectContent>
               {STATUS_FILTER_ITEMS.map((it) => (
@@ -343,21 +363,21 @@ export function EmployeesList({
             label="Cargos"
             options={positionOptions}
             value={positionFilter}
-            onChange={setPositionFilter}
+            onChange={onPositionFilterChange}
             width="w-40"
           />
           <MultiSelectFilter
             label="Departamentos"
             options={departmentOptions}
             value={departmentFilter}
-            onChange={setDepartmentFilter}
+            onChange={onDepartmentFilterChange}
             width="w-48"
           />
           <MultiSelectFilter
             label="Gestores"
             options={managerOptions}
             value={managerFilter}
-            onChange={setManagerFilter}
+            onChange={onManagerFilterChange}
             width="w-44"
           />
 
@@ -412,7 +432,7 @@ export function EmployeesList({
             <input
               type="checkbox"
               checked={showTerminated}
-              onChange={(e) => setShowTerminated(e.target.checked)}
+              onChange={(e) => onShowTerminatedChange(e.target.checked)}
               className="h-3.5 w-3.5 accent-primary"
             />
             Mostrar desligados
@@ -453,7 +473,7 @@ export function EmployeesList({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((emp) => {
+                {paged.map((emp) => {
                   const status = deriveStatus(emp);
                   const isSelf = emp.user_id === currentUserId;
                   const pendingInvite = emp.invite?.find(
@@ -565,6 +585,12 @@ export function EmployeesList({
                 })}
               </TableBody>
             </Table>
+            <PaginationControls
+              page={effectivePage}
+              pageSize={PAGE_SIZE}
+              total={filtered.length}
+              onChange={setPage}
+            />
           </div>
         )}
       </div>

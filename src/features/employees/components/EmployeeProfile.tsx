@@ -12,12 +12,12 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { EmployeeSheet, type ExistingEmployee } from './EmployeeSheet';
 import { ConfirmStatusDialog, type StatusAction } from './ConfirmStatusDialog';
 import { FeedbackCard } from '@/features/feedbacks/components/FeedbackCard';
 import type { FeedbackRow } from '@/features/feedbacks/queries';
+import type { ReviewCycleForEmployee } from '@/features/reviews/queries';
 import { PdiCard } from '@/features/pdi/components/PdiCard';
 import {
   PdiSheet, type EmployeeOption as PdiEmployeeOption, type CompetencyOption as PdiCompetencyOption,
@@ -87,6 +87,8 @@ interface Props {
   subordinatesCount: number;
   actors: Record<string, string>;
   feedbacks: FeedbackRow[];
+  reviewCycles: ReviewCycleForEmployee[];
+  canSeeResults: boolean;
   initialTab?: string;
   pdis: PlanRow[];
   canCreatePdi: boolean;
@@ -113,12 +115,19 @@ function initials(name: string) {
   return parts.map((p) => p[0]?.toUpperCase()).join('');
 }
 
-const VALID_TABS = ['dados', 'acesso', 'historico', 'feedbacks', 'pdi'] as const;
+const VALID_TABS = ['dados', 'acesso', 'historico', 'avaliacoes', 'feedbacks', 'pdi'] as const;
+
+const CYCLE_STATUS_LABEL: Record<'draft' | 'published' | 'closed' | 'archived', string> = {
+  draft: 'Rascunho',
+  published: 'Em andamento',
+  closed: 'Encerrado',
+  archived: 'Arquivado',
+};
 
 export function EmployeeProfile({
   employee, directReports, activityLog, role, lastSignInAt, isAdmin, isSelf,
   canSeeInternalNotes, positions, departments, managers, descendantIds,
-  subordinatesCount, actors, feedbacks, initialTab,
+  subordinatesCount, actors, feedbacks, reviewCycles, canSeeResults, initialTab,
   pdis, canCreatePdi, pdiEmployees, pdiCompetencies, pdiCycles, actorEmployeeId,
 }: Props) {
   const resolvedInitialTab = VALID_TABS.includes(initialTab as typeof VALID_TABS[number])
@@ -255,7 +264,7 @@ export function EmployeeProfile({
           <TabsTrigger value="dados">Dados</TabsTrigger>
           <TabsTrigger value="acesso">Acesso</TabsTrigger>
           <TabsTrigger value="historico">Histórico</TabsTrigger>
-          <TabDisabled label="Avaliações" tip="Disponível quando FT-2 for implementada" />
+          <TabsTrigger value="avaliacoes">Avaliações</TabsTrigger>
           <TabsTrigger value="feedbacks">Feedbacks</TabsTrigger>
           <TabsTrigger value="pdi">PDI</TabsTrigger>
         </TabsList>
@@ -458,6 +467,74 @@ export function EmployeeProfile({
           )}
         </TabsContent>
 
+        <TabsContent value="avaliacoes" className="mt-6">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm text-muted-foreground">
+              {reviewCycles.length} ciclo{reviewCycles.length === 1 ? '' : 's'} de avaliação
+              <span className="text-muted-foreground/70"> · conforme sua visibilidade</span>
+            </p>
+          </div>
+          {reviewCycles.length === 0 ? (
+            <p className="text-sm text-muted-foreground italic">
+              Este colaborador ainda não participou de nenhum ciclo.
+            </p>
+          ) : (
+            <ul className="space-y-3">
+              {reviewCycles.map((c) => {
+                const canView = canSeeResults || (isSelf && c.isReleased);
+                const resultHref = `/avaliacoes/${c.cycleId}/resultados/${employee.id}`;
+                return (
+                  <li key={c.cycleId} className="rounded-md border p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <Link
+                          href={`/avaliacoes/${c.cycleId}`}
+                          className="font-medium hover:text-primary hover:underline"
+                        >
+                          {c.cycleName}
+                        </Link>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Período {formatDate(c.periodStart)} – {formatDate(c.periodEnd)}
+                          {' · '}
+                          Prazo {formatDate(c.responseStart)} – {formatDate(c.responseEnd)}
+                        </p>
+                      </div>
+                      <div className="flex flex-col items-end gap-1 shrink-0">
+                        <Badge variant={c.status === 'closed' ? 'default' : 'outline'}>
+                          {CYCLE_STATUS_LABEL[c.status]}
+                        </Badge>
+                        {isSelf && !c.isReleased && (
+                          <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
+                            Resultado não liberado
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="mt-3 flex items-center justify-between gap-3">
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-xs text-muted-foreground">Média geral</span>
+                        <span className="text-lg font-semibold">
+                          {c.avgOverall !== null ? c.avgOverall.toFixed(1) : '—'}
+                        </span>
+                        {c.avgOverall !== null && (
+                          <span className="text-xs text-muted-foreground">/5</span>
+                        )}
+                      </div>
+                      {canView ? (
+                        <Link href={resultHref}>
+                          <Button size="sm" variant="outline">Ver resultado</Button>
+                        </Link>
+                      ) : (
+                        <Button size="sm" variant="outline" disabled>Ver resultado</Button>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </TabsContent>
+
         <TabsContent value="feedbacks" className="mt-6">
           <div className="flex items-center justify-between mb-3">
             <p className="text-sm text-muted-foreground">
@@ -594,18 +671,3 @@ function StatusDot({ status }: { status: string }) {
   return <span className={`inline-block size-2 rounded-full ${color}`} />;
 }
 
-function TabDisabled({ label, tip }: { label: string; tip: string }) {
-  return (
-    <Tooltip>
-      <TooltipTrigger
-        render={
-          <span className="inline-flex items-center rounded-md px-2 py-1 text-sm text-muted-foreground/50 cursor-not-allowed">
-            {label}
-            <span className="ml-1.5 text-[10px] uppercase">em breve</span>
-          </span>
-        }
-      />
-      <TooltipContent>{tip}</TooltipContent>
-    </Tooltip>
-  );
-}

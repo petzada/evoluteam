@@ -473,6 +473,65 @@ export async function listCycleResults(cycleId: string): Promise<CycleResultRow[
   });
 }
 
+export type ReviewCycleForEmployee = {
+  cycleId: string;
+  cycleName: string;
+  periodStart: string;
+  periodEnd: string;
+  responseStart: string;
+  responseEnd: string;
+  status: 'draft' | 'published' | 'closed' | 'archived';
+  isReleased: boolean;
+  releasedAt: string | null;
+  avgOverall: number | null;
+};
+
+export async function listReviewCyclesForEmployee(
+  employeeId: string,
+): Promise<ReviewCycleForEmployee[]> {
+  const supabase = await createServerSupabaseClient();
+  const { data: participants } = await supabase
+    .from('review_cycle_participants')
+    .select(`
+      cycle_id, result_released_at,
+      cycle:review_cycles!cycle_id(id, name, status, period_start, period_end, response_start, response_end)
+    `)
+    .eq('employee_id', employeeId)
+    .is('removed_at', null);
+
+  if (!participants?.length) return [];
+
+  const results = await Promise.all(
+    participants
+      .filter((p) => !!p.cycle)
+      .map(async (p) => {
+        const cycle = p.cycle as unknown as {
+          id: string; name: string;
+          status: 'draft' | 'published' | 'closed' | 'archived';
+          period_start: string; period_end: string;
+          response_start: string; response_end: string;
+        };
+        const overview = await getResultOverview(cycle.id, employeeId);
+        return {
+          cycleId: cycle.id,
+          cycleName: cycle.name,
+          periodStart: cycle.period_start,
+          periodEnd: cycle.period_end,
+          responseStart: cycle.response_start,
+          responseEnd: cycle.response_end,
+          status: cycle.status,
+          isReleased: !!p.result_released_at,
+          releasedAt: p.result_released_at ?? null,
+          avgOverall: overview.avgOverall,
+        };
+      }),
+  );
+
+  return results.sort((a, b) =>
+    a.responseStart < b.responseStart ? 1 : a.responseStart > b.responseStart ? -1 : 0,
+  );
+}
+
 export async function getEligibleEmployees(companyId: string) {
   const supabase = await createServerSupabaseClient();
   const { data } = await supabase

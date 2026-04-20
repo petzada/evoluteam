@@ -16,6 +16,7 @@ import { canViewEmployee, canSeeInternalNotes } from '@/features/employees/permi
 import { EmployeeProfile } from '@/features/employees/components/EmployeeProfile';
 import { listFeedbacksForEmployee } from '@/features/feedbacks/queries';
 import { listPdisForEmployee } from '@/features/pdi/queries';
+import { listReviewCyclesForEmployee } from '@/features/reviews/queries';
 
 export default async function EmployeeProfilePage({
   params,
@@ -65,7 +66,7 @@ export default async function EmployeeProfilePage({
 
   const [
     directReports, subordinatesCount, activityLog, positions, departments, managers,
-    feedbacks, pdis,
+    feedbacks, pdis, reviewCycles,
     { data: pdiEmployees }, { data: pdiCompetencies }, { data: pdiCycles },
   ] = await Promise.all([
     getDirectReports(id),
@@ -76,6 +77,7 @@ export default async function EmployeeProfilePage({
     getManagerCandidates(profile.company_id, id),
     listFeedbacksForEmployee(id),
     listPdisForEmployee(id),
+    listReviewCyclesForEmployee(id),
     supabase
       .from('employees')
       .select('id, full_name, email, status, manager_id, position:positions(id, name)')
@@ -99,6 +101,12 @@ export default async function EmployeeProfilePage({
   const canCreatePdiHere =
     actorRole === 'admin_rh'
     || (actorEmployeeId !== null && employee.manager?.id === actorEmployeeId);
+
+  // canSeeResults: admin_rh e director veem tudo; gestor vê descendentes; self só com liberação.
+  // Quando canSeeResults=false e isSelf=true, o componente libera por ciclo (isReleased).
+  const isSelfHere = employee.user_id === user.id;
+  const canSeeResults =
+    actorRole === 'admin_rh' || actorRole === 'director' || (!isSelfHere && isDescendantOfActor);
 
   // Último login via admin auth
   let lastSignInAt: string | null = null;
@@ -153,6 +161,8 @@ export default async function EmployeeProfilePage({
       subordinatesCount={subordinatesCount}
       actors={actors}
       feedbacks={feedbacks}
+      reviewCycles={reviewCycles}
+      canSeeResults={canSeeResults}
       initialTab={search.tab}
       pdis={pdis}
       canCreatePdi={canCreatePdiHere}
