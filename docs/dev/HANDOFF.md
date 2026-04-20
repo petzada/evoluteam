@@ -2,8 +2,8 @@
 
 Documento de retomada. Lido por nova sessão para continuar com exatamente a mesma precisão, ritmo e padrão de brainstorming.
 
-**Última pausa:** 2026-04-20, após commit de FT-3.
-**Próximo passo:** brainstorm da **FT-4 (PDI — Plano de Desenvolvimento Individual)**.
+**Última pausa:** 2026-04-20, após commit de FT-4.
+**Próximo passo:** brainstorm da **FT-5 (Dashboard)**.
 
 ---
 
@@ -36,7 +36,7 @@ Documento de retomada. Lido por nova sessão para continuar com exatamente a mes
 > - Side sheet 440px como padrão de "criar algo"
 > - Commits sequenciais conforme plano em HANDOFF.md §5
 >
-> Continuamos na **pergunta 51** (início do brainstorm FT-4). Quando terminar o brainstorm da FT-4, escreva `docs/dev/05-ft-4-pdi.md` e commit. Depois FT-5 do mesmo jeito, e por último o brainstorm de scaffold/implementação.
+> Continuamos na **pergunta 69** (início do brainstorm FT-5). Quando terminar o brainstorm da FT-5, escreva `docs/dev/06-ft-5-dashboard.md` e commit. Depois o brainstorm de scaffold/implementação.
 >
 > Me responda em PT-BR (obrigatório). Começa perguntando se pode invocar o Visual Companion e depois parte para a Pergunta 51.
 
@@ -45,6 +45,7 @@ Documento de retomada. Lido por nova sessão para continuar com exatamente a mes
 ## 2. Estado atual — o que já está commitado
 
 ```
+f9f0e85 docs(dev): FT-4 PDI spec
 45c95c4 docs(dev): FT-3 feedbacks spec
 14660e3 docs(dev): FT-2 avaliacoes spec
 3af082b docs(dev): unify users/colaboradores model + FT-1 spec
@@ -60,8 +61,8 @@ Documento de retomada. Lido por nova sessão para continuar com exatamente a mes
 | `02-ft-1-colaboradores.md` | ✅ Aprovado | CRUD expandido de `/colaboradores`, perfil `[id]` com 6 tabs, deptos/cargos CRUD, validações de hierarquia |
 | `03-ft-2-avaliacoes.md` | ✅ Aprovado | Ciclos de avaliação — wizard 5 passos, formulário, assignments, resposta, resultados |
 | `04-ft-3-feedbacks.md` | ✅ Aprovado | Feedbacks contínuos — 5 tipos, 3 visibilidades, `FeedbackSheet` via `EntitySheet` |
-| `05-ft-4-pdi.md` | ⏳ Pendente | PDI — próximo alvo do brainstorm |
-| `06-ft-5-dashboard.md` | ⏳ Pendente | Dashboard — depois de FT-4 |
+| `05-ft-4-pdi.md` | ✅ Aprovado | PDI — 3 tabelas, PdiSheet, /pdi abas, pg_cron, RLS |
+| `06-ft-5-dashboard.md` | ⏳ Pendente | Dashboard — próximo alvo do brainstorm |
 | `memory/` | ✅ Versionado | Memórias persistentes do Claude Code (índice + 3 memórias + README de instalação) |
 
 ### Decisões confirmadas até agora (51 perguntas respondidas)
@@ -94,34 +95,14 @@ Os números aqui são de ordem aproximada do brainstorm — a lista canônica de
 
 **FT-3 (Q48–Q50)** — 3 abas listagem · `FeedbackSheet` (sidesheet) · 5 tipos · 3 visibilidades com skip-level · imutabilidade após envio.
 
+**FT-4 (Q51–Q68)** — PdiSheet 440px · ações lean · status híbrido (atrasado computado) · abas /pdi · seção resultado · pg_cron pdi_action_due · comentários bidirecionais · RLS 3 tabelas.
+
 ---
 
 ## 3. Próximos blocos
 
-### FT-4 — PDI (próximo)
-Referências: `features/FT-4.md`, `docs/USERS-ABLE.md §10`, `docs/MVP.md §4`, `docs/ESTRUTURA.md §12`.
-
-**Questões a explorar (preview — não perguntar tudo de uma vez):**
-1. Relação PDI ↔ ciclo de avaliação (obrigatório vincular? opcional?)
-2. Status do PDI vs status das ações (dois níveis)
-3. UI de criação (side sheet `PdiSheet`? dedicated page?)
-4. Ações dentro do PDI — scope (título, descrição, prazo, responsável, status, comentários, evidências)
-5. Responsável por ação (auto = colaborador, override manual?)
-6. Quem cria PDI (admin_rh? gestor? colaborador?)
-7. Quem acompanha status das ações
-8. Listagem `/pdi` — abas ou filtros?
-9. Integração com resultado de avaliação (botão "Criar PDI com base neste resultado")
-10. Aba "PDI" ativa no perfil (era "em breve" em FT-1)
-11. Aba "PDI" no ciclo de avaliação (ou `/pdi` independente?)
-12. Notificações (criação, ação próxima do prazo, conclusão)
-13. Comentários em PDI — who, visibility
-14. Evidências/anexos — in/out do MVP?
-15. Cancelamento de PDI quando colaborador é desligado
-16. Permissions (canViewPdi, canEditPdi)
-17. RLS
-18. Edge cases
-
-**Alvo final:** `docs/dev/05-ft-4-pdi.md` commitado com `docs(dev): FT-4 PDI spec`.
+### FT-4 — PDI ✅ Concluída
+Spec em `docs/dev/05-ft-4-pdi.md`, commit `f9f0e85`.
 
 ### FT-5 — Dashboard (depois de FT-4)
 Referências: `features/FT-5.md`, `docs/USERS-ABLE.md §12`, `docs/MVP.md §5`, `docs/ESTRUTURA.md §13`.
@@ -230,8 +211,8 @@ Fase 0 Fundação        ✅ spec commitada
 FT-1 Colaboradores     ✅ spec commitada
 FT-2 Avaliações        ✅ spec commitada
 FT-3 Feedbacks         ✅ spec commitada
-FT-4 PDI               ⏳ próximo brainstorm
-FT-5 Dashboard         ⏳ depois de FT-4
+FT-4 PDI               ✅ spec commitada
+FT-5 Dashboard         ⏳ próximo brainstorm
 Scaffold inicial       ⏳ depois dos 5 specs
 Implementação real     ⏳ após todos os specs
 ```
@@ -255,4 +236,4 @@ Implementação real     ⏳ após todos os specs
 - [ ] Docs: todos os 5 specs em `docs/dev/` lidos
 - [ ] Memory: 3 arquivos em `docs/dev/memory/` lidos (ou copiados para o path de auto-load conforme `docs/dev/memory/README.md`)
 - [ ] Visual Companion: servidor rodando (se pergunta próxima for UI)
-- [ ] Usuário confirmou retomada? Sim → começar pela Pergunta 51 (FT-4)
+- [ ] Usuário confirmou retomada? Sim → começar pela Pergunta 69 (FT-5)
