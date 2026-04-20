@@ -19,7 +19,9 @@
       "Bash(mkdir -p src/app/\\\\\\(auth\\\\\\)/login src/app/\\\\\\(auth\\\\\\)/forgot-password \"src/app/\\(auth\\)/reset-password/[token]\")",
       "Bash(mkdir -p \"src/app/\\(onboarding\\)/criar-empresa\" \"src/app/\\(onboarding\\)/convite/[token]\")",
       "Bash(mkdir -p \"src/app/\\(app\\)/dashboard\" \"src/app/\\(app\\)/colaboradores/novo\" \"src/app/\\(app\\)/colaboradores/[id]\")",
-      "Bash(git rm *)"
+      "Bash(git rm *)",
+      "Bash(git commit *)",
+      "Bash(pnpm approve-builds *)"
     ]
   }
 }
