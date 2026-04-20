@@ -2,7 +2,24 @@
   "permissions": {
     "allow": [
       "Bash(bash *)",
-      "Bash(find C:/Users/Marcio/Desktop/evoluteam/.superpowers/brainstorm/ -name \"server-info\" -exec cat {} \\\\;)"
+      "Bash(find C:/Users/Marcio/Desktop/evoluteam/.superpowers/brainstorm/ -name \"server-info\" -exec cat {} \\\\;)",
+      "Bash(curl -s http://localhost:60354)",
+      "Bash(pnpm -v)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(pnpm create *)",
+      "Bash(cp /c/Users/MARCIO.PETIGROSSO/Desktop/evoluteam-scaffold/package.json /c/Users/MARCIO.PETIGROSSO/Desktop/evoluteam/)",
+      "Bash(cp /c/Users/MARCIO.PETIGROSSO/Desktop/evoluteam-scaffold/pnpm-lock.yaml /c/Users/MARCIO.PETIGROSSO/Desktop/evoluteam/)",
+      "Bash(cp /c/Users/MARCIO.PETIGROSSO/Desktop/evoluteam-scaffold/pnpm-workspace.yaml /c/Users/MARCIO.PETIGROSSO/Desktop/evoluteam/)",
+      "Bash(cp /c/Users/MARCIO.PETIGROSSO/Desktop/evoluteam-scaffold/tsconfig.json /c/Users/MARCIO.PETIGROSSO/Desktop/evoluteam/)",
+      "Bash(cp /c/Users/MARCIO.PETIGROSSO/Desktop/evoluteam-scaffold/next.config.ts /c/Users/MARCIO.PETIGROSSO/Desktop/evoluteam/)",
+      "Bash(pnpm add *)",
+      "Bash(pnpm dlx *)",
+      "Bash(pnpm build *)",
+      "Bash(mkdir -p src/app/\\\\\\(auth\\\\\\)/login src/app/\\\\\\(auth\\\\\\)/forgot-password \"src/app/\\(auth\\)/reset-password/[token]\")",
+      "Bash(mkdir -p \"src/app/\\(onboarding\\)/criar-empresa\" \"src/app/\\(onboarding\\)/convite/[token]\")",
+      "Bash(mkdir -p \"src/app/\\(app\\)/dashboard\" \"src/app/\\(app\\)/colaboradores/novo\" \"src/app/\\(app\\)/colaboradores/[id]\")",
+      "Bash(git rm *)"
     ]
   }
 }

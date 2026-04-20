@@ -1,9 +1,13 @@
-# Node / Next.js (pré-scaffold)
+# Node / Next.js
 node_modules/
 .next/
 .env
 .env.local
 .env.*.local
+
+# Brainstorm artifacts (Visual Companion)
+.superpowers/brainstorm/*/state/
+.superpowers/brainstorm/*/content/
 
 # OS
 .DS_Store
