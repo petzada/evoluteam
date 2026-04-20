@@ -322,7 +322,6 @@ export function canDeleteFeedback(actor): boolean {
 - [ ] Sidebar de resposta de avaliação mostra feedbacks no período avaliado.
 - [ ] RLS testada: user fora da empresa não lê nada; gestor de ramo distinto não lê `visivel_para_gestor`.
 - [ ] Vitest cobre `canViewFeedback`, validação de tipos, regra de observacao_privada.
-- [ ] Playwright smoke: enviar feedback · ver como recipient · gestor vê pela aba Minha equipe · admin_rh deleta.
 
 ## 12. Plano de implementação (ordem sugerida)
 
@@ -338,12 +337,12 @@ export function canDeleteFeedback(actor): boolean {
 10. **Sidebar da resposta de avaliação** — ativar bloco "Feedbacks no período".
 11. **Dashboard stub** — mostrar "Meus feedbacks recentes" (pre-FT-5).
 12. **Activity logs** — formatadores para `feedback.sent` e `feedback.deleted`.
-13. **Testes** — Vitest (permissions + regras) + Playwright (fluxo completo).
+13. **Testes** — Vitest (permissions + regras).
 
 ## 13. Não-funcionais
 
 - **Performance:** listagem com 1000 feedbacks renderiza em <300ms (índices em recipient/sender + paginação).
-- **Segurança:** RLS cobre todos os cenários de visibilidade; teste manual e Playwright validam `privado` não vaza para admin_rh.
+- **Segurança:** RLS cobre todos os cenários de visibilidade; teste manual valida que `privado` não vaza para admin_rh.
 - **Acessibilidade:** cards com `<article>`, pills com `aria-label`, textarea com `aria-describedby`.
 - **Observabilidade:** Sentry + Activity logs em `sent`/`deleted`.
 

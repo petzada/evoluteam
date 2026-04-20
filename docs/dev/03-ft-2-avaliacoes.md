@@ -534,7 +534,6 @@ export function canReleaseResult(actor): boolean {
 - [ ] Colaborador fora da hierarquia não vê resultado alheio (403 + RLS).
 - [ ] Activity logs registram: cycle.created, cycle.published, cycle.closed, cycle.archived, cycle.auto_closed, assignment.submitted, assignment.cancelled, result.released, result.hidden.
 - [ ] Vitest cobre: geração de assignments, cálculo de médias, permissions.
-- [ ] Playwright e2e: criar ciclo → publicar → responder (dois papéis) → encerrar → liberar resultado.
 
 ## 13. Plano de implementação (ordem sugerida)
 
@@ -555,7 +554,7 @@ export function canReleaseResult(actor): boolean {
 15. **`/avaliacoes/[cycleId]/resultados/[employeeId]`** — resultado individual com gráficos simples.
 16. **Lazy-close** — helper que toda Server Action de ciclo roda no início.
 17. **Notifications** — disparar nas transições corretas.
-18. **Testes** — Vitest (lógica pura), Playwright (fluxo end-to-end).
+18. **Testes** — Vitest (lógica pura).
 
 ## 14. Não-funcionais
 

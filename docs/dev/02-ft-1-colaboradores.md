@@ -509,7 +509,6 @@ export function canTerminateEmployee(actor, target): boolean {
 - [ ] RLS de internal_notes testado: user não-admin não recebe a coluna no JSON de response.
 - [ ] Activity logs registram todas as transições de FT-1.
 - [ ] Vitest cobre `canEditEmployee`, `canSeeInternalNotes`, `assertValidManager`, validações de departamento/cargo.
-- [ ] Playwright smoke: cadastrar colaborador → editar → desativar → transferir liderados → reativar.
 
 ## 11. Plano de implementação (ordem sugerida)
 
@@ -527,8 +526,7 @@ export function canTerminateEmployee(actor, target): boolean {
 12. **`/configuracoes/departamentos`** — CRUD completo substituindo o stub.
 13. **`/configuracoes/cargos`** — idem.
 14. **Links clicáveis de contagem** — `/colaboradores?department=X` etc.
-15. **Testes Vitest** — permissions, validações de hierarquia, helpers.
-16. **Testes Playwright** — fluxo completo de FT-1 (cadastro, edição, desativação com transferência, deletar depto vazio).
+15. **Testes** — Vitest (permissions, validações de hierarquia, helpers).
 
 ## 12. Não-funcionais
 

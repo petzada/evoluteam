@@ -15,7 +15,7 @@ Decisões que valem para **todas** as fases/features do produto. Toda escolha qu
 | 4 | Papéis (roles) | Enum `admin_rh / director / user` + gestor **derivado** de `employees.manager_id` |
 | 5 | Skip-level | Leitura total na árvore, escrita só em liderados diretos. `admin_rh` fura tudo. Ausências resolvidas manualmente |
 | 6 | Convite | Checkbox "enviar agora" + email+senha + tabela `invites` customizada + Resend + 7 dias |
-| 7 | Testes | Vitest + Playwright + ESLint + Prettier. Sem Husky, sem CI/CD |
+| 7 | Testes | Vitest + ESLint + Prettier. Sem Husky, sem CI/CD |
 | 8 | Data access | Supabase Client em todo lugar + estrutura `features/{domain}/{schema,queries,actions,permissions,components}` |
 | 9 | Environments | Um único projeto Supabase cloud (dev = prod) até o 1º cliente pagante |
 | 10 | Locale | pt-BR hardcoded + UTC/São Paulo + formato BR |
@@ -108,14 +108,12 @@ Se gestor direto estiver de férias e alguém precisa avaliar, o `admin_rh` troc
 ## 7. Testes
 
 - **Vitest** para unit/integration: helpers de permissão, schemas Zod, funções puras.
-- **Playwright** para 1 happy-path por feature (smoke e2e).
 - **ESLint + Prettier** (config baseada em `next/core-web-vitals`).
 - **Sem Husky, sem lint-staged, sem GitHub Actions.** Qualidade roda localmente sob disciplina.
 
 ### Estrutura
 ```
 src/**/*.test.ts        → Vitest
-tests/e2e/*.spec.ts     → Playwright
 ```
 
 ---

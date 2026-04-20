@@ -573,7 +573,6 @@ export function canDeletePdi(actor: Actor): boolean {
 - [ ] RLS: colaborador não vê PDIs de colegas; gestor vê liderados skip-level; `admin_rh` vê tudo; PDI de empresa diferente completamente inacessível.
 - [ ] Soft delete por `admin_rh` remove PDI das listagens; permanece em `/configuracoes/auditoria`.
 - [ ] Vitest cobre: `canCreatePdi`, `canViewPdi`, `canEditPdiHeader`, `canUpdateActionStatus`, `canCommentOnPdi`, `computePdiStatus`, `computeActionStatus`.
-- [ ] Playwright smoke: criar PDI a partir do resultado de avaliação → adicionar ações → colaborador atualiza status → gestor comenta → admin_rh encerra.
 
 ---
 
@@ -592,7 +591,7 @@ export function canDeletePdi(actor: Actor): boolean {
 11. **Aba "PDI" no perfil** — ativar em `/colaboradores/[id]`, remover tag "em breve".
 12. **Seção "PDI gerado" no resultado** — bloco condicional em `/avaliacoes/[cycleId]/resultados/[employeeId]`.
 13. **Activity logs** — formatadores para `pdi.created`, `pdi.concluded`, `pdi.cancelled`, `pdi.deleted`.
-14. **Testes** — Vitest (permissions + utils) + Playwright (fluxo completo).
+14. **Testes** — Vitest (permissions + utils).
 
 ---
 

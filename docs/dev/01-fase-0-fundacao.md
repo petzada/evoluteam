@@ -444,12 +444,6 @@ src/
     EmptyState.tsx
     PageHeader.tsx
 
-tests/
-  e2e/
-    auth.spec.ts                    # login/logout/reset
-    onboarding.spec.ts              # wizard completo
-    invite-flow.spec.ts             # convite → aceite
-
 supabase/
   migrations/
     20260419_0001_init_fase_0.sql
@@ -718,7 +712,6 @@ Ver `docs/dev/00-decisoes-transversais.md` §17 e a tabela completa abaixo:
 - [ ] Todos os itens de menu futuros aparecem na sidebar em cinza (desabilitados).
 - [ ] Pt-BR, datas `dd/MM/yyyy`, timezone `America/Sao_Paulo` em toda exibição.
 - [ ] Vitest testa permissões + schemas + helpers puros.
-- [ ] Playwright smoke: login, onboarding completo, convite → aceite.
 - [ ] Sentry captura um erro artificial e envia para o projeto configurado.
 
 ## 11. Plano de implementação (ordem sugerida)
@@ -741,7 +734,7 @@ Ver `docs/dev/00-decisoes-transversais.md` §17 e a tabela completa abaixo:
 16. **Dashboard stub** — KPIs + checklist.
 17. **Stubs** — `/configuracoes/departamentos`, `/cargos`, `/competencias` (páginas "Em breve na próxima fase").
 18. **Sentry** — `@sentry/nextjs` wizard, verificação de envio.
-19. **Testes** — Vitest + Playwright cobrindo critérios de aceite.
+19. **Testes** — Vitest cobrindo critérios de aceite.
 20. **Deploy** — Railway configurado, `marct.co` verificado no Resend, admin de teste criado.
 
 ## 12. Não-funcionais

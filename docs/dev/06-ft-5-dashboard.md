@@ -263,7 +263,6 @@ Nenhuma. Dashboard é leitura pura — não gera notificações.
 - [ ] Empty state correto quando ciclo não tem respostas.
 - [ ] `revalidatePath('/dashboard')` adicionado nas Server Actions listadas no §7.4.
 - [ ] Vitest cobre: `buildScope` (admin_rh, director, gestor com liderados, gestor sem liderados), `canAccessDashboard`, `canFilterByDepartment`.
-- [ ] Playwright smoke: admin_rh vê dashboard completo → troca ciclo → filtra por departamento → clica KPI de PDIs atrasados → aterrissa em /pdi filtrado.
 
 ---
 
@@ -281,7 +280,7 @@ Nenhuma. Dashboard é leitura pura — não gera notificações.
 10. **Filtro `sem_feedback` em `/colaboradores`** — adicionar opção de filtro e query correspondente em `src/features/employees/queries.ts`.
 11. **`revalidatePath`** — adicionar `revalidatePath('/dashboard')` nas Server Actions listadas no §7.4.
 12. **Permissions** — `src/features/dashboard/permissions.ts`; atualizar middleware se necessário.
-13. **Testes** — Vitest (scope + permissions) + Playwright (fluxo completo).
+13. **Testes** — Vitest (scope + permissions).
 
 ---
 

@@ -312,8 +312,6 @@ src/
     settings/
   test/
     setup.ts
-tests/
-  e2e/                      # Playwright (criado após Fase 0)
 ```
 
 ---
@@ -421,47 +419,7 @@ Nenhuma configuração adicional. Só implementação de queries.
 
 ---
 
-## 12. Setup do Playwright (após Fase 0 completa)
-
-```bash
-pnpm add -D @playwright/test
-pnpm dlx playwright install chromium
-
-# Criar arquivo de configuração
-# playwright.config.ts na raiz
-```
-
-```typescript
-// playwright.config.ts
-import { defineConfig, devices } from '@playwright/test';
-
-export default defineConfig({
-  testDir: './tests/e2e',
-  use: {
-    baseURL: 'http://localhost:3000',
-    trace: 'on-first-retry',
-  },
-  projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
-  ],
-});
-```
-
-Adicionar script em `package.json`:
-```json
-{
-  "scripts": {
-    "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui"
-  }
-}
-```
-
-Primeiro teste a criar: `tests/e2e/auth.spec.ts` — smoke de login + onboarding.
-
----
-
-## 13. Primeiro commit após setup
+## 12. Primeiro commit após setup
 
 Após completar os passos 2–9, fazer o primeiro commit antes de qualquer código de feature:
 

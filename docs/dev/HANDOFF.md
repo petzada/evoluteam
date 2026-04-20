@@ -76,7 +76,7 @@ Os números aqui são de ordem aproximada do brainstorm — a lista canônica de
 4. Papéis: `admin_rh / director / user` + gestor derivado de `manager_id`
 5. Skip-level: leitura total na árvore, escrita só em liderados diretos
 6. Convite: checkbox + email+senha + tabela `invites` + Resend + 7 dias
-7. Testes: Vitest + Playwright + ESLint + Prettier (sem Husky/CI)
+7. Testes: Vitest + ESLint + Prettier (sem Husky/CI)
 8. Data access: Supabase Client em todo lugar + `features/{domain}/*`
 9. Env: 1 projeto Supabase cloud único
 10. Locale: pt-BR hardcoded + UTC/São Paulo
