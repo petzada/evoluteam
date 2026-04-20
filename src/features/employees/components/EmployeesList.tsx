@@ -219,42 +219,49 @@ export function EmployeesList({
                     </TableCell>
                     {isAdmin && (
                       <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger className="flex h-8 w-8 items-center justify-center rounded-md hover:bg-muted transition-colors">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            {pendingInvite && (
-                              <>
-                                <DropdownMenuItem onSelect={() => handleRevoke(pendingInvite.id)}>
-                                  Revogar convite
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                              </>
-                            )}
-                            {expiredInvite && (
-                              <DropdownMenuItem onSelect={() => handleResend(emp.id)}>
-                                Reenviar convite
-                              </DropdownMenuItem>
-                            )}
-                            {status === 'sem_acesso' && (
-                              <DropdownMenuItem onSelect={() => handleResend(emp.id)}>
-                                Enviar convite
-                              </DropdownMenuItem>
-                            )}
-                            {!isSelf && status === 'ativo' && (
-                              <>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                  className="text-destructive"
-                                  onSelect={() => handleDeactivate(emp.id)}
-                                >
-                                  Desativar
-                                </DropdownMenuItem>
-                              </>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        {(() => {
+                          const hasActions =
+                            !!pendingInvite ||
+                            !!expiredInvite ||
+                            status === 'sem_acesso' ||
+                            (!isSelf && status === 'ativo');
+                          if (!hasActions) return null;
+                          return (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger className="flex h-8 w-8 items-center justify-center rounded-md hover:bg-muted transition-colors">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                {pendingInvite && (
+                                  <DropdownMenuItem onSelect={() => handleRevoke(pendingInvite.id)}>
+                                    Revogar convite
+                                  </DropdownMenuItem>
+                                )}
+                                {expiredInvite && (
+                                  <DropdownMenuItem onSelect={() => handleResend(emp.id)}>
+                                    Reenviar convite
+                                  </DropdownMenuItem>
+                                )}
+                                {status === 'sem_acesso' && (
+                                  <DropdownMenuItem onSelect={() => handleResend(emp.id)}>
+                                    Enviar convite
+                                  </DropdownMenuItem>
+                                )}
+                                {!isSelf && status === 'ativo' && (
+                                  <>
+                                    {(pendingInvite || expiredInvite) && <DropdownMenuSeparator />}
+                                    <DropdownMenuItem
+                                      className="text-destructive"
+                                      onSelect={() => handleDeactivate(emp.id)}
+                                    >
+                                      Desativar
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          );
+                        })()}
                       </TableCell>
                     )}
                   </TableRow>
