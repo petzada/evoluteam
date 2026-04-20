@@ -9,6 +9,13 @@ node_modules/
 .superpowers/brainstorm/*/state/
 .superpowers/brainstorm/*/content/
 
+# Supabase CLI cache
+supabase/.temp/
+supabase/.branches/
+
+# Build artifacts
+tsconfig.tsbuildinfo
+
 # OS
 .DS_Store
 Thumbs.db
