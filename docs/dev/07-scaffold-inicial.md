@@ -394,7 +394,7 @@ Frequência sugerida: 1 commit por sub-entrega (ex: `feat(auth): login + forgot 
 - [ ] Policy do bucket: leitura pública, escrita autenticada restrita ao próprio `user_id`
 
 **SQL:**
-- [ ] Executar funções auxiliares: `auth.company_id()` e `auth.role_name()` (definidas no spec Fase 0 §6)
+- [ ] Executar funções auxiliares: `public.my_company_id()` e `public.my_role()` (definidas no spec Fase 0 §6)
 
 ### FT-1 a FT-3
 

@@ -75,8 +75,8 @@ Dashboards/listagens de colaboradores não precisam de gambiarra para "excluir a
 **"Gestor" não é um role** — é derivado da hierarquia: você é gestor se existe algum `employee` com `manager_id` apontando para você.
 
 ### Helpers
-- `auth.company_id()` — retorna `company_id` do user logado (usado em policies).
-- `auth.role_name()` — retorna role do user logado.
+- `public.my_company_id()` — retorna `company_id` do user logado (usado em policies).
+- `public.my_role()` — retorna role do user logado.
 - `isManager(userId)` — query helper em app: `EXISTS(SELECT 1 FROM employees e2 INNER JOIN employees e1 ON e2.manager_id = e1.id WHERE e1.user_id = $1)`.
 
 ---

@@ -207,19 +207,19 @@ CREATE INDEX idx_answers_assignment ON review_answers(assignment_id);
 -- review_cycles / review_cycle_participants / review_forms / review_questions
 ALTER TABLE review_cycles ENABLE ROW LEVEL SECURITY;
 CREATE POLICY cycles_select ON review_cycles FOR SELECT
-USING ( company_id = auth.company_id() );
+USING ( company_id = public.my_company_id() );
 CREATE POLICY cycles_write_admin ON review_cycles FOR ALL
-USING ( company_id = auth.company_id() AND auth.role_name() = 'admin_rh' )
-WITH CHECK ( company_id = auth.company_id() AND auth.role_name() = 'admin_rh' );
+USING ( company_id = public.my_company_id() AND public.my_role() = 'admin_rh' )
+WITH CHECK ( company_id = public.my_company_id() AND public.my_role() = 'admin_rh' );
 
 -- Mesmos padrões para participants/forms/questions/answers.
 
 -- review_assignments: reviewer ou reviewee ou admin lê; só reviewer do próprio assignment ou admin escreve
 ALTER TABLE review_assignments ENABLE ROW LEVEL SECURITY;
 CREATE POLICY assignments_select ON review_assignments FOR SELECT USING (
-  company_id = auth.company_id()
+  company_id = public.my_company_id()
   AND (
-    auth.role_name() = 'admin_rh'
+    public.my_role() = 'admin_rh'
     OR reviewer_id IN (SELECT id FROM employees WHERE user_id = auth.uid())
     OR reviewee_id IN (SELECT id FROM employees WHERE user_id = auth.uid())
     OR reviewee_id IN (SELECT * FROM get_employee_descendants(
@@ -234,9 +234,9 @@ CREATE POLICY answers_select ON review_answers FOR SELECT USING (
   EXISTS (
     SELECT 1 FROM review_assignments a
     WHERE a.id = review_answers.assignment_id
-      AND a.company_id = auth.company_id()
+      AND a.company_id = public.my_company_id()
       AND (
-        auth.role_name() = 'admin_rh'
+        public.my_role() = 'admin_rh'
         OR a.reviewer_id IN (SELECT id FROM employees WHERE user_id = auth.uid())
         OR a.reviewee_id IN (SELECT id FROM employees WHERE user_id = auth.uid())
            AND (

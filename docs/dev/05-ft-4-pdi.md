@@ -206,39 +206,39 @@ ALTER TABLE development_plan_comments ENABLE ROW LEVEL SECURITY;
 
 -- SELECT: colaborador, gestores na árvore ascendente, admin_rh, director
 CREATE POLICY pdi_select ON development_plans FOR SELECT USING (
-  company_id = auth.company_id()
+  company_id = public.my_company_id()
   AND deleted_at IS NULL
   AND (
     employee_id IN (SELECT id FROM employees WHERE user_id = auth.uid())
     OR
-    (SELECT id FROM employees WHERE user_id = auth.uid() AND company_id = auth.company_id())
+    (SELECT id FROM employees WHERE user_id = auth.uid() AND company_id = public.my_company_id())
       IN (SELECT get_employee_ancestors(employee_id))
     OR
-    auth.role_name() IN ('admin_rh', 'director')
+    public.my_role() IN ('admin_rh', 'director')
   )
 );
 
 -- INSERT: admin_rh ou gestor direto do employee_id
 CREATE POLICY pdi_insert ON development_plans FOR INSERT WITH CHECK (
-  company_id = auth.company_id()
+  company_id = public.my_company_id()
   AND created_by = auth.uid()
   AND (
-    auth.role_name() = 'admin_rh'
+    public.my_role() = 'admin_rh'
     OR
     employee_id IN (
       SELECT e.id FROM employees e
       JOIN employees mgr ON mgr.id = e.manager_id
       WHERE mgr.user_id = auth.uid()
-        AND e.company_id = auth.company_id()
+        AND e.company_id = public.my_company_id()
     )
   )
 );
 
 -- UPDATE: criador do PDI ou admin_rh
 CREATE POLICY pdi_update ON development_plans FOR UPDATE USING (
-  company_id = auth.company_id()
+  company_id = public.my_company_id()
   AND deleted_at IS NULL
-  AND (created_by = auth.uid() OR auth.role_name() = 'admin_rh')
+  AND (created_by = auth.uid() OR public.my_role() = 'admin_rh')
 );
 
 -- ============================================================
@@ -249,13 +249,13 @@ CREATE POLICY pdi_update ON development_plans FOR UPDATE USING (
 CREATE POLICY pdi_actions_select ON development_plan_actions FOR SELECT USING (
   plan_id IN (
     SELECT id FROM development_plans
-    WHERE company_id = auth.company_id()
+    WHERE company_id = public.my_company_id()
       AND deleted_at IS NULL
       AND (
         employee_id IN (SELECT id FROM employees WHERE user_id = auth.uid())
-        OR (SELECT id FROM employees WHERE user_id = auth.uid() AND company_id = auth.company_id())
+        OR (SELECT id FROM employees WHERE user_id = auth.uid() AND company_id = public.my_company_id())
              IN (SELECT get_employee_ancestors(employee_id))
-        OR auth.role_name() IN ('admin_rh', 'director')
+        OR public.my_role() IN ('admin_rh', 'director')
       )
   )
 );
@@ -264,16 +264,16 @@ CREATE POLICY pdi_actions_select ON development_plan_actions FOR SELECT USING (
 CREATE POLICY pdi_actions_insert ON development_plan_actions FOR INSERT WITH CHECK (
   plan_id IN (
     SELECT id FROM development_plans
-    WHERE company_id = auth.company_id()
+    WHERE company_id = public.my_company_id()
       AND deleted_at IS NULL
-      AND (created_by = auth.uid() OR auth.role_name() = 'admin_rh')
+      AND (created_by = auth.uid() OR public.my_role() = 'admin_rh')
   )
 );
 
 -- UPDATE de status: responsável pela ação ou admin_rh
 CREATE POLICY pdi_actions_update ON development_plan_actions FOR UPDATE USING (
   responsible_employee_id IN (SELECT id FROM employees WHERE user_id = auth.uid())
-  OR (auth.role_name() = 'admin_rh' AND company_id = auth.company_id())
+  OR (public.my_role() = 'admin_rh' AND company_id = public.my_company_id())
 );
 
 -- ============================================================
@@ -285,31 +285,31 @@ CREATE POLICY pdi_comments_select ON development_plan_comments FOR SELECT USING 
   deleted_at IS NULL
   AND plan_id IN (
     SELECT id FROM development_plans
-    WHERE company_id = auth.company_id()
+    WHERE company_id = public.my_company_id()
       AND deleted_at IS NULL
       AND (
         employee_id IN (SELECT id FROM employees WHERE user_id = auth.uid())
-        OR (SELECT id FROM employees WHERE user_id = auth.uid() AND company_id = auth.company_id())
+        OR (SELECT id FROM employees WHERE user_id = auth.uid() AND company_id = public.my_company_id())
              IN (SELECT get_employee_ancestors(employee_id))
-        OR auth.role_name() IN ('admin_rh', 'director')
+        OR public.my_role() IN ('admin_rh', 'director')
       )
   )
 );
 
 -- INSERT: admin_rh + gestores + colaborador do PDI (não director)
 CREATE POLICY pdi_comments_insert ON development_plan_comments FOR INSERT WITH CHECK (
-  company_id = auth.company_id()
+  company_id = public.my_company_id()
   AND author_id IN (SELECT id FROM employees WHERE user_id = auth.uid())
-  AND auth.role_name() != 'director'
+  AND public.my_role() != 'director'
   AND plan_id IN (
     SELECT id FROM development_plans
-    WHERE company_id = auth.company_id()
+    WHERE company_id = public.my_company_id()
       AND deleted_at IS NULL
       AND (
         employee_id IN (SELECT id FROM employees WHERE user_id = auth.uid())
-        OR (SELECT id FROM employees WHERE user_id = auth.uid() AND company_id = auth.company_id())
+        OR (SELECT id FROM employees WHERE user_id = auth.uid() AND company_id = public.my_company_id())
              IN (SELECT get_employee_ancestors(employee_id))
-        OR auth.role_name() = 'admin_rh'
+        OR public.my_role() = 'admin_rh'
       )
   )
 );
@@ -317,7 +317,7 @@ CREATE POLICY pdi_comments_insert ON development_plan_comments FOR INSERT WITH C
 -- UPDATE (soft delete de comentário): autor ou admin_rh
 CREATE POLICY pdi_comments_update ON development_plan_comments FOR UPDATE USING (
   author_id IN (SELECT id FROM employees WHERE user_id = auth.uid())
-  OR auth.role_name() = 'admin_rh'
+  OR public.my_role() = 'admin_rh'
 );
 ```
 
@@ -543,7 +543,7 @@ export function canDeletePdi(actor: Actor): boolean {
 | `due_date` da ação passa | `atrasada` computado em leitura; badge vermelho na listagem de ações |
 | Responsável de ação é desligado | Ação permanece com responsável registrado; `admin_rh` ou criador troca manualmente |
 | Colaborador do PDI é desligado | PDI permanece intacto; `admin_rh` ou gestor decide manualmente se cancela |
-| Tentativa de criar PDI para colaborador de outra empresa | RLS bloqueia; INSERT policy valida `company_id = auth.company_id()` |
+| Tentativa de criar PDI para colaborador de outra empresa | RLS bloqueia; INSERT policy valida `company_id = public.my_company_id()` |
 | Tentativa de comentar por `director` | `canCommentOnPdi` retorna false; input não é renderizado; RLS bloqueia INSERT |
 | Nenhum PDI encontrado nas abas | `<EmptyState>` com CTA "Criar primeiro PDI" para quem tem permissão |
 

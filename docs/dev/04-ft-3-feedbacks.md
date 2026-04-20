@@ -115,13 +115,13 @@ LANGUAGE sql STABLE AS $$
     SELECT manager_id AS id FROM employees
       WHERE id = emp_id
         AND manager_id IS NOT NULL
-        AND company_id = auth.company_id()
+        AND company_id = public.my_company_id()
     UNION ALL
     SELECT e.manager_id
       FROM employees e
       INNER JOIN ancestors a ON e.id = a.id
       WHERE e.manager_id IS NOT NULL
-        AND e.company_id = auth.company_id()
+        AND e.company_id = public.my_company_id()
   )
   SELECT id FROM ancestors
 $$;
@@ -136,7 +136,7 @@ ALTER TABLE feedbacks ENABLE ROW LEVEL SECURITY;
 
 -- SELECT: conforme visibility + papel + hierarquia
 CREATE POLICY feedbacks_select ON feedbacks FOR SELECT USING (
-  company_id = auth.company_id()
+  company_id = public.my_company_id()
   AND deleted_at IS NULL
   AND (
     -- sender sempre lê
@@ -155,16 +155,16 @@ CREATE POLICY feedbacks_select ON feedbacks FOR SELECT USING (
     -- visivel_para_rh: admin_rh da empresa lê
     (
       visibility = 'visivel_para_rh'
-      AND auth.role_name() = 'admin_rh'
+      AND public.my_role() = 'admin_rh'
     )
   )
 );
 
 -- INSERT: user autenticado envia de si pra qualquer ativo/inativo da empresa
 CREATE POLICY feedbacks_insert ON feedbacks FOR INSERT WITH CHECK (
-  company_id = auth.company_id()
+  company_id = public.my_company_id()
   AND sender_id IN (SELECT id FROM employees WHERE user_id = auth.uid())
-  AND recipient_id IN (SELECT id FROM employees WHERE company_id = auth.company_id() AND status IN ('active','inactive'))
+  AND recipient_id IN (SELECT id FROM employees WHERE company_id = public.my_company_id() AND status IN ('active','inactive'))
 );
 
 -- UPDATE: apenas marcar read_at (pelo recipient) OU deleted_at/deleted_by (pelo admin_rh)
@@ -172,8 +172,8 @@ CREATE POLICY feedbacks_update_mark_read ON feedbacks FOR UPDATE USING (
   recipient_id IN (SELECT id FROM employees WHERE user_id = auth.uid())
 );
 CREATE POLICY feedbacks_update_delete_admin ON feedbacks FOR UPDATE USING (
-  company_id = auth.company_id()
-  AND auth.role_name() = 'admin_rh'
+  company_id = public.my_company_id()
+  AND public.my_role() = 'admin_rh'
 );
 ```
 

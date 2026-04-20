@@ -137,12 +137,12 @@ CREATE OR REPLACE FUNCTION get_employee_descendants(root_id uuid)
 RETURNS SETOF uuid
 LANGUAGE sql STABLE AS $$
   WITH RECURSIVE descendants AS (
-    SELECT id FROM employees WHERE manager_id = root_id AND company_id = auth.company_id()
+    SELECT id FROM employees WHERE manager_id = root_id AND company_id = public.my_company_id()
     UNION ALL
     SELECT e.id
     FROM employees e
     INNER JOIN descendants d ON e.manager_id = d.id
-    WHERE e.company_id = auth.company_id()
+    WHERE e.company_id = public.my_company_id()
   )
   SELECT id FROM descendants
 $$;
@@ -236,7 +236,7 @@ Data de admissão:  03/01/2024
 Status:            ● Ativa  (ou outro)
 ```
 
-E **abaixo**, bloco OBSERVAÇÕES INTERNAS (só renderiza se `auth.role_name() = 'admin_rh'`):
+E **abaixo**, bloco OBSERVAÇÕES INTERNAS (só renderiza se `public.my_role() = 'admin_rh'`):
 ```
 OBSERVAÇÕES INTERNAS — visível só para RH
 ┌──────────────────────────────────────────┐
@@ -269,7 +269,7 @@ OBSERVAÇÕES INTERNAS — visível só para RH
 - `edit` (abre com "Editar" em perfil ou kebab).
 
 **Campos adicionados em FT-1:**
-- **Observações internas** (textarea, opcional). Só editável se `auth.role_name() = 'admin_rh'`. Para outros roles, campo não aparece.
+- **Observações internas** (textarea, opcional). Só editável se `public.my_role() = 'admin_rh'`. Para outros roles, campo não aparece.
 
 **Campos alterados em FT-1:**
 - Gestor direto: autocomplete agora **exclui** self + descendentes (via `get_employee_descendants()`).
@@ -408,7 +408,7 @@ async function transferSubordinates(managerId: string, mode: 'transfer' | 'null'
   await supabase.from('employees')
     .update({ manager_id: targetManagerId })
     .eq('manager_id', managerId)
-    .eq('company_id', auth.company_id());
+    .eq('company_id', public.my_company_id());
 
   await logActivity({
     action: 'employees.managers_transferred',
