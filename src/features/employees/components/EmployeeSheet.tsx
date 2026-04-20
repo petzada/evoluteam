@@ -4,17 +4,32 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import {
+  Sheet, SheetContent, SheetTitle, SheetDescription,
+} from '@/components/ui/sheet';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { EmployeeSchema, type EmployeeInput } from '../schema';
-import { createEmployee } from '../actions';
+import { createEmployee, updateEmployee } from '../actions';
 
 interface Position { id: string; name: string }
 interface Department { id: string; name: string }
 interface ManagerOption { id: string; full_name: string }
+
+export interface ExistingEmployee {
+  id: string;
+  full_name: string;
+  email: string;
+  phone: string | null;
+  positionId: string | null;
+  departmentId: string | null;
+  managerId: string | null;
+  role: 'admin_rh' | 'director' | 'user';
+  hireDate: string;
+  isSelf: boolean;
+}
 
 interface Props {
   open: boolean;
@@ -22,93 +37,177 @@ interface Props {
   positions: Position[];
   departments: Department[];
   managers: ManagerOption[];
-  mode?: 'create';
+  employee?: ExistingEmployee | null;
 }
 
 const ROLE_LABELS = { admin_rh: 'Administrador RH', director: 'Diretor', user: 'Colaborador' };
 
-export function EmployeeSheet({ open, onOpenChange, positions, departments, managers, mode = 'create' }: Props) {
+const EMPTY_DEFAULTS: EmployeeInput = {
+  fullName: '',
+  email: '',
+  positionId: '',
+  role: 'user',
+  departmentId: null,
+  managerId: null,
+  hireDate: new Date().toISOString().split('T')[0],
+  phone: '',
+  sendInvite: true,
+};
+
+export function EmployeeSheet({ open, onOpenChange, positions, departments, managers, employee }: Props) {
   const [loading, setLoading] = useState(false);
+  const isEdit = !!employee;
 
   const form = useForm<EmployeeInput>({
     resolver: zodResolver(EmployeeSchema),
-    defaultValues: {
-      fullName: '',
-      email: '',
-      positionId: '',
-      role: 'user',
-      departmentId: null,
-      managerId: null,
-      hireDate: new Date().toISOString().split('T')[0],
-      phone: '',
-      sendInvite: true,
-    },
+    defaultValues: EMPTY_DEFAULTS,
   });
 
   const sendInvite = form.watch('sendInvite');
 
   useEffect(() => {
-    if (open) form.reset({
-      fullName: '', email: '', positionId: '', role: 'user',
-      departmentId: null, managerId: null,
-      hireDate: new Date().toISOString().split('T')[0],
-      phone: '', sendInvite: true,
-    });
-  }, [open, form]);
+    if (!open) return;
+    if (employee) {
+      form.reset({
+        fullName: employee.full_name,
+        email: employee.email,
+        positionId: employee.positionId ?? '',
+        role: employee.role,
+        departmentId: employee.departmentId,
+        managerId: employee.managerId,
+        hireDate: employee.hireDate,
+        phone: employee.phone ?? '',
+        sendInvite: false,
+      });
+    } else {
+      form.reset(EMPTY_DEFAULTS);
+    }
+  }, [open, employee, form]);
 
   async function onSubmit(values: EmployeeInput) {
     setLoading(true);
-    const result = await createEmployee(values);
+    const result = isEdit
+      ? await updateEmployee(employee!.id, values)
+      : await createEmployee(values);
+
     if (result.error) {
       toast.error(result.error);
       setLoading(false);
       return;
     }
     toast.success(
-      values.sendInvite
-        ? 'Colaborador cadastrado e convite enviado!'
-        : 'Colaborador cadastrado sem convite.',
+      isEdit
+        ? 'Colaborador atualizado!'
+        : values.sendInvite
+          ? 'Colaborador cadastrado e convite enviado!'
+          : 'Colaborador cadastrado sem convite.',
     );
     onOpenChange(false);
     setLoading(false);
   }
 
+  const ctaLabel = isEdit
+    ? 'Salvar'
+    : sendInvite
+      ? 'Cadastrar e enviar convite'
+      : 'Cadastrar sem enviar';
+
+  // Disponibiliza apenas managers que não são o próprio employee em modo edit
+  const managerOptions = isEdit
+    ? managers.filter((m) => m.id !== employee!.id)
+    : managers;
+
+  // Em modo edit do próprio admin, bloqueia mudança de papel
+  const roleDisabled = isEdit && employee!.isSelf;
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-[440px] sm:max-w-[440px] overflow-y-auto">
-        <SheetHeader>
-          <SheetTitle>Novo colaborador</SheetTitle>
-        </SheetHeader>
+      <SheetContent className="w-[440px] sm:max-w-[440px] p-0 gap-0 flex flex-col">
+        <div className="px-6 py-5 border-b">
+          <SheetTitle className="text-base font-semibold">
+            {isEdit ? 'Editar colaborador' : 'Novo colaborador'}
+          </SheetTitle>
+          <SheetDescription className="text-xs text-muted-foreground mt-1">
+            {isEdit
+              ? 'Atualize os dados do colaborador. Mudanças entram em vigor imediatamente.'
+              : 'Cadastre o colaborador e envie o convite por e-mail.'}
+          </SheetDescription>
+        </div>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="mt-6 space-y-4">
-            <FormField control={form.control} name="fullName" render={({ field }) => (
-              <FormItem>
-                <FormLabel>Nome completo *</FormLabel>
-                <FormControl><Input placeholder="Ana Souza" {...field} /></FormControl>
-                <FormMessage />
-              </FormItem>
-            )} />
-
-            <FormField control={form.control} name="email" render={({ field }) => (
-              <FormItem>
-                <FormLabel>E-mail *</FormLabel>
-                <FormControl><Input type="email" placeholder="ana@empresa.com" {...field} /></FormControl>
-                <FormMessage />
-              </FormItem>
-            )} />
-
-            <div className="grid grid-cols-2 gap-4">
-              <FormField control={form.control} name="positionId" render={({ field }) => (
+        <div className="flex-1 overflow-y-auto px-6 py-5">
+          <Form {...form}>
+            <form id="employee-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+              <FormField control={form.control} name="fullName" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Cargo *</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <FormLabel>Nome completo *</FormLabel>
+                  <FormControl><Input placeholder="Ana Souza" {...field} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+
+              <FormField control={form.control} name="email" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>E-mail *</FormLabel>
+                  <FormControl>
+                    <Input type="email" placeholder="ana@empresa.com" {...field} disabled={isEdit} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField control={form.control} name="positionId" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Cargo *</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger className="w-full"><SelectValue placeholder="Selecione…" /></SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {positions.map((p) => (
+                          <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+
+                <FormField control={form.control} name="role" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Papel *</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value} disabled={roleDisabled}>
+                      <FormControl>
+                        <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {(Object.entries(ROLE_LABELS) as [EmployeeInput['role'], string][]).map(([v, l]) => (
+                          <SelectItem key={v} value={v}>{l}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {roleDisabled && (
+                      <p className="text-[11px] text-muted-foreground">Você não pode alterar seu próprio papel.</p>
+                    )}
+                    <FormMessage />
+                  </FormItem>
+                )} />
+              </div>
+
+              <FormField control={form.control} name="departmentId" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Departamento</FormLabel>
+                  <Select
+                    onValueChange={(v) => field.onChange(v === '__none__' ? null : v)}
+                    value={field.value ?? '__none__'}
+                  >
                     <FormControl>
-                      <SelectTrigger><SelectValue placeholder="Selecione…" /></SelectTrigger>
+                      <SelectTrigger className="w-full"><SelectValue placeholder="Nenhum" /></SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {positions.map((p) => (
-                        <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                      <SelectItem value="__none__">Nenhum</SelectItem>
+                      {departments.map((d) => (
+                        <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -116,106 +215,75 @@ export function EmployeeSheet({ open, onOpenChange, positions, departments, mana
                 </FormItem>
               )} />
 
-              <FormField control={form.control} name="role" render={({ field }) => (
+              <FormField control={form.control} name="managerId" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Papel *</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <FormLabel>Gestor direto</FormLabel>
+                  <Select
+                    onValueChange={(v) => field.onChange(v === '__none__' ? null : v)}
+                    value={field.value ?? '__none__'}
+                  >
                     <FormControl>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="w-full"><SelectValue placeholder="Nenhum" /></SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {(Object.entries(ROLE_LABELS) as [EmployeeInput['role'], string][]).map(([v, l]) => (
-                        <SelectItem key={v} value={v}>{l}</SelectItem>
+                      <SelectItem value="__none__">Nenhum</SelectItem>
+                      {managerOptions.map((m) => (
+                        <SelectItem key={m.id} value={m.id}>{m.full_name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                   <FormMessage />
                 </FormItem>
               )} />
-            </div>
 
-            <FormField control={form.control} name="departmentId" render={({ field }) => (
-              <FormItem>
-                <FormLabel>Departamento</FormLabel>
-                <Select
-                  onValueChange={(v) => field.onChange(v === '__none__' ? null : v)}
-                  value={field.value ?? '__none__'}
-                >
-                  <FormControl>
-                    <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="__none__">Nenhum</SelectItem>
-                    {departments.map((d) => (
-                      <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )} />
+              <div className="grid grid-cols-2 gap-4">
+                <FormField control={form.control} name="hireDate" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Data de admissão *</FormLabel>
+                    <FormControl><Input type="date" {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
 
-            <FormField control={form.control} name="managerId" render={({ field }) => (
-              <FormItem>
-                <FormLabel>Gestor direto</FormLabel>
-                <Select
-                  onValueChange={(v) => field.onChange(v === '__none__' ? null : v)}
-                  value={field.value ?? '__none__'}
-                >
-                  <FormControl>
-                    <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="__none__">Nenhum</SelectItem>
-                    {managers.map((m) => (
-                      <SelectItem key={m.id} value={m.id}>{m.full_name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )} />
+                <FormField control={form.control} name="phone" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Telefone</FormLabel>
+                    <FormControl><Input placeholder="(11) 99999-9999" {...field} value={field.value ?? ''} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+              </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <FormField control={form.control} name="hireDate" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Data de admissão *</FormLabel>
-                  <FormControl><Input type="date" {...field} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
+              {!isEdit && (
+                <FormField control={form.control} name="sendInvite" render={({ field }) => (
+                  <FormItem className="flex items-start gap-3 rounded-lg border p-3">
+                    <FormControl>
+                      <input
+                        type="checkbox"
+                        checked={field.value ?? true}
+                        onChange={field.onChange}
+                        className="mt-0.5 h-4 w-4 accent-primary"
+                      />
+                    </FormControl>
+                    <div className="space-y-0.5">
+                      <FormLabel className="cursor-pointer">Enviar convite por e-mail agora</FormLabel>
+                      <p className="text-xs text-muted-foreground">Link expira em 7 dias.</p>
+                    </div>
+                  </FormItem>
+                )} />
+              )}
+            </form>
+          </Form>
+        </div>
 
-              <FormField control={form.control} name="phone" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Telefone</FormLabel>
-                  <FormControl><Input placeholder="(11) 99999-9999" {...field} value={field.value ?? ''} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-            </div>
-
-            <FormField control={form.control} name="sendInvite" render={({ field }) => (
-              <FormItem className="flex items-center gap-3 rounded-lg border p-3">
-                <FormControl>
-                  <input
-                    type="checkbox"
-                    checked={field.value ?? true}
-                    onChange={field.onChange}
-                    className="h-4 w-4 accent-primary"
-                  />
-                </FormControl>
-                <div>
-                  <FormLabel className="cursor-pointer">Enviar convite por e-mail agora</FormLabel>
-                  <p className="text-xs text-muted-foreground">Link expira em 7 dias</p>
-                </div>
-              </FormItem>
-            )} />
-
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Salvando…' : sendInvite ? 'Cadastrar e enviar convite' : 'Cadastrar sem enviar'}
-            </Button>
-          </form>
-        </Form>
+        <div className="px-6 py-4 border-t bg-muted/30 flex gap-2 justify-end">
+          <Button variant="outline" type="button" onClick={() => onOpenChange(false)} disabled={loading}>
+            Cancelar
+          </Button>
+          <Button type="submit" form="employee-form" disabled={loading}>
+            {loading ? 'Salvando…' : ctaLabel}
+          </Button>
+        </div>
       </SheetContent>
     </Sheet>
   );

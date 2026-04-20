@@ -1,20 +1,39 @@
 import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 
-type NotificationType = 'invite' | 'review_assigned' | 'review_published' | 'feedback_received' | 'pdi_due_soon' | 'pdi_action_due';
+type NotificationType =
+  | 'invite_accepted'
+  | 'review_assigned' | 'review_published' | 'review_reminder' | 'review_result_released'
+  | 'feedback_received'
+  | 'pdi_created' | 'pdi_due_soon' | 'pdi_concluded' | 'pdi_action_due';
 
 export async function notify({
+  companyId,
   userId,
   type,
   title,
   body,
-  link,
+  linkUrl,
+  entityType,
+  entityId,
 }: {
+  companyId: string;
   userId: string;
   type: NotificationType;
   title: string;
-  body: string;
-  link?: string;
+  body?: string;
+  linkUrl?: string;
+  entityType?: string;
+  entityId?: string;
 }) {
   const supabase = createAdminSupabaseClient();
-  await supabase.from('notifications').insert({ user_id: userId, type, title, body, link });
+  await supabase.from('notifications').insert({
+    company_id: companyId,
+    user_id: userId,
+    type,
+    title,
+    body: body ?? null,
+    link_url: linkUrl ?? null,
+    entity_type: entityType ?? null,
+    entity_id: entityId ?? null,
+  });
 }

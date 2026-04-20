@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { getCurrentProfile, getCurrentUserEmployee } from '@/features/profile/queries';
 import { ProfileForm } from '@/features/profile/components/ProfileForm';
+import { PageHeader } from '@/components/PageHeader';
 
 export default async function PerfilPage() {
   const supabase = await createServerSupabaseClient();
@@ -20,11 +21,8 @@ export default async function PerfilPage() {
     : null;
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold">Meu perfil</h1>
-        <p className="text-sm text-muted-foreground">Edite suas informações pessoais.</p>
-      </div>
+    <div>
+      <PageHeader title="Meu perfil" description="Edite suas informações pessoais." />
       <ProfileForm
         defaultValues={{ fullName: profile.full_name, phone: profile.phone ?? '' }}
         employeeData={employeeWithEmail}

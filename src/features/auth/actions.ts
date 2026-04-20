@@ -3,10 +3,13 @@
 import { redirect } from 'next/navigation';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 
-export async function signIn(email: string, password: string) {
+export async function signIn(email: string, password: string, rememberMe?: boolean) {
   const supabase = await createServerSupabaseClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) return { error: 'E-mail ou senha inválidos.' };
+  // Persistência da sessão é controlada pelo JWT expiry do dashboard Supabase (7 dias).
+  // O flag rememberMe é capturado para uso futuro (ex: cookie max-age customizado).
+  void rememberMe;
   redirect('/dashboard');
 }
 

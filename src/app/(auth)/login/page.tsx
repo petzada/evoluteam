@@ -16,13 +16,13 @@ export default function LoginPage() {
 
   const form = useForm<LoginInput>({
     resolver: zodResolver(LoginSchema),
-    defaultValues: { email: '', password: '', rememberMe: false },
+    defaultValues: { email: '', password: '', rememberMe: true },
   });
 
   async function onSubmit(values: LoginInput) {
     setError(null);
     setLoading(true);
-    const result = await signIn(values.email, values.password);
+    const result = await signIn(values.email, values.password, values.rememberMe);
     if (result?.error) {
       setError(result.error);
       setLoading(false);
@@ -53,6 +53,23 @@ export default function LoginPage() {
               </div>
               <FormControl><Input type="password" autoComplete="current-password" {...field} /></FormControl>
               <FormMessage />
+            </FormItem>
+          )} />
+
+          <FormField control={form.control} name="rememberMe" render={({ field }) => (
+            <FormItem className="flex items-center gap-2">
+              <FormControl>
+                <input
+                  id="rememberMe"
+                  type="checkbox"
+                  checked={field.value ?? false}
+                  onChange={field.onChange}
+                  className="h-4 w-4 accent-primary cursor-pointer"
+                />
+              </FormControl>
+              <label htmlFor="rememberMe" className="text-sm text-muted-foreground cursor-pointer select-none">
+                Lembrar-me neste dispositivo
+              </label>
             </FormItem>
           )} />
 

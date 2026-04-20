@@ -23,6 +23,61 @@ async function getActorContext() {
   return { user, profile: profile as { company_id: string; role: string }, supabase };
 }
 
+export async function updateEmployee(employeeId: string, input: EmployeeInput) {
+  const ctx = await getActorContext();
+  if (!ctx) return { error: 'Não autenticado.' };
+  if (ctx.profile.role !== 'admin_rh') return { error: 'Sem permissão.' };
+
+  const supabase = await createServerSupabaseClient();
+  const { data: existing } = await supabase
+    .from('employees')
+    .select('user_id')
+    .eq('id', employeeId)
+    .eq('company_id', ctx.profile.company_id)
+    .single();
+  if (!existing) return { error: 'Colaborador não encontrado.' };
+
+  const { error: updErr } = await supabase
+    .from('employees')
+    .update({
+      full_name: input.fullName,
+      email: input.email,
+      phone: input.phone ?? null,
+      position_id: input.positionId,
+      department_id: input.departmentId ?? null,
+      manager_id: input.managerId ?? null,
+      hire_date: input.hireDate,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', employeeId)
+    .eq('company_id', ctx.profile.company_id);
+
+  if (updErr) {
+    if (updErr.code === '23505') return { error: 'E-mail já cadastrado nesta empresa.' };
+    return { error: 'Erro ao atualizar colaborador.' };
+  }
+
+  // Se há user_id vinculado e não é o próprio admin, atualiza o papel
+  if (existing.user_id && existing.user_id !== ctx.user.id) {
+    await supabase
+      .from('profiles')
+      .update({ role: input.role })
+      .eq('id', existing.user_id)
+      .eq('company_id', ctx.profile.company_id);
+  }
+
+  await logActivity({
+    companyId: ctx.profile.company_id,
+    actorUserId: ctx.user.id,
+    action: 'employee.updated',
+    entityType: 'employee',
+    entityId: employeeId,
+  });
+
+  revalidatePath('/colaboradores');
+  return { ok: true };
+}
+
 export async function createEmployee(input: EmployeeInput) {
   const ctx = await getActorContext();
   if (!ctx) return { error: 'Não autenticado.' };

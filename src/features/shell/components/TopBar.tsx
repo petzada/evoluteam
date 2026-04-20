@@ -1,12 +1,10 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { getUnreadCount, listRecentNotifications } from '@/features/notifications/queries';
 import { NotificationBell } from '@/features/notifications/components/NotificationBell';
+import { Breadcrumbs } from './Breadcrumbs';
+import { SidebarToggleButton } from './SidebarToggleButton';
 
-interface TopBarProps {
-  title?: string;
-}
-
-export async function TopBar({ title }: TopBarProps) {
+export async function TopBar() {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -15,8 +13,11 @@ export async function TopBar({ title }: TopBarProps) {
     : [0, []];
 
   return (
-    <header className="flex h-14 items-center justify-between border-b bg-background px-6">
-      {title ? <h1 className="text-base font-semibold text-foreground">{title}</h1> : <div />}
+    <header className="flex h-14 items-center border-b bg-background px-4 gap-3">
+      <SidebarToggleButton />
+      <div className="h-5 w-px bg-border" />
+      <Breadcrumbs />
+      <div className="ml-auto" />
       {user && (
         <NotificationBell
           userId={user.id}

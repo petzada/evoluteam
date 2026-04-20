@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { getCurrentCompany } from '@/features/company/queries';
 import { CompanyEditForm } from '@/features/company/components/CompanyEditForm';
+import { PageHeader } from '@/components/PageHeader';
 
 export default async function EmpresaPage() {
   const supabase = await createServerSupabaseClient();
@@ -12,11 +13,8 @@ export default async function EmpresaPage() {
   if (!company) redirect('/onboarding/criar-empresa');
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold">Empresa</h1>
-        <p className="text-sm text-muted-foreground">Edite os dados da sua empresa.</p>
-      </div>
+    <div>
+      <PageHeader title="Empresa" description="Edite os dados da sua empresa." />
       <CompanyEditForm
         defaultValues={{
           name: company.name,

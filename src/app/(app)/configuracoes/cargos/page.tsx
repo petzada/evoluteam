@@ -1,13 +1,11 @@
 import { Briefcase } from 'lucide-react';
 import { EmptyState } from '@/components/EmptyState';
+import { PageHeader } from '@/components/PageHeader';
 
 export default function CargosPage() {
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold">Cargos</h1>
-        <p className="text-sm text-muted-foreground">Gerencie os cargos da empresa.</p>
-      </div>
+    <div>
+      <PageHeader title="Cargos" description="Gerencie os cargos da empresa." />
       <EmptyState
         icon={Briefcase}
         title="Em breve"

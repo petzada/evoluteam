@@ -4,9 +4,11 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, Users, ClipboardList, MessageSquare, TrendingUp,
-  Building2, Layers, Briefcase, Star, ScrollText, UserCircle, ChevronRight,
+  Building2, Layers, Briefcase, Star, ScrollText, UserCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useSidebar } from '../SidebarContext';
 
 interface NavItem {
   label: string;
@@ -40,65 +42,97 @@ interface SidebarProps {
 
 export function Sidebar({ role, footer }: SidebarProps) {
   const pathname = usePathname();
+  const { collapsed } = useSidebar();
   const isAdmin = role === 'admin_rh';
 
   const renderItem = (item: NavItem) => {
     if (item.adminOnly && !isAdmin) return null;
-
     const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
     const Icon = item.icon;
 
+    const baseClasses = cn(
+      'flex items-center rounded-md text-sm transition-colors',
+      collapsed ? 'h-9 w-9 mx-auto justify-center' : 'gap-3 px-3 py-2',
+    );
+
     if (item.disabled) {
+      const disabled = (
+        <span className={cn(baseClasses, 'text-sidebar-foreground/30 cursor-not-allowed select-none')}>
+          <Icon className="h-4 w-4 shrink-0" />
+          {!collapsed && item.label}
+        </span>
+      );
       return (
         <li key={item.href}>
-          <span className="flex items-center gap-3 rounded-md px-3 py-2 text-sm text-sidebar-foreground/30 cursor-not-allowed select-none">
-            <Icon className="h-4 w-4 shrink-0" />
-            {item.label}
-          </span>
+          {collapsed ? (
+            <Tooltip>
+              <TooltipTrigger render={disabled} />
+              <TooltipContent side="right">{item.label} (em breve)</TooltipContent>
+            </Tooltip>
+          ) : disabled}
         </li>
       );
     }
 
+    const link = (
+      <Link
+        href={item.href}
+        className={cn(
+          baseClasses,
+          isActive
+            ? 'bg-sidebar-accent text-sidebar-primary font-medium'
+            : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground',
+        )}
+      >
+        <Icon className="h-4 w-4 shrink-0" />
+        {!collapsed && item.label}
+      </Link>
+    );
+
     return (
       <li key={item.href}>
-        <Link
-          href={item.href}
-          className={cn(
-            'flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors',
-            isActive
-              ? 'bg-sidebar-accent text-sidebar-primary font-medium'
-              : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground',
-          )}
-        >
-          <Icon className="h-4 w-4 shrink-0" />
-          {item.label}
-          {isActive && <ChevronRight className="ml-auto h-3 w-3 opacity-50" />}
-        </Link>
+        {collapsed ? (
+          <Tooltip>
+            <TooltipTrigger render={link} />
+            <TooltipContent side="right">{item.label}</TooltipContent>
+          </Tooltip>
+        ) : link}
       </li>
     );
   };
 
   return (
-    <aside className="flex h-full w-56 shrink-0 flex-col bg-sidebar">
+    <aside
+      className={cn(
+        'flex h-full shrink-0 flex-col bg-sidebar transition-[width] duration-200 ease-out',
+        collapsed ? 'w-14' : 'w-56',
+      )}
+    >
       {/* Logo */}
-      <div className="flex h-14 items-center px-4 border-b border-sidebar-border">
-        <span className="text-lg font-bold text-sidebar-primary tracking-tight">Evoluteam</span>
+      <div className="flex h-14 items-center justify-center px-4 border-b border-sidebar-border">
+        {collapsed ? (
+          <span className="text-lg font-bold text-sidebar-primary">E</span>
+        ) : (
+          <span className="text-lg font-bold text-sidebar-primary tracking-tight">Evoluteam</span>
+        )}
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
-        {/* Principal */}
+      <nav className={cn('flex-1 overflow-y-auto py-4 space-y-6', collapsed ? 'px-2' : 'px-3')}>
         <div>
-          <p className="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/30">
-            Principal
-          </p>
+          {!collapsed && (
+            <p className="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/30">
+              Principal
+            </p>
+          )}
           <ul className="space-y-0.5">{MAIN_NAV.map(renderItem)}</ul>
         </div>
 
-        {/* Configurações */}
         <div>
-          <p className="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/30">
-            Configurações
-          </p>
+          {!collapsed && (
+            <p className="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/30">
+              Configurações
+            </p>
+          )}
           <ul className="space-y-0.5">{CONFIG_NAV.map(renderItem)}</ul>
         </div>
       </nav>

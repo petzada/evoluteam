@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { listActivityLogs } from '@/features/activity/queries';
 import { ActivityLogList } from '@/features/activity/components/ActivityLogList';
+import { PageHeader } from '@/components/PageHeader';
 
 export default async function AuditoriaPage() {
   const supabase = await createServerSupabaseClient();
@@ -19,11 +20,8 @@ export default async function AuditoriaPage() {
   const logs = await listActivityLogs(profile.company_id);
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold">Auditoria</h1>
-        <p className="text-sm text-muted-foreground">Histórico de ações da equipe.</p>
-      </div>
+    <div>
+      <PageHeader title="Auditoria" description="Histórico de ações da equipe." />
       <ActivityLogList logs={logs} />
     </div>
   );

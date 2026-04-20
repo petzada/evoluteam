@@ -1,6 +1,8 @@
 import { redirect } from 'next/navigation';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { listEmployees, getPositions, getDepartments } from '@/features/employees/queries';
+import {
+  listEmployees, getPositions, getDepartments, getCompanyProfileRoles,
+} from '@/features/employees/queries';
 import { EmployeesList } from '@/features/employees/components/EmployeesList';
 
 export default async function ColaboradoresNovoPage() {
@@ -17,10 +19,11 @@ export default async function ColaboradoresNovoPage() {
   if (!profile?.company_id) redirect('/onboarding/criar-empresa');
   if (profile.role !== 'admin_rh') redirect('/colaboradores');
 
-  const [employees, positions, departments] = await Promise.all([
+  const [employees, positions, departments, profileRoles] = await Promise.all([
     listEmployees(profile.company_id),
     getPositions(profile.company_id),
     getDepartments(profile.company_id),
+    getCompanyProfileRoles(profile.company_id),
   ]);
 
   return (
@@ -30,6 +33,7 @@ export default async function ColaboradoresNovoPage() {
       departments={departments}
       currentUserId={user.id}
       isAdmin
+      profileRoles={profileRoles}
       openSheet
     />
   );

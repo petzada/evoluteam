@@ -1,13 +1,11 @@
 import { Layers } from 'lucide-react';
 import { EmptyState } from '@/components/EmptyState';
+import { PageHeader } from '@/components/PageHeader';
 
 export default function DepartamentosPage() {
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold">Departamentos</h1>
-        <p className="text-sm text-muted-foreground">Gerencie os departamentos da empresa.</p>
-      </div>
+    <div>
+      <PageHeader title="Departamentos" description="Gerencie os departamentos da empresa." />
       <EmptyState
         icon={Layers}
         title="Em breve"

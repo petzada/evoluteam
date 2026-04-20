@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { toast } from 'sonner';
-import { MoreHorizontal, Plus, Search, UserPlus } from 'lucide-react';
+import { MoreHorizontal, Plus, Search, UserPlus, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -13,10 +13,10 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
-import { EmployeeSheet } from './EmployeeSheet';
+import { EmployeeSheet, type ExistingEmployee } from './EmployeeSheet';
 import { resendInvite, revokeInvite, deactivateEmployee } from '../actions';
 import { EmptyState } from '@/components/EmptyState';
-import { Users } from 'lucide-react';
+import { PageHeader } from '@/components/PageHeader';
 
 type Invite = {
   id: string;
@@ -30,7 +30,9 @@ type Employee = {
   id: string;
   full_name: string;
   email: string;
+  phone: string | null;
   status: string;
+  hire_date: string;
   user_id: string | null;
   position: { id: string; name: string } | null;
   department: { id: string; name: string } | null;
@@ -47,6 +49,7 @@ interface Props {
   departments: Department[];
   currentUserId: string;
   isAdmin: boolean;
+  profileRoles: Record<string, 'admin_rh' | 'director' | 'user'>;
   openSheet?: boolean;
 }
 
@@ -86,9 +89,11 @@ export function EmployeesList({
   departments,
   currentUserId,
   isAdmin,
+  profileRoles,
   openSheet = false,
 }: Props) {
   const [sheetOpen, setSheetOpen] = useState(openSheet);
+  const [editing, setEditing] = useState<ExistingEmployee | null>(null);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
@@ -103,6 +108,28 @@ export function EmployeesList({
       return matchSearch && matchStatus;
     });
   }, [employees, search, statusFilter]);
+
+  function openCreate() {
+    setEditing(null);
+    setSheetOpen(true);
+  }
+
+  function openEdit(emp: Employee) {
+    const role = (emp.user_id && profileRoles[emp.user_id]) || 'user';
+    setEditing({
+      id: emp.id,
+      full_name: emp.full_name,
+      email: emp.email,
+      phone: emp.phone,
+      positionId: emp.position?.id ?? null,
+      departmentId: emp.department?.id ?? null,
+      managerId: emp.manager?.id ?? null,
+      role,
+      hireDate: emp.hire_date,
+      isSelf: emp.user_id === currentUserId,
+    });
+    setSheetOpen(true);
+  }
 
   async function handleResend(employeeId: string) {
     const result = await resendInvite(employeeId);
@@ -123,162 +150,159 @@ export function EmployeesList({
   }
 
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Colaboradores</h1>
-        {isAdmin && (
-          <Button onClick={() => setSheetOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Novo colaborador
-          </Button>
+    <div>
+      <PageHeader
+        title="Colaboradores"
+        description="Gerencie sua equipe, papéis e convites."
+        actions={
+          isAdmin && (
+            <Button onClick={openCreate}>
+              <Plus className="mr-2 h-4 w-4" />
+              Novo colaborador
+            </Button>
+          )
+        }
+      />
+
+      <div className="space-y-4">
+        {/* Filters */}
+        <div className="flex gap-3">
+          <div className="relative flex-1 max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por nome ou e-mail…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v ?? 'all')}>
+            <SelectTrigger className="w-44">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os status</SelectItem>
+              <SelectItem value="ativo">Ativo</SelectItem>
+              <SelectItem value="convite_pendente">Convite pendente</SelectItem>
+              <SelectItem value="convite_expirado">Convite expirado</SelectItem>
+              <SelectItem value="sem_acesso">Sem acesso</SelectItem>
+              <SelectItem value="inativo">Inativo</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Table */}
+        {filtered.length === 0 ? (
+          <EmptyState
+            icon={Users}
+            title="Nenhum colaborador encontrado"
+            description={search || statusFilter !== 'all' ? 'Tente outros filtros.' : 'Adicione o primeiro colaborador.'}
+            action={isAdmin ? (
+              <Button onClick={openCreate}>
+                <UserPlus className="mr-2 h-4 w-4" />
+                Novo colaborador
+              </Button>
+            ) : undefined}
+          />
+        ) : (
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nome / E-mail</TableHead>
+                  <TableHead>Cargo</TableHead>
+                  <TableHead>Departamento</TableHead>
+                  <TableHead>Gestor direto</TableHead>
+                  <TableHead>Status</TableHead>
+                  {isAdmin && <TableHead className="w-12" />}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtered.map((emp) => {
+                  const status = deriveStatus(emp);
+                  const isSelf = emp.user_id === currentUserId;
+                  const pendingInvite = emp.invite?.find(
+                    (i) => !i.accepted_at && !i.revoked_at && new Date(i.expires_at) > new Date(),
+                  );
+                  const expiredInvite = emp.invite?.find(
+                    (i) => !i.accepted_at && !i.revoked_at && new Date(i.expires_at) <= new Date(),
+                  );
+
+                  return (
+                    <TableRow key={emp.id}>
+                      <TableCell>
+                        <div>
+                          <p className="font-medium">
+                            {emp.full_name}
+                            {isSelf && <span className="ml-2 text-xs text-muted-foreground">(você)</span>}
+                          </p>
+                          <p className="text-sm text-muted-foreground">{emp.email}</p>
+                        </div>
+                      </TableCell>
+                      <TableCell>{emp.position?.name ?? '—'}</TableCell>
+                      <TableCell>{emp.department?.name ?? '—'}</TableCell>
+                      <TableCell>{emp.manager?.full_name ?? '—'}</TableCell>
+                      <TableCell>
+                        <Badge variant={STATUS_VARIANTS[status]}>
+                          {STATUS_LABELS[status]}
+                        </Badge>
+                      </TableCell>
+                      {isAdmin && (
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger className="flex h-8 w-8 items-center justify-center rounded-md hover:bg-muted transition-colors">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onSelect={() => openEdit(emp)}>
+                                Editar
+                              </DropdownMenuItem>
+                              {pendingInvite && (
+                                <DropdownMenuItem onSelect={() => handleRevoke(pendingInvite.id)}>
+                                  Revogar convite
+                                </DropdownMenuItem>
+                              )}
+                              {expiredInvite && (
+                                <DropdownMenuItem onSelect={() => handleResend(emp.id)}>
+                                  Reenviar convite
+                                </DropdownMenuItem>
+                              )}
+                              {status === 'sem_acesso' && (
+                                <DropdownMenuItem onSelect={() => handleResend(emp.id)}>
+                                  Enviar convite
+                                </DropdownMenuItem>
+                              )}
+                              {!isSelf && status === 'ativo' && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    className="text-destructive focus:text-destructive"
+                                    onSelect={() => handleDeactivate(emp.id)}
+                                  >
+                                    Desativar
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </div>
 
-      {/* Filters */}
-      <div className="flex gap-3">
-        <div className="relative flex-1 max-w-xs">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por nome ou e-mail…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-        <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v ?? 'all')}>
-          <SelectTrigger className="w-44">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos os status</SelectItem>
-            <SelectItem value="ativo">Ativo</SelectItem>
-            <SelectItem value="convite_pendente">Convite pendente</SelectItem>
-            <SelectItem value="convite_expirado">Convite expirado</SelectItem>
-            <SelectItem value="sem_acesso">Sem acesso</SelectItem>
-            <SelectItem value="inativo">Inativo</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Table */}
-      {filtered.length === 0 ? (
-        <EmptyState
-          icon={Users}
-          title="Nenhum colaborador encontrado"
-          description={search || statusFilter !== 'all' ? 'Tente outros filtros.' : 'Adicione o primeiro colaborador.'}
-          action={isAdmin ? (
-            <Button onClick={() => setSheetOpen(true)}>
-              <UserPlus className="mr-2 h-4 w-4" />
-              Novo colaborador
-            </Button>
-          ) : undefined}
-        />
-      ) : (
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nome / E-mail</TableHead>
-                <TableHead>Cargo</TableHead>
-                <TableHead>Departamento</TableHead>
-                <TableHead>Gestor direto</TableHead>
-                <TableHead>Status</TableHead>
-                {isAdmin && <TableHead className="w-12" />}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtered.map((emp) => {
-                const status = deriveStatus(emp);
-                const isSelf = emp.user_id === currentUserId;
-                const pendingInvite = emp.invite?.find(
-                  (i) => !i.accepted_at && !i.revoked_at && new Date(i.expires_at) > new Date(),
-                );
-                const expiredInvite = emp.invite?.find(
-                  (i) => !i.accepted_at && !i.revoked_at && new Date(i.expires_at) <= new Date(),
-                );
-
-                return (
-                  <TableRow key={emp.id}>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium">
-                          {emp.full_name}
-                          {isSelf && <span className="ml-2 text-xs text-muted-foreground">(você)</span>}
-                        </p>
-                        <p className="text-sm text-muted-foreground">{emp.email}</p>
-                      </div>
-                    </TableCell>
-                    <TableCell>{emp.position?.name ?? '—'}</TableCell>
-                    <TableCell>{emp.department?.name ?? '—'}</TableCell>
-                    <TableCell>{emp.manager?.full_name ?? '—'}</TableCell>
-                    <TableCell>
-                      <Badge variant={STATUS_VARIANTS[status]}>
-                        {STATUS_LABELS[status]}
-                      </Badge>
-                    </TableCell>
-                    {isAdmin && (
-                      <TableCell>
-                        {(() => {
-                          const hasActions =
-                            !!pendingInvite ||
-                            !!expiredInvite ||
-                            status === 'sem_acesso' ||
-                            (!isSelf && status === 'ativo');
-                          if (!hasActions) return null;
-                          return (
-                            <DropdownMenu>
-                              <DropdownMenuTrigger className="flex h-8 w-8 items-center justify-center rounded-md hover:bg-muted transition-colors">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                {pendingInvite && (
-                                  <DropdownMenuItem onSelect={() => handleRevoke(pendingInvite.id)}>
-                                    Revogar convite
-                                  </DropdownMenuItem>
-                                )}
-                                {expiredInvite && (
-                                  <DropdownMenuItem onSelect={() => handleResend(emp.id)}>
-                                    Reenviar convite
-                                  </DropdownMenuItem>
-                                )}
-                                {status === 'sem_acesso' && (
-                                  <DropdownMenuItem onSelect={() => handleResend(emp.id)}>
-                                    Enviar convite
-                                  </DropdownMenuItem>
-                                )}
-                                {!isSelf && status === 'ativo' && (
-                                  <>
-                                    {(pendingInvite || expiredInvite) && <DropdownMenuSeparator />}
-                                    <DropdownMenuItem
-                                      className="text-destructive"
-                                      onSelect={() => handleDeactivate(emp.id)}
-                                    >
-                                      Desativar
-                                    </DropdownMenuItem>
-                                  </>
-                                )}
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          );
-                        })()}
-                      </TableCell>
-                    )}
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </div>
-      )}
-
-      {/* Sheet */}
       <EmployeeSheet
         open={sheetOpen}
-        onOpenChange={setSheetOpen}
+        onOpenChange={(o) => { setSheetOpen(o); if (!o) setEditing(null); }}
         positions={positions}
         departments={departments}
-        managers={employees.filter((e) => e.user_id).map((e) => ({ id: e.id, full_name: e.full_name }))}
+        managers={employees.filter((e) => e.full_name).map((e) => ({ id: e.id, full_name: e.full_name }))}
+        employee={editing}
       />
     </div>
   );
