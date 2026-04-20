@@ -2,8 +2,8 @@
 
 Documento de retomada. Lido por nova sessão para continuar com exatamente a mesma precisão, ritmo e padrão de brainstorming.
 
-**Última pausa:** 2026-04-20, após commit de FT-4.
-**Próximo passo:** brainstorm da **FT-5 (Dashboard)**.
+**Última pausa:** 2026-04-20, após commit de FT-5.
+**Próximo passo:** brainstorm do **Scaffold inicial**.
 
 ---
 
@@ -36,7 +36,7 @@ Documento de retomada. Lido por nova sessão para continuar com exatamente a mes
 > - Side sheet 440px como padrão de "criar algo"
 > - Commits sequenciais conforme plano em HANDOFF.md §5
 >
-> Continuamos na **pergunta 69** (início do brainstorm FT-5). Quando terminar o brainstorm da FT-5, escreva `docs/dev/06-ft-5-dashboard.md` e commit. Depois o brainstorm de scaffold/implementação.
+> Continuamos na **pergunta 80** (início do brainstorm Scaffold). Quando terminar, escreva `docs/dev/07-scaffold-inicial.md` e commit. Depois partimos para implementação real.
 >
 > Me responda em PT-BR (obrigatório). Começa perguntando se pode invocar o Visual Companion e depois parte para a Pergunta 51.
 
@@ -45,6 +45,7 @@ Documento de retomada. Lido por nova sessão para continuar com exatamente a mes
 ## 2. Estado atual — o que já está commitado
 
 ```
+d641bad docs(dev): FT-5 dashboard spec
 f9f0e85 docs(dev): FT-4 PDI spec
 45c95c4 docs(dev): FT-3 feedbacks spec
 14660e3 docs(dev): FT-2 avaliacoes spec
@@ -62,7 +63,7 @@ f9f0e85 docs(dev): FT-4 PDI spec
 | `03-ft-2-avaliacoes.md` | ✅ Aprovado | Ciclos de avaliação — wizard 5 passos, formulário, assignments, resposta, resultados |
 | `04-ft-3-feedbacks.md` | ✅ Aprovado | Feedbacks contínuos — 5 tipos, 3 visibilidades, `FeedbackSheet` via `EntitySheet` |
 | `05-ft-4-pdi.md` | ✅ Aprovado | PDI — 3 tabelas, PdiSheet, /pdi abas, pg_cron, RLS |
-| `06-ft-5-dashboard.md` | ⏳ Pendente | Dashboard — próximo alvo do brainstorm |
+| `06-ft-5-dashboard.md` | ✅ Aprovado | Dashboard — página única, 10 KPIs, radar, drill-down |
 | `memory/` | ✅ Versionado | Memórias persistentes do Claude Code (índice + 3 memórias + README de instalação) |
 
 ### Decisões confirmadas até agora (51 perguntas respondidas)
@@ -96,6 +97,8 @@ Os números aqui são de ordem aproximada do brainstorm — a lista canônica de
 **FT-3 (Q48–Q50)** — 3 abas listagem · `FeedbackSheet` (sidesheet) · 5 tipos · 3 visibilidades com skip-level · imutabilidade após envio.
 
 **FT-4 (Q51–Q68)** — PdiSheet 440px · ações lean · status híbrido (atrasado computado) · abas /pdi · seção resultado · pg_cron pdi_action_due · comentários bidirecionais · RLS 3 tabelas.
+
+**FT-5 (Q69–Q79)** — página única scrollável · 10 KPIs · barras por depto + radar competências · drill-down para listas filtradas · queries on-the-fly · escopo gestor server-side.
 
 ---
 
@@ -212,8 +215,8 @@ FT-1 Colaboradores     ✅ spec commitada
 FT-2 Avaliações        ✅ spec commitada
 FT-3 Feedbacks         ✅ spec commitada
 FT-4 PDI               ✅ spec commitada
-FT-5 Dashboard         ⏳ próximo brainstorm
-Scaffold inicial       ⏳ depois dos 5 specs
+FT-5 Dashboard         ✅ spec commitada
+Scaffold inicial       ⏳ próximo brainstorm
 Implementação real     ⏳ após todos os specs
 ```
 
@@ -236,4 +239,4 @@ Implementação real     ⏳ após todos os specs
 - [ ] Docs: todos os 5 specs em `docs/dev/` lidos
 - [ ] Memory: 3 arquivos em `docs/dev/memory/` lidos (ou copiados para o path de auto-load conforme `docs/dev/memory/README.md`)
 - [ ] Visual Companion: servidor rodando (se pergunta próxima for UI)
-- [ ] Usuário confirmou retomada? Sim → começar pela Pergunta 69 (FT-5)
+- [ ] Usuário confirmou retomada? Sim → começar pela Pergunta 80 (Scaffold)
