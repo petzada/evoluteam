@@ -196,6 +196,8 @@ export function FeedbacksPage({
   );
 }
 
+const PAGE_SIZE = 20;
+
 function FeedbackList({
   items, emptyMessage, perspective, unreadSet, isAdmin,
 }: {
@@ -205,6 +207,8 @@ function FeedbackList({
   unreadSet?: Set<string>;
   isAdmin: boolean;
 }) {
+  const [visible, setVisible] = useState(PAGE_SIZE);
+
   if (items.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-14 text-center">
@@ -213,18 +217,34 @@ function FeedbackList({
       </div>
     );
   }
+
+  const slice = items.slice(0, visible);
+  const hasMore = items.length > visible;
+
   return (
-    <ul className="space-y-3">
-      {items.map((fb) => (
-        <li key={fb.id}>
-          <FeedbackCard
-            feedback={fb}
-            perspective={perspective}
-            isAdmin={isAdmin}
-            unread={unreadSet?.has(fb.id)}
-          />
-        </li>
-      ))}
-    </ul>
+    <>
+      <ul className="space-y-3">
+        {slice.map((fb) => (
+          <li key={fb.id}>
+            <FeedbackCard
+              feedback={fb}
+              perspective={perspective}
+              isAdmin={isAdmin}
+              unread={unreadSet?.has(fb.id)}
+            />
+          </li>
+        ))}
+      </ul>
+      {hasMore && (
+        <div className="flex justify-center mt-4">
+          <Button
+            variant="outline"
+            onClick={() => setVisible((v) => v + PAGE_SIZE)}
+          >
+            Carregar mais ({items.length - visible} restantes)
+          </Button>
+        </div>
+      )}
+    </>
   );
 }

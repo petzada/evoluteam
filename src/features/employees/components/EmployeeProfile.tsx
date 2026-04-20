@@ -76,6 +76,7 @@ interface Props {
   subordinatesCount: number;
   actors: Record<string, string>;
   feedbacks: FeedbackRow[];
+  initialTab?: string;
 }
 
 const ROLE_LABELS: Record<Role, string> = {
@@ -95,11 +96,16 @@ function initials(name: string) {
   return parts.map((p) => p[0]?.toUpperCase()).join('');
 }
 
+const VALID_TABS = ['dados', 'acesso', 'historico', 'feedbacks'] as const;
+
 export function EmployeeProfile({
   employee, directReports, activityLog, role, lastSignInAt, isAdmin, isSelf,
   canSeeInternalNotes, positions, departments, managers, descendantIds,
-  subordinatesCount, actors, feedbacks,
+  subordinatesCount, actors, feedbacks, initialTab,
 }: Props) {
+  const resolvedInitialTab = VALID_TABS.includes(initialTab as typeof VALID_TABS[number])
+    ? (initialTab as typeof VALID_TABS[number])
+    : 'dados';
   const router = useRouter();
   const [sheetOpen, setSheetOpen] = useState(false);
   const [statusAction, setStatusAction] = useState<StatusAction | null>(null);
@@ -223,7 +229,7 @@ export function EmployeeProfile({
         </div>
       </div>
 
-      <Tabs defaultValue="dados">
+      <Tabs defaultValue={resolvedInitialTab}>
         <TabsList>
           <TabsTrigger value="dados">Dados</TabsTrigger>
           <TabsTrigger value="acesso">Acesso</TabsTrigger>

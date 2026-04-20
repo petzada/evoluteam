@@ -18,10 +18,13 @@ import { listFeedbacksForEmployee } from '@/features/feedbacks/queries';
 
 export default async function EmployeeProfilePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams?: Promise<{ tab?: string }>;
 }) {
   const { id } = await params;
+  const search = (await searchParams) ?? {};
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
@@ -122,6 +125,7 @@ export default async function EmployeeProfilePage({
       subordinatesCount={subordinatesCount}
       actors={actors}
       feedbacks={feedbacks}
+      initialTab={search.tab}
     />
   );
 }
