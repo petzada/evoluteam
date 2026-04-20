@@ -8,12 +8,12 @@ export const SEGMENTS = [
 export const TEAM_SIZES = ['1–20', '21–50', '51–100', '101–300', '300+'] as const;
 
 export const SEED_POSITIONS = [
-  'Administrativo/RH', 'Comercial', 'Operacional', 'Tecnologia',
+  'Colaborador', 'Líder/Supervisor', 'Coordenador', 'Administrativo/RH',
 ];
 
 export const SEED_COMPETENCIES = [
-  'Comunicação', 'Trabalho em equipe', 'Liderança', 'Proatividade',
-  'Resolução de problemas', 'Adaptabilidade', 'Orientação a resultados',
+  'Comunicação', 'Liderança', 'Colaboração', 'Entrega',
+  'Organização', 'Domínio técnico', 'Comportamento',
 ];
 
 export const CompanySchema = z.object({

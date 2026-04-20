@@ -83,17 +83,17 @@ export type QuestionTemplateItem = Omit<QuestionInput, 'competencyId'> & {
 };
 
 // Cada pergunta de nota do template tem um "hint" que é casado com o nome de
-// uma competência seed (docs/dev/03-ft-2-avaliacoes.md §8). As 7 seeds em
-// src/features/company/schema.ts: Comunicação, Trabalho em equipe, Liderança,
-// Proatividade, Resolução de problemas, Adaptabilidade, Orientação a resultados.
+// uma competência seed (docs/dev/00-decisoes-transversais.md §14). As 7 seeds em
+// src/features/company/schema.ts: Comunicação, Liderança, Colaboração, Entrega,
+// Organização, Domínio técnico, Comportamento.
 export const DEFAULT_QUESTION_TEMPLATE: QuestionTemplateItem[] = [
-  { questionOrder: 0, type: 'scale', questionText: 'Entrega os compromissos combinados dentro do prazo.', isRequired: true, scaleMin: 1, scaleMax: 5, hintCompetencyName: 'Orientação a resultados' },
-  { questionOrder: 1, type: 'scale', questionText: 'Demonstra iniciativa e busca soluções proativamente.', isRequired: true, scaleMin: 1, scaleMax: 5, hintCompetencyName: 'Proatividade' },
-  { questionOrder: 2, type: 'scale', questionText: 'Comunica-se de forma clara com colegas e stakeholders.', isRequired: true, scaleMin: 1, scaleMax: 5, hintCompetencyName: 'Comunicação' },
-  { questionOrder: 3, type: 'scale', questionText: 'Colabora e apoia o time quando necessário.', isRequired: true, scaleMin: 1, scaleMax: 5, hintCompetencyName: 'Trabalho em equipe' },
-  { questionOrder: 4, type: 'scale', questionText: 'Analisa problemas complexos e propõe soluções eficazes.', isRequired: true, scaleMin: 1, scaleMax: 5, hintCompetencyName: 'Resolução de problemas' },
-  { questionOrder: 5, type: 'scale', questionText: 'Adapta-se bem a mudanças e imprevistos.', isRequired: true, scaleMin: 1, scaleMax: 5, hintCompetencyName: 'Adaptabilidade' },
-  { questionOrder: 6, type: 'scale', questionText: 'Influencia positivamente o time e inspira resultados.', isRequired: true, scaleMin: 1, scaleMax: 5, hintCompetencyName: 'Liderança' },
+  { questionOrder: 0, type: 'scale', questionText: 'Comunica-se com clareza e objetividade com colegas, liderança e stakeholders.', isRequired: true, scaleMin: 1, scaleMax: 5, hintCompetencyName: 'Comunicação' },
+  { questionOrder: 1, type: 'scale', questionText: 'Demonstra liderança adequada ao seu papel, orientando pessoas e assumindo responsabilidades.', isRequired: true, scaleMin: 1, scaleMax: 5, hintCompetencyName: 'Liderança' },
+  { questionOrder: 2, type: 'scale', questionText: 'Colabora com o time, compartilha conhecimento e apoia os colegas.', isRequired: true, scaleMin: 1, scaleMax: 5, hintCompetencyName: 'Colaboração' },
+  { questionOrder: 3, type: 'scale', questionText: 'Entrega resultados com qualidade e dentro dos prazos combinados.', isRequired: true, scaleMin: 1, scaleMax: 5, hintCompetencyName: 'Entrega' },
+  { questionOrder: 4, type: 'scale', questionText: 'Gerencia tempo, prioridades e processos de forma eficiente.', isRequired: true, scaleMin: 1, scaleMax: 5, hintCompetencyName: 'Organização' },
+  { questionOrder: 5, type: 'scale', questionText: 'Demonstra domínio técnico compatível com o cargo e busca evolução contínua.', isRequired: true, scaleMin: 1, scaleMax: 5, hintCompetencyName: 'Domínio técnico' },
+  { questionOrder: 6, type: 'scale', questionText: 'Age com ética, respeito e alinhamento aos valores da empresa.', isRequired: true, scaleMin: 1, scaleMax: 5, hintCompetencyName: 'Comportamento' },
   { questionOrder: 7, type: 'text', questionText: 'Quais são os principais pontos fortes observados?', isRequired: true },
   { questionOrder: 8, type: 'text', questionText: 'Quais pontos de desenvolvimento você sugere?', isRequired: true },
 ];

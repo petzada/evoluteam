@@ -91,12 +91,12 @@ describe('DEFAULT_QUESTION_TEMPLATE', () => {
 describe('resolveTemplateQuestions', () => {
   const competencies = [
     { id: crypto.randomUUID(), name: 'Comunicação' },
-    { id: crypto.randomUUID(), name: 'Trabalho em equipe' },
     { id: crypto.randomUUID(), name: 'Liderança' },
-    { id: crypto.randomUUID(), name: 'Proatividade' },
-    { id: crypto.randomUUID(), name: 'Resolução de problemas' },
-    { id: crypto.randomUUID(), name: 'Adaptabilidade' },
-    { id: crypto.randomUUID(), name: 'Orientação a resultados' },
+    { id: crypto.randomUUID(), name: 'Colaboração' },
+    { id: crypto.randomUUID(), name: 'Entrega' },
+    { id: crypto.randomUUID(), name: 'Organização' },
+    { id: crypto.randomUUID(), name: 'Domínio técnico' },
+    { id: crypto.randomUUID(), name: 'Comportamento' },
   ];
 
   it('produz questões válidas conforme QuestionInputSchema', () => {
