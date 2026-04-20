@@ -1,0 +1,501 @@
+import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { getEmployeeDescendants } from '@/features/employees/queries';
+
+export type CycleRow = {
+  id: string;
+  name: string;
+  description: string | null;
+  period_start: string;
+  period_end: string;
+  response_start: string;
+  response_end: string;
+  status: 'draft' | 'published' | 'closed' | 'archived';
+  include_self: boolean;
+  include_manager: boolean;
+  published_at: string | null;
+  closed_at: string | null;
+  archived_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export async function listCycles(companyId: string, opts: { includeArchived?: boolean } = {}) {
+  const supabase = await createServerSupabaseClient();
+  let query = supabase
+    .from('review_cycles')
+    .select('id, name, description, period_start, period_end, response_start, response_end, status, include_self, include_manager, published_at, closed_at, archived_at, created_at, updated_at')
+    .eq('company_id', companyId)
+    .order('created_at', { ascending: false });
+  if (!opts.includeArchived) {
+    query = query.neq('status', 'archived');
+  }
+  const { data } = await query;
+  return (data ?? []) as CycleRow[];
+}
+
+export async function getCycle(cycleId: string) {
+  const supabase = await createServerSupabaseClient();
+  const { data, error } = await supabase
+    .from('review_cycles')
+    .select('id, company_id, name, description, period_start, period_end, response_start, response_end, status, include_self, include_manager, published_at, closed_at, archived_at, created_at, updated_at, created_by')
+    .eq('id', cycleId)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+export async function getCycleParticipants(cycleId: string) {
+  const supabase = await createServerSupabaseClient();
+  const { data } = await supabase
+    .from('review_cycle_participants')
+    .select(`
+      id, cycle_id, employee_id, added_at, removed_at, result_released_at, result_released_by,
+      employee:employees(
+        id, full_name, email, status, manager_id,
+        position:positions(id, name),
+        department:departments(id, name),
+        manager:employees!manager_id(id, full_name)
+      )
+    `)
+    .eq('cycle_id', cycleId)
+    .is('removed_at', null);
+  return data ?? [];
+}
+
+export async function getCycleForm(cycleId: string) {
+  const supabase = await createServerSupabaseClient();
+  const { data: form } = await supabase
+    .from('review_forms')
+    .select('id')
+    .eq('cycle_id', cycleId)
+    .maybeSingle();
+  if (!form) return { form: null, questions: [] };
+  const { data: questions } = await supabase
+    .from('review_questions')
+    .select('id, form_id, competency_id, question_order, type, question_text, is_required, scale_min, scale_max, competency:competencies(id, name)')
+    .eq('form_id', form.id)
+    .order('question_order');
+  return { form, questions: questions ?? [] };
+}
+
+export async function getCycleAssignments(cycleId: string) {
+  const supabase = await createServerSupabaseClient();
+  const { data } = await supabase
+    .from('review_assignments')
+    .select(`
+      id, cycle_id, reviewee_id, reviewer_id, type, status, submitted_at, cancelled_at, cancelled_reason,
+      reviewee:employees!reviewee_id(id, full_name, email),
+      reviewer:employees!reviewer_id(id, full_name, email, user_id)
+    `)
+    .eq('cycle_id', cycleId);
+  return data ?? [];
+}
+
+export async function getAssignmentsForReviewer(reviewerEmployeeId: string, opts: { onlyOpen?: boolean } = {}) {
+  const supabase = await createServerSupabaseClient();
+  let query = supabase
+    .from('review_assignments')
+    .select(`
+      id, cycle_id, reviewee_id, reviewer_id, type, status, submitted_at,
+      reviewee:employees!reviewee_id(id, full_name, position:positions(id, name)),
+      cycle:review_cycles!cycle_id(id, name, response_start, response_end, status)
+    `)
+    .eq('reviewer_id', reviewerEmployeeId);
+  if (opts.onlyOpen) {
+    query = query.in('status', ['pending', 'in_progress']);
+  }
+  const { data } = await query;
+  return data ?? [];
+}
+
+export async function getAssignment(assignmentId: string) {
+  const supabase = await createServerSupabaseClient();
+  const { data } = await supabase
+    .from('review_assignments')
+    .select(`
+      id, company_id, cycle_id, form_id, reviewee_id, reviewer_id, type, status, submitted_at, cancelled_at,
+      reviewee:employees!reviewee_id(id, full_name, email, hire_date, position:positions(id, name), department:departments(id, name), manager:employees!manager_id(id, full_name)),
+      reviewer:employees!reviewer_id(id, full_name, user_id),
+      cycle:review_cycles!cycle_id(id, name, response_start, response_end, status)
+    `)
+    .eq('id', assignmentId)
+    .maybeSingle();
+  return data;
+}
+
+export async function getAssignmentAnswers(assignmentId: string) {
+  const supabase = await createServerSupabaseClient();
+  const { data } = await supabase
+    .from('review_answers')
+    .select('id, question_id, scale_value, text_value, answered_at')
+    .eq('assignment_id', assignmentId);
+  return data ?? [];
+}
+
+export async function getCycleProgress(cycleId: string) {
+  const supabase = await createServerSupabaseClient();
+  const { data } = await supabase
+    .from('review_assignments')
+    .select('status')
+    .eq('cycle_id', cycleId);
+  const rows = data ?? [];
+  const total = rows.length;
+  const submitted = rows.filter((r) => r.status === 'submitted').length;
+  const inProgress = rows.filter((r) => r.status === 'in_progress').length;
+  const pending = rows.filter((r) => r.status === 'pending').length;
+  const cancelled = rows.filter((r) => r.status === 'cancelled').length;
+  return { total, submitted, inProgress, pending, cancelled };
+}
+
+export type CompetencyScore = {
+  competencyId: string | null;
+  competencyName: string | null;
+  avgManager: number | null;
+  avgSelf: number | null;
+  avgEffective: number | null;
+  questionCount: number;
+};
+
+export type ResultOverview = {
+  employeeId: string;
+  cycleId: string;
+  avgOverall: number | null;
+  competencyScores: CompetencyScore[];
+  hasManagerReview: boolean;
+  hasSelfReview: boolean;
+  isReleased: boolean;
+  releasedAt: string | null;
+};
+
+// Cálculo on-the-fly do resultado de um colaborador em um ciclo
+export async function getResultOverview(cycleId: string, employeeId: string): Promise<ResultOverview> {
+  const supabase = await createServerSupabaseClient();
+
+  const [{ data: participant }, { data: assignments }] = await Promise.all([
+    supabase
+      .from('review_cycle_participants')
+      .select('result_released_at')
+      .eq('cycle_id', cycleId)
+      .eq('employee_id', employeeId)
+      .maybeSingle(),
+    supabase
+      .from('review_assignments')
+      .select('id, type, status')
+      .eq('cycle_id', cycleId)
+      .eq('reviewee_id', employeeId),
+  ]);
+
+  const submitted = (assignments ?? []).filter((a) => a.status === 'submitted');
+  const managerA = submitted.find((a) => a.type === 'manager');
+  const selfA = submitted.find((a) => a.type === 'self');
+
+  const emptyResult: ResultOverview = {
+    employeeId,
+    cycleId,
+    avgOverall: null,
+    competencyScores: [],
+    hasManagerReview: !!managerA,
+    hasSelfReview: !!selfA,
+    isReleased: !!participant?.result_released_at,
+    releasedAt: participant?.result_released_at ?? null,
+  };
+
+  if (submitted.length === 0) return emptyResult;
+
+  const assignmentIds = submitted.map((a) => a.id);
+  const { data: answers } = await supabase
+    .from('review_answers')
+    .select('assignment_id, question_id, scale_value, text_value')
+    .in('assignment_id', assignmentIds);
+
+  const { data: questions } = await supabase
+    .from('review_questions')
+    .select('id, competency_id, type, question_text')
+    .in('id', (answers ?? []).map((a) => a.question_id));
+
+  const competencyIds = Array.from(
+    new Set((questions ?? []).map((q) => q.competency_id).filter((x): x is string => !!x)),
+  );
+  const { data: competencies } = competencyIds.length
+    ? await supabase.from('competencies').select('id, name').in('id', competencyIds)
+    : { data: [] as { id: string; name: string }[] };
+  const compById = new Map((competencies ?? []).map((c) => [c.id, c.name]));
+
+  const qById = new Map((questions ?? []).map((q) => [q.id, q]));
+
+  const byType = new Map<string, Map<string, number[]>>(); // type -> competencyId|'__none__' -> notes
+  byType.set('self', new Map());
+  byType.set('manager', new Map());
+
+  const assignmentTypeById = new Map(submitted.map((a) => [a.id, a.type as 'self' | 'manager']));
+
+  for (const ans of answers ?? []) {
+    if (ans.scale_value === null) continue;
+    const q = qById.get(ans.question_id);
+    if (!q || q.type !== 'scale') continue;
+    const assignmentType = assignmentTypeById.get(ans.assignment_id);
+    if (!assignmentType) continue;
+    const key = q.competency_id ?? '__none__';
+    const bucket = byType.get(assignmentType)!;
+    if (!bucket.has(key)) bucket.set(key, []);
+    bucket.get(key)!.push(ans.scale_value);
+  }
+
+  const competencyKeys = new Set<string>([
+    ...Array.from(byType.get('self')!.keys()),
+    ...Array.from(byType.get('manager')!.keys()),
+  ]);
+
+  const scores: CompetencyScore[] = [];
+  for (const key of competencyKeys) {
+    const selfArr = byType.get('self')!.get(key) ?? [];
+    const mgrArr = byType.get('manager')!.get(key) ?? [];
+    const avgSelf = selfArr.length ? selfArr.reduce((a, b) => a + b, 0) / selfArr.length : null;
+    const avgManager = mgrArr.length ? mgrArr.reduce((a, b) => a + b, 0) / mgrArr.length : null;
+    const avgEffective = avgManager ?? avgSelf;
+    const qCountSample = (questions ?? []).filter((q) => (q.competency_id ?? '__none__') === key && q.type === 'scale').length;
+    scores.push({
+      competencyId: key === '__none__' ? null : key,
+      competencyName: key === '__none__' ? null : (compById.get(key) ?? null),
+      avgManager,
+      avgSelf,
+      avgEffective,
+      questionCount: qCountSample,
+    });
+  }
+
+  scores.sort((a, b) => (a.competencyName ?? '').localeCompare(b.competencyName ?? ''));
+
+  const overallVals = scores.map((s) => s.avgEffective).filter((v): v is number => v !== null);
+  const avgOverall = overallVals.length ? overallVals.reduce((a, b) => a + b, 0) / overallVals.length : null;
+
+  return {
+    employeeId,
+    cycleId,
+    avgOverall,
+    competencyScores: scores,
+    hasManagerReview: !!managerA,
+    hasSelfReview: !!selfA,
+    isReleased: !!participant?.result_released_at,
+    releasedAt: participant?.result_released_at ?? null,
+  };
+}
+
+export type CycleComment = {
+  questionId: string;
+  questionText: string;
+  author: 'self' | 'manager';
+  text: string;
+};
+
+export async function getCycleComments(cycleId: string, employeeId: string): Promise<CycleComment[]> {
+  const supabase = await createServerSupabaseClient();
+  const { data: assignments } = await supabase
+    .from('review_assignments')
+    .select('id, type, status')
+    .eq('cycle_id', cycleId)
+    .eq('reviewee_id', employeeId)
+    .eq('status', 'submitted');
+  if (!assignments?.length) return [];
+
+  const ids = assignments.map((a) => a.id);
+  const { data: answers } = await supabase
+    .from('review_answers')
+    .select('assignment_id, question_id, text_value')
+    .in('assignment_id', ids);
+
+  const { data: questions } = await supabase
+    .from('review_questions')
+    .select('id, question_text, type')
+    .in('id', (answers ?? []).map((a) => a.question_id));
+
+  const qById = new Map((questions ?? []).map((q) => [q.id, q]));
+  const typeById = new Map(assignments.map((a) => [a.id, a.type as 'self' | 'manager']));
+
+  const comments: CycleComment[] = [];
+  for (const ans of answers ?? []) {
+    if (!ans.text_value || !ans.text_value.trim()) continue;
+    const q = qById.get(ans.question_id);
+    if (!q || q.type !== 'text') continue;
+    const type = typeById.get(ans.assignment_id);
+    if (!type) continue;
+    comments.push({
+      questionId: q.id,
+      questionText: q.question_text,
+      author: type,
+      text: ans.text_value,
+    });
+  }
+  return comments;
+}
+
+export type CycleResultRow = {
+  employeeId: string;
+  fullName: string;
+  position: { id: string; name: string } | null;
+  department: { id: string; name: string } | null;
+  managerId: string | null;
+  avgOverall: number | null;
+  isReleased: boolean;
+  releasedAt: string | null;
+  hasManagerReview: boolean;
+  hasSelfReview: boolean;
+};
+
+export async function listCycleResults(cycleId: string): Promise<CycleResultRow[]> {
+  const supabase = await createServerSupabaseClient();
+
+  const { data: participants } = await supabase
+    .from('review_cycle_participants')
+    .select(`
+      employee_id, result_released_at,
+      employee:employees!employee_id(id, full_name, manager_id, position:positions(id, name), department:departments(id, name))
+    `)
+    .eq('cycle_id', cycleId)
+    .is('removed_at', null);
+
+  if (!participants?.length) return [];
+
+  const employeeIds = participants.map((p) => p.employee_id);
+
+  const { data: assignments } = await supabase
+    .from('review_assignments')
+    .select('id, reviewee_id, type, status')
+    .eq('cycle_id', cycleId)
+    .in('reviewee_id', employeeIds);
+
+  const submitted = (assignments ?? []).filter((a) => a.status === 'submitted');
+  if (submitted.length === 0) {
+    return participants.map((p) => {
+      const emp = p.employee as unknown as { full_name: string; manager_id: string | null; position: { id: string; name: string } | null; department: { id: string; name: string } | null } | null;
+      return {
+        employeeId: p.employee_id,
+        fullName: emp?.full_name ?? '—',
+        position: emp?.position ?? null,
+        department: emp?.department ?? null,
+        managerId: emp?.manager_id ?? null,
+        avgOverall: null,
+        isReleased: !!p.result_released_at,
+        releasedAt: p.result_released_at,
+        hasManagerReview: false,
+        hasSelfReview: false,
+      };
+    });
+  }
+
+  const assignmentIds = submitted.map((a) => a.id);
+  const { data: answers } = await supabase
+    .from('review_answers')
+    .select('assignment_id, question_id, scale_value')
+    .in('assignment_id', assignmentIds);
+
+  const { data: questions } = answers?.length
+    ? await supabase
+      .from('review_questions')
+      .select('id, competency_id, type')
+      .in('id', answers.map((a) => a.question_id))
+    : { data: [] };
+
+  const scaleQIds = new Set((questions ?? []).filter((q) => q.type === 'scale').map((q) => q.id));
+  const compByQ = new Map((questions ?? []).map((q) => [q.id, q.competency_id ?? '__none__']));
+
+  // Para cada reviewee_id: agrupar notas por tipo e competência
+  const byEmp = new Map<string, {
+    self: Map<string, number[]>;
+    manager: Map<string, number[]>;
+    hasSelf: boolean;
+    hasManager: boolean;
+  }>();
+
+  const empByAssignment = new Map(submitted.map((a) => [a.id, { reviewee: a.reviewee_id, type: a.type as 'self' | 'manager' }]));
+
+  for (const a of submitted) {
+    let entry = byEmp.get(a.reviewee_id);
+    if (!entry) {
+      entry = { self: new Map(), manager: new Map(), hasSelf: false, hasManager: false };
+      byEmp.set(a.reviewee_id, entry);
+    }
+    if (a.type === 'self') entry.hasSelf = true;
+    if (a.type === 'manager') entry.hasManager = true;
+  }
+
+  for (const ans of answers ?? []) {
+    if (ans.scale_value === null) continue;
+    if (!scaleQIds.has(ans.question_id)) continue;
+    const meta = empByAssignment.get(ans.assignment_id);
+    if (!meta) continue;
+    const entry = byEmp.get(meta.reviewee);
+    if (!entry) continue;
+    const bucket = entry[meta.type];
+    const compKey = compByQ.get(ans.question_id) ?? '__none__';
+    if (!bucket.has(compKey)) bucket.set(compKey, []);
+    bucket.get(compKey)!.push(ans.scale_value);
+  }
+
+  function avgOverallFromEntry(entry: { self: Map<string, number[]>; manager: Map<string, number[]> }) {
+    const competencyKeys = new Set<string>([
+      ...Array.from(entry.self.keys()),
+      ...Array.from(entry.manager.keys()),
+    ]);
+    if (competencyKeys.size === 0) return null;
+    const averages: number[] = [];
+    for (const key of competencyKeys) {
+      const mgr = entry.manager.get(key) ?? [];
+      const slf = entry.self.get(key) ?? [];
+      const arr = mgr.length > 0 ? mgr : slf;
+      if (arr.length === 0) continue;
+      averages.push(arr.reduce((a, b) => a + b, 0) / arr.length);
+    }
+    if (averages.length === 0) return null;
+    return averages.reduce((a, b) => a + b, 0) / averages.length;
+  }
+
+  return participants.map((p) => {
+    const emp = p.employee as unknown as {
+      full_name: string;
+      manager_id: string | null;
+      position: { id: string; name: string } | null;
+      department: { id: string; name: string } | null;
+    } | null;
+    const entry = byEmp.get(p.employee_id);
+    return {
+      employeeId: p.employee_id,
+      fullName: emp?.full_name ?? '—',
+      position: emp?.position ?? null,
+      department: emp?.department ?? null,
+      managerId: emp?.manager_id ?? null,
+      avgOverall: entry ? avgOverallFromEntry(entry) : null,
+      isReleased: !!p.result_released_at,
+      releasedAt: p.result_released_at,
+      hasManagerReview: entry?.hasManager ?? false,
+      hasSelfReview: entry?.hasSelf ?? false,
+    };
+  });
+}
+
+export async function getEligibleEmployees(companyId: string) {
+  const supabase = await createServerSupabaseClient();
+  const { data } = await supabase
+    .from('employees')
+    .select('id, full_name, email, manager_id, position:positions(id, name), department:departments(id, name)')
+    .eq('company_id', companyId)
+    .eq('status', 'active')
+    .order('full_name');
+  return data ?? [];
+}
+
+export async function getActorEmployeeId(userId: string): Promise<string | null> {
+  const supabase = await createServerSupabaseClient();
+  const { data } = await supabase
+    .from('employees')
+    .select('id')
+    .eq('user_id', userId)
+    .maybeSingle();
+  return data?.id ?? null;
+}
+
+export async function getActorDescendants(userId: string): Promise<string[]> {
+  const empId = await getActorEmployeeId(userId);
+  if (!empId) return [];
+  return getEmployeeDescendants(empId);
+}

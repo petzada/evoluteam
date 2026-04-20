@@ -380,6 +380,234 @@ export type Database = {
           },
         ]
       }
+      review_cycles: {
+        Row: {
+          archived_at: string | null
+          closed_at: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          include_manager: boolean
+          include_self: boolean
+          name: string
+          period_end: string
+          period_start: string
+          published_at: string | null
+          response_end: string
+          response_start: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          closed_at?: string | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          include_manager?: boolean
+          include_self?: boolean
+          name: string
+          period_end: string
+          period_start: string
+          published_at?: string | null
+          response_end: string
+          response_start: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          closed_at?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          include_manager?: boolean
+          include_self?: boolean
+          name?: string
+          period_end?: string
+          period_start?: string
+          published_at?: string | null
+          response_end?: string
+          response_start?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      review_cycle_participants: {
+        Row: {
+          added_at: string
+          added_by: string | null
+          company_id: string
+          cycle_id: string
+          employee_id: string
+          id: string
+          removed_at: string | null
+          result_released_at: string | null
+          result_released_by: string | null
+        }
+        Insert: {
+          added_at?: string
+          added_by?: string | null
+          company_id: string
+          cycle_id: string
+          employee_id: string
+          id?: string
+          removed_at?: string | null
+          result_released_at?: string | null
+          result_released_by?: string | null
+        }
+        Update: {
+          added_at?: string
+          added_by?: string | null
+          company_id?: string
+          cycle_id?: string
+          employee_id?: string
+          id?: string
+          removed_at?: string | null
+          result_released_at?: string | null
+          result_released_by?: string | null
+        }
+        Relationships: []
+      }
+      review_forms: {
+        Row: {
+          company_id: string
+          created_at: string
+          cycle_id: string
+          id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          cycle_id: string
+          id?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          cycle_id?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      review_questions: {
+        Row: {
+          company_id: string
+          competency_id: string | null
+          form_id: string
+          id: string
+          is_required: boolean
+          question_order: number
+          question_text: string
+          scale_max: number | null
+          scale_min: number | null
+          type: string
+        }
+        Insert: {
+          company_id: string
+          competency_id?: string | null
+          form_id: string
+          id?: string
+          is_required?: boolean
+          question_order: number
+          question_text: string
+          scale_max?: number | null
+          scale_min?: number | null
+          type: string
+        }
+        Update: {
+          company_id?: string
+          competency_id?: string | null
+          form_id?: string
+          id?: string
+          is_required?: boolean
+          question_order?: number
+          question_text?: string
+          scale_max?: number | null
+          scale_min?: number | null
+          type?: string
+        }
+        Relationships: []
+      }
+      review_assignments: {
+        Row: {
+          cancelled_at: string | null
+          cancelled_reason: string | null
+          company_id: string
+          cycle_id: string
+          form_id: string
+          id: string
+          reviewee_id: string
+          reviewer_id: string
+          status: string
+          submitted_at: string | null
+          type: string
+        }
+        Insert: {
+          cancelled_at?: string | null
+          cancelled_reason?: string | null
+          company_id: string
+          cycle_id: string
+          form_id: string
+          id?: string
+          reviewee_id: string
+          reviewer_id: string
+          status?: string
+          submitted_at?: string | null
+          type: string
+        }
+        Update: {
+          cancelled_at?: string | null
+          cancelled_reason?: string | null
+          company_id?: string
+          cycle_id?: string
+          form_id?: string
+          id?: string
+          reviewee_id?: string
+          reviewer_id?: string
+          status?: string
+          submitted_at?: string | null
+          type?: string
+        }
+        Relationships: []
+      }
+      review_answers: {
+        Row: {
+          answered_at: string
+          assignment_id: string
+          company_id: string
+          id: string
+          question_id: string
+          scale_value: number | null
+          text_value: string | null
+        }
+        Insert: {
+          answered_at?: string
+          assignment_id: string
+          company_id: string
+          id?: string
+          question_id: string
+          scale_value?: number | null
+          text_value?: string | null
+        }
+        Update: {
+          answered_at?: string
+          assignment_id?: string
+          company_id?: string
+          id?: string
+          question_id?: string
+          scale_value?: number | null
+          text_value?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -428,6 +656,7 @@ export type Database = {
     Functions: {
       my_company_id: { Args: never; Returns: string }
       my_role: { Args: never; Returns: string }
+      my_employee_id: { Args: never; Returns: string }
       get_employee_descendants: {
         Args: { root_id: string }
         Returns: { id: string }[]
