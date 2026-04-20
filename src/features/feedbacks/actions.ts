@@ -119,6 +119,7 @@ export async function sendFeedback(input: FeedbackInput) {
 
   revalidatePath('/feedbacks');
   revalidatePath(`/colaboradores/${value.recipientId}`);
+  revalidatePath('/dashboard');
   return { ok: true, id: inserted.id };
 }
 

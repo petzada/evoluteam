@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Plus, TrendingUp } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -43,8 +44,15 @@ export function PdisPage({
   mine, team, all, hasTeam, isAdmin, canCreateAny, actorEmployeeId,
   employees, competencies, cycles,
 }: Props) {
+  const searchParams = useSearchParams();
+  const initialStatusFilter = (() => {
+    const raw = searchParams?.get('status');
+    if (!raw) return [] as string[];
+    const valid = FILTER_STATUSES as readonly string[];
+    return valid.includes(raw) ? [raw] : [];
+  })();
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<string[]>([]);
+  const [statusFilter, setStatusFilter] = useState<string[]>(initialStatusFilter);
   const [competencyFilter, setCompetencyFilter] = useState<string[]>([]);
   const [period, setPeriod] = useState<PeriodFilter>('all');
 

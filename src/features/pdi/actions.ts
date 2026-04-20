@@ -148,6 +148,7 @@ export async function createPdi(input: PdiInput) {
   if (value.cycleId) {
     revalidatePath(`/avaliacoes/${value.cycleId}/resultados/${value.employeeId}`);
   }
+  revalidatePath('/dashboard');
   return { ok: true, id: inserted.id };
 }
 
@@ -269,6 +270,7 @@ export async function concludePdi(planId: string) {
 
   revalidatePath(`/pdi/${planId}`);
   revalidatePath('/pdi');
+  revalidatePath('/dashboard');
   return { ok: true };
 }
 
@@ -302,6 +304,7 @@ export async function cancelPdi(planId: string) {
 
   revalidatePath(`/pdi/${planId}`);
   revalidatePath('/pdi');
+  revalidatePath('/dashboard');
   return { ok: true };
 }
 

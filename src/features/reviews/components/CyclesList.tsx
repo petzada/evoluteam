@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { ClipboardList, Plus, Search } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -28,6 +28,7 @@ interface Props {
 }
 
 type DerivedStatus = 'draft' | 'scheduled' | 'in_progress' | 'closed' | 'archived';
+type StatusFilterValue = 'all' | 'published' | DerivedStatus;
 
 function deriveStatus(cycle: CycleRow): DerivedStatus {
   if (cycle.status === 'draft') return 'draft';
@@ -57,6 +58,7 @@ const STATUS_VARIANTS: Record<DerivedStatus, 'default' | 'secondary' | 'outline'
 
 const FILTER_ITEMS = [
   { value: 'all', label: 'Todos' },
+  { value: 'published', label: 'Publicados' },
   { value: 'draft', label: 'Rascunho' },
   { value: 'scheduled', label: 'Agendado' },
   { value: 'in_progress', label: 'Em andamento' },
@@ -64,16 +66,32 @@ const FILTER_ITEMS = [
   { value: 'archived', label: 'Arquivado' },
 ];
 
+const STATUS_URL_ALIASES: Record<string, StatusFilterValue> = {
+  published: 'published',
+  in_progress: 'in_progress',
+  scheduled: 'scheduled',
+  draft: 'draft',
+  closed: 'closed',
+  archived: 'archived',
+};
+
 export function CyclesList({ cycles, pending, isAdmin }: Props) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialStatus = (() => {
+    const raw = searchParams?.get('status');
+    if (!raw) return 'all';
+    return STATUS_URL_ALIASES[raw] ?? 'all';
+  })();
   const [search, setSearch] = useState('');
-  const [status, setStatus] = useState('all');
+  const [status, setStatus] = useState<StatusFilterValue>(initialStatus);
 
   const filtered = useMemo(() => {
     const lower = search.trim().toLowerCase();
     return cycles.filter((c) => {
       const matchSearch = !lower || c.name.toLowerCase().includes(lower);
-      const matchStatus = status === 'all' || deriveStatus(c) === status;
+      const matchStatus = status === 'all'
+        || (status === 'published' ? c.status === 'published' : deriveStatus(c) === status);
       return matchSearch && matchStatus;
     });
   }, [cycles, search, status]);
@@ -128,7 +146,7 @@ export function CyclesList({ cycles, pending, isAdmin }: Props) {
             className="pl-9"
           />
         </div>
-        <Select value={status} onValueChange={(v) => setStatus(v ?? 'all')} items={FILTER_ITEMS}>
+        <Select value={status} onValueChange={(v) => setStatus((v as StatusFilterValue) ?? 'all')} items={FILTER_ITEMS}>
           <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
           <SelectContent>
             {FILTER_ITEMS.map((it) => (

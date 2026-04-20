@@ -94,6 +94,29 @@ export async function proxy(request: NextRequest) {
     }
   }
 
+  // 9) /dashboard: colaborador comum sem liderados vai para seu perfil
+  if (pathname === '/dashboard' && profile?.role !== 'admin_rh' && profile?.role !== 'director') {
+    const { data: actorEmp } = profile?.company_id
+      ? await supabase
+          .from('employees')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('company_id', profile.company_id)
+          .maybeSingle()
+      : { data: null };
+    if (actorEmp?.id) {
+      const { count: subs } = await supabase
+        .from('employees')
+        .select('*', { count: 'exact', head: true })
+        .eq('manager_id', actorEmp.id);
+      if (!subs) {
+        return NextResponse.redirect(new URL(`/colaboradores/${actorEmp.id}`, request.url));
+      }
+    } else {
+      return NextResponse.redirect(new URL('/colaboradores', request.url));
+    }
+  }
+
   return response;
 }
 

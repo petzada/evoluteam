@@ -120,6 +120,7 @@ export async function updateEmployee(employeeId: string, input: EmployeeInput) {
 
   revalidatePath('/colaboradores');
   revalidatePath(`/colaboradores/${employeeId}`);
+  revalidatePath('/dashboard');
   return { ok: true };
 }
 
@@ -175,6 +176,7 @@ export async function createEmployee(input: EmployeeInput) {
   }
 
   revalidatePath('/colaboradores');
+  revalidatePath('/dashboard');
   return { ok: true, employeeId: employee.id };
 }
 
@@ -394,6 +396,7 @@ export async function deactivateEmployee(
 
   revalidatePath('/colaboradores');
   revalidatePath(`/colaboradores/${employeeId}`);
+  revalidatePath('/dashboard');
   return { ok: true };
 }
 
@@ -427,6 +430,7 @@ export async function reactivateEmployee(employeeId: string) {
 
   revalidatePath('/colaboradores');
   revalidatePath(`/colaboradores/${employeeId}`);
+  revalidatePath('/dashboard');
   return { ok: true };
 }
 
@@ -496,6 +500,7 @@ export async function terminateEmployee(
 
   revalidatePath('/colaboradores');
   revalidatePath(`/colaboradores/${employeeId}`);
+  revalidatePath('/dashboard');
   return { ok: true };
 }
 

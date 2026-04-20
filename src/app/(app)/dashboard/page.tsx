@@ -1,98 +1,286 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { Users, Mail, Layers, CheckCircle2, Circle, Lock } from 'lucide-react';
+import {
+  Users, Layers, ClipboardList, CheckCircle2, Target,
+  AlertTriangle, MessageSquare, Sparkles, Plus,
+} from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/PageHeader';
+import { EmptyState } from '@/components/EmptyState';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { getDashboardKpis } from '@/features/employees/queries';
+import { getDepartments } from '@/features/employees/queries';
+import {
+  buildScope,
+  listCycleOptions,
+  getLastActiveCycleId,
+  countActiveEmployees,
+  countActiveCycles,
+  getAssignmentStats,
+  getOverallAverage,
+  getAveragePerDepartment,
+  getCompetencyAverages,
+  countActivePdis,
+  countOverduePdis,
+  countEmployeesWithoutRecentFeedback,
+} from '@/features/dashboard/queries';
+import { canAccessDashboard, canFilterByDepartment } from '@/features/dashboard/permissions';
+import { KpiCard } from '@/features/dashboard/components/KpiCard';
+import { DashboardFilters } from '@/features/dashboard/components/DashboardFilters';
+import { DepartmentBarsChart } from '@/features/dashboard/components/DepartmentBarsChart';
+import { CompetencyRadarChart } from '@/features/dashboard/components/CompetencyRadarChart';
 
-export default async function DashboardPage() {
+type SearchParams = Promise<{ cycle_id?: string; dept_id?: string }>;
+
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('company_id, full_name')
+    .select('company_id, role')
     .eq('id', user.id)
     .single();
 
   if (!profile?.company_id) redirect('/onboarding/criar-empresa');
 
-  const kpis = await getDashboardKpis(profile.company_id);
-  const firstName = profile.full_name.split(' ')[0];
+  const { data: employeeRow } = await supabase
+    .from('employees')
+    .select('id')
+    .eq('user_id', user.id)
+    .eq('company_id', profile.company_id)
+    .maybeSingle();
+
+  let isManager = false;
+  if (employeeRow?.id) {
+    const { count } = await supabase
+      .from('employees')
+      .select('*', { count: 'exact', head: true })
+      .eq('manager_id', employeeRow.id);
+    isManager = (count ?? 0) > 0;
+  }
+
+  const actor = {
+    role: profile.role,
+    employeeId: employeeRow?.id ?? null,
+    isManager,
+  };
+
+  if (!canAccessDashboard(actor)) {
+    if (employeeRow?.id) redirect(`/colaboradores/${employeeRow.id}`);
+    redirect('/colaboradores');
+  }
+
+  const params = await searchParams;
+  const departments = canFilterByDepartment(actor)
+    ? await getDepartments(profile.company_id)
+    : [];
+  const cycles = await listCycleOptions(profile.company_id);
+  const defaultCycleId = params.cycle_id ?? await getLastActiveCycleId(profile.company_id) ?? (cycles[0]?.id ?? null);
+  const selectedDeptId = canFilterByDepartment(actor) ? (params.dept_id ?? null) : null;
+
+  const scope = await buildScope({
+    companyId: profile.company_id,
+    role: profile.role,
+    actorEmployeeId: employeeRow?.id ?? null,
+    departmentId: selectedDeptId,
+    cycleId: defaultCycleId,
+  });
+
+  if (!scope) {
+    if (employeeRow?.id) redirect(`/colaboradores/${employeeRow.id}`);
+    redirect('/colaboradores');
+  }
+
+  const [
+    activeEmployees,
+    activeCycles,
+    assignmentStats,
+    overallAvg,
+    deptAverages,
+    competencyAverages,
+    activePdis,
+    overduePdis,
+    withoutFeedback,
+  ] = await Promise.all([
+    countActiveEmployees(scope),
+    countActiveCycles(profile.company_id),
+    getAssignmentStats(scope),
+    getOverallAverage(scope),
+    getAveragePerDepartment(scope),
+    getCompetencyAverages(scope),
+    countActivePdis(scope),
+    countOverduePdis(scope),
+    countEmployeesWithoutRecentFeedback(scope),
+  ]);
+
+  const hasCycle = !!scope.cycleId && cycles.length > 0;
+  const pendingTotal = assignmentStats.pending + assignmentStats.inProgress;
+  const completion = assignmentStats.completionRate;
+  const completionLabel = completion === null ? '—' : `${completion.toFixed(0)}%`;
+  const completionTone: 'success' | 'warning' | 'danger' | 'default' =
+    completion === null ? 'default'
+      : completion >= 80 ? 'success'
+        : completion >= 50 ? 'warning'
+          : 'danger';
+
+  const cycleIdForLink = scope.cycleId ?? '';
 
   return (
     <div>
       <PageHeader
-        title={`Olá, ${firstName}.`}
-        description="Bem-vindo ao Evoluteam."
+        title="Dashboard"
+        description={scope.role === 'gestor'
+          ? 'Indicadores da sua equipe.'
+          : 'Indicadores de gestão de pessoas da empresa.'}
       />
 
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Colaboradores ativos</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold">{kpis.activeEmployees}</p>
-            </CardContent>
-          </Card>
+      <div className="space-y-8">
+        <DashboardFilters
+          cycles={cycles}
+          selectedCycleId={scope.cycleId}
+          departments={departments}
+          selectedDepartmentId={selectedDeptId}
+          showDepartmentFilter={canFilterByDepartment(actor)}
+        />
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Convites pendentes</CardTitle>
-              <Mail className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold">{kpis.pendingInvites}</p>
-            </CardContent>
-          </Card>
+        <section aria-labelledby="visao-geral-heading" className="space-y-3">
+          <h2 id="visao-geral-heading" className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+            Visão geral
+          </h2>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <KpiCard
+              label="Colaboradores ativos"
+              icon={Users}
+              value={activeEmployees}
+              href="/colaboradores?status=active"
+            />
+            <KpiCard
+              label="Ciclos ativos"
+              icon={Layers}
+              value={activeCycles}
+              href="/avaliacoes?status=published"
+            />
+            <KpiCard
+              label="Avaliações pendentes"
+              icon={ClipboardList}
+              value={hasCycle ? pendingTotal : '—'}
+              hint={hasCycle ? `${assignmentStats.total - assignmentStats.cancelled} no total` : undefined}
+              href="/avaliacoes"
+            />
+            <KpiCard
+              label="Taxa de conclusão"
+              icon={CheckCircle2}
+              value={hasCycle ? completionLabel : '—'}
+              tone={completionTone}
+              href={hasCycle ? `/avaliacoes/${cycleIdForLink}` : '/avaliacoes'}
+            />
+          </div>
+        </section>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Departamentos</CardTitle>
-              <Layers className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold">{kpis.departments}</p>
-            </CardContent>
-          </Card>
-        </div>
+        <section aria-labelledby="desempenho-heading" className="space-y-3">
+          <h2 id="desempenho-heading" className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+            Desempenho
+          </h2>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Primeiros passos</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex items-center gap-3">
-              <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
-              <span className="text-sm text-muted-foreground line-through">Criar empresa</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <Circle className="h-5 w-5 text-muted-foreground shrink-0" />
-              <Link href="/colaboradores" className="text-sm hover:underline">
-                Convidar colaboradores
-              </Link>
-            </div>
-            <div className="flex items-center gap-3">
-              <Circle className="h-5 w-5 text-muted-foreground shrink-0" />
-              <Link href="/configuracoes/departamentos" className="text-sm hover:underline">
-                Definir departamentos
-              </Link>
-            </div>
-            <div className="flex items-center gap-3 opacity-50">
-              <Lock className="h-5 w-5 text-muted-foreground shrink-0" />
-              <span className="text-sm text-muted-foreground">Criar primeiro ciclo de avaliação — Em breve</span>
-            </div>
-          </CardContent>
-        </Card>
+          {!hasCycle ? (
+            <Card>
+              <CardContent className="py-8">
+                <EmptyState
+                  icon={Sparkles}
+                  title="Nenhum ciclo de avaliação criado"
+                  description="Crie o primeiro ciclo para começar a acompanhar o desempenho."
+                  action={
+                    <Link href="/avaliacoes/nova">
+                      <Button>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Criar primeiro ciclo
+                      </Button>
+                    </Link>
+                  }
+                />
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Média por departamento</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {deptAverages.length > 0 ? (
+                    <DepartmentBarsChart data={deptAverages} />
+                  ) : (
+                    <EmptyState
+                      icon={Sparkles}
+                      title="Nenhuma avaliação concluída"
+                      description="As médias aparecerão aqui quando houver respostas submetidas neste ciclo."
+                    />
+                  )}
+                </CardContent>
+              </Card>
 
-        <p className="text-xs text-muted-foreground">
-          Dashboard completo em breve. Quando você tiver ciclos de avaliação ativos, métricas aparecerão aqui.
-        </p>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Média geral · Radar de competências</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Média geral deste ciclo</p>
+                    <p className="text-3xl font-bold">
+                      {overallAvg === null ? '—' : overallAvg.toFixed(2)}
+                      {overallAvg !== null && (
+                        <span className="ml-1 text-base font-normal text-muted-foreground">/ 5</span>
+                      )}
+                    </p>
+                  </div>
+                  {competencyAverages.length > 0 ? (
+                    <CompetencyRadarChart data={competencyAverages} />
+                  ) : (
+                    <EmptyState
+                      icon={Sparkles}
+                      title="Sem dados de competências"
+                      description="As médias por competência aparecerão quando houver respostas neste ciclo."
+                    />
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </section>
+
+        <section aria-labelledby="pdi-feedbacks-heading" className="space-y-3">
+          <h2 id="pdi-feedbacks-heading" className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+            PDI &amp; Feedbacks
+          </h2>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <KpiCard
+              label="PDIs ativos"
+              icon={Target}
+              value={activePdis}
+              href="/pdi?status=em_andamento"
+            />
+            <KpiCard
+              label="PDIs atrasados"
+              icon={AlertTriangle}
+              value={overduePdis}
+              tone={overduePdis > 0 ? 'danger' : 'default'}
+              href="/pdi?status=atrasado"
+            />
+            <KpiCard
+              label="Sem feedback (90d)"
+              icon={MessageSquare}
+              value={withoutFeedback}
+              tone={withoutFeedback > 0 ? 'warning' : 'default'}
+              href="/colaboradores?filter=sem_feedback"
+            />
+          </div>
+        </section>
       </div>
     </div>
   );

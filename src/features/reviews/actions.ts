@@ -320,6 +320,7 @@ export async function publishCycle(cycleId: string) {
 
   revalidatePath('/avaliacoes');
   revalidatePath(`/avaliacoes/${cycleId}`);
+  revalidatePath('/dashboard');
   return { ok: true, assignments: assignments.length };
 }
 
@@ -342,6 +343,7 @@ export async function closeCycle(cycleId: string) {
     entityType: 'review_cycle', entityId: cycleId,
   });
   revalidatePath(`/avaliacoes/${cycleId}`);
+  revalidatePath('/dashboard');
   return { ok: true };
 }
 
@@ -361,6 +363,7 @@ export async function archiveCycle(cycleId: string) {
     entityType: 'review_cycle', entityId: cycleId,
   });
   revalidatePath('/avaliacoes');
+  revalidatePath('/dashboard');
   return { ok: true };
 }
 
@@ -611,6 +614,7 @@ export async function submitAssignment(assignmentId: string) {
 
   revalidatePath('/avaliacoes');
   revalidatePath(`/avaliacoes/${a.cycle_id}`);
+  revalidatePath('/dashboard');
   return { ok: true };
 }
 
@@ -703,6 +707,7 @@ export async function releaseResult(cycleId: string, employeeId: string) {
 
   revalidatePath(`/avaliacoes/${cycleId}/resultados`);
   revalidatePath(`/avaliacoes/${cycleId}/resultados/${employeeId}`);
+  revalidatePath('/dashboard');
   return { ok: true };
 }
 

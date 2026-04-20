@@ -62,6 +62,9 @@ interface Props {
   profileRoles: Record<string, 'admin_rh' | 'director' | 'user'>;
   openSheet?: boolean;
   editingEmployee?: ExistingEmployee | null;
+  initialStatusFilter?: string | null;
+  specialFilter?: 'sem_feedback' | null;
+  specialFilterEmployeeIds?: string[];
 }
 
 type DerivedStatus =
@@ -130,6 +133,18 @@ const COLUMN_LABELS: Record<ColumnKey, string> = {
   phone: 'Telefone',
 };
 
+const STATUS_URL_MAP: Record<string, string> = {
+  active: 'ativo',
+  ativo: 'ativo',
+  inactive: 'inativo',
+  inativo: 'inativo',
+  terminated: 'desligado',
+  desligado: 'desligado',
+  convite_pendente: 'convite_pendente',
+  convite_expirado: 'convite_expirado',
+  sem_acesso: 'sem_acesso',
+};
+
 export function EmployeesList({
   employees,
   positions,
@@ -139,6 +154,9 @@ export function EmployeesList({
   profileRoles,
   openSheet = false,
   editingEmployee = null,
+  initialStatusFilter = null,
+  specialFilter = null,
+  specialFilterEmployeeIds = [],
 }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -146,13 +164,16 @@ export function EmployeesList({
   const [sheetOpen, setSheetOpen] = useState(openSheet);
   const [editing, setEditing] = useState<ExistingEmployee | null>(editingEmployee);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState(
+    initialStatusFilter && STATUS_URL_MAP[initialStatusFilter] ? STATUS_URL_MAP[initialStatusFilter] : 'all',
+  );
+  const specialSet = useMemo(() => new Set(specialFilterEmployeeIds), [specialFilterEmployeeIds]);
   const [positionFilter, setPositionFilter] = useState<string[]>(() => {
     const v = searchParams.get('position');
     return v ? [v] : [];
   });
   const [departmentFilter, setDepartmentFilter] = useState<string[]>(() => {
-    const v = searchParams.get('department');
+    const v = searchParams.get('department_id') ?? searchParams.get('department');
     return v ? [v] : [];
   });
   const [managerFilter, setManagerFilter] = useState<string[]>([]);
@@ -194,6 +215,7 @@ export function EmployeesList({
     return employees.filter((emp) => {
       const status = deriveStatus(emp);
       if (status === 'desligado' && !showTerminated) return false;
+      if (specialFilter === 'sem_feedback' && !specialSet.has(emp.id)) return false;
 
       const matchSearch =
         !search ||
@@ -208,7 +230,13 @@ export function EmployeesList({
         || managerFilter.includes(emp.manager_id ?? '__none__');
       return matchSearch && matchStatus && matchPos && matchDep && matchMgr;
     });
-  }, [employees, search, statusFilter, positionFilter, departmentFilter, managerFilter, showTerminated]);
+  }, [employees, search, statusFilter, positionFilter, departmentFilter, managerFilter, showTerminated, specialFilter, specialSet]);
+
+  function clearSpecialFilter() {
+    const p = new URLSearchParams(searchParams?.toString() ?? '');
+    p.delete('filter');
+    router.replace(`/colaboradores${p.toString() ? `?${p.toString()}` : ''}`);
+  }
 
   function openCreate() {
     setEditing(null);
@@ -358,6 +386,18 @@ export function EmployeesList({
             </PopoverContent>
           </Popover>
         </div>
+
+        {specialFilter === 'sem_feedback' && (
+          <div className="flex flex-wrap items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm dark:border-amber-900/40 dark:bg-amber-950/30">
+            <Badge variant="secondary">Sem feedback (90d)</Badge>
+            <span className="text-muted-foreground">
+              Mostrando apenas colaboradores ativos sem feedback recebido nos últimos 90 dias.
+            </span>
+            <Button variant="ghost" size="sm" onClick={clearSpecialFilter} className="ml-auto">
+              Limpar filtro
+            </Button>
+          </div>
+        )}
 
         <div className="flex items-center justify-between rounded-md border bg-muted/30 px-4 py-2.5 text-sm">
           <p className="text-muted-foreground">
