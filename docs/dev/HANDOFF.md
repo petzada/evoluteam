@@ -11,20 +11,25 @@ Documento de retomada. Lido por nova sessão para continuar com exatamente a mes
 
 > Claude, estou retomando o projeto Evoluteam, um SaaS B2B em Next.js para gestão de pessoas. Pausamos após commit de FT-3.
 >
-> **Leia nesta ordem** para reconstruir contexto:
+> **Primeiro carregue as memórias** versionadas do projeto:
 >
-> 1. `docs/dev/HANDOFF.md` — este documento (estado, protocolo, próximos passos)
-> 2. `docs/dev/00-decisoes-transversais.md` — 17 decisões transversais
-> 3. `docs/dev/01-fase-0-fundacao.md` — Fundação (auth, onboarding, multi-tenant)
-> 4. `docs/dev/02-ft-1-colaboradores.md` — FT-1
-> 5. `docs/dev/03-ft-2-avaliacoes.md` — FT-2 (ciclos de avaliação)
-> 6. `docs/dev/04-ft-3-feedbacks.md` — FT-3 (feedbacks contínuos)
-> 7. `features/FT-4.md` + `docs/USERS-ABLE.md §10` + `docs/MVP.md §4` + `docs/ESTRUTURA.md §12` (para entender FT-4)
+> 1. Leia `docs/dev/memory/MEMORY.md` e os 3 arquivos que ele lista (`project_evoluteam.md`, `feedback_brainstorming_protocol.md`, `user_preferences.md`). Use-os como memória ativa para esta sessão.
+> 2. Se o diretório local de memórias do Claude Code neste dispositivo existir e estiver vazio ou desatualizado, ofereça copiar os arquivos de `docs/dev/memory/` para lá (ver `docs/dev/memory/README.md`).
+>
+> **Depois reconstrua contexto técnico** lendo nesta ordem:
+>
+> 3. `docs/dev/HANDOFF.md` — este documento (estado, protocolo, próximos passos)
+> 4. `docs/dev/00-decisoes-transversais.md` — 17 decisões transversais
+> 5. `docs/dev/01-fase-0-fundacao.md` — Fundação (auth, onboarding, multi-tenant)
+> 6. `docs/dev/02-ft-1-colaboradores.md` — FT-1
+> 7. `docs/dev/03-ft-2-avaliacoes.md` — FT-2 (ciclos de avaliação)
+> 8. `docs/dev/04-ft-3-feedbacks.md` — FT-3 (feedbacks contínuos)
+> 9. `features/FT-4.md` + `docs/USERS-ABLE.md §10` + `docs/MVP.md §4` + `docs/ESTRUTURA.md §12` (para entender FT-4)
 >
 > Use a skill **brainstorming** (`/brainstorming`).
-> **Ative o Visual Companion** desde o início — confirmarei quando pedir (script em `.claude/skills/brainstorming/scripts/start-server.sh --project-dir C:/Users/Marcio/Desktop/evoluteam`).
+> **Ative o Visual Companion** desde o início — confirmarei quando pedir (script em `.claude/skills/brainstorming/scripts/start-server.sh --project-dir <caminho-do-projeto-no-dispositivo-atual>`).
 >
-> Mantenha **rigorosamente** o protocolo descrito em HANDOFF.md §4:
+> Mantenha **rigorosamente** o protocolo descrito em HANDOFF.md §4 e na memória `feedback_brainstorming_protocol.md`:
 > - Uma pergunta por mensagem, numerada
 > - Múltipla escolha preferível; recomendação clara com rationale técnico
 > - Visual Companion para UI; terminal para lógica/schema
@@ -57,6 +62,7 @@ Documento de retomada. Lido por nova sessão para continuar com exatamente a mes
 | `04-ft-3-feedbacks.md` | ✅ Aprovado | Feedbacks contínuos — 5 tipos, 3 visibilidades, `FeedbackSheet` via `EntitySheet` |
 | `05-ft-4-pdi.md` | ⏳ Pendente | PDI — próximo alvo do brainstorm |
 | `06-ft-5-dashboard.md` | ⏳ Pendente | Dashboard — depois de FT-4 |
+| `memory/` | ✅ Versionado | Memórias persistentes do Claude Code (índice + 3 memórias + README de instalação) |
 
 ### Decisões confirmadas até agora (51 perguntas respondidas)
 Os números aqui são de ordem aproximada do brainstorm — a lista canônica de decisões está em `00-decisoes-transversais.md` e nos specs individuais.
@@ -237,16 +243,16 @@ Implementação real     ⏳ após todos os specs
 ## 8. Arquivos importantes para não perder
 
 - `docs/dev/*` — todos os specs (versionados em git)
+- `docs/dev/memory/*.md` — **memórias persistentes versionadas** (fonte de verdade; ler `docs/dev/memory/README.md` para saber como instalar em novo dispositivo)
 - `.superpowers/brainstorm/*/content/*.html` — mockups (gitignored, mas úteis como referência local)
-- `C:/Users/Marcio/.claude/projects/C--Users-Marcio-Desktop-evoluteam/memory/*.md` — memória persistente (preferências do user, decisões, protocolos)
 - `CLAUDE.md` — ainda não existe; pode ser criado em sessão futura se quiser contexto automático em toda conversa
 
 ---
 
 ## 9. Checklist de sanidade ao retomar
 
-- [ ] Git: verificar que está em `main` limpo
-- [ ] Docs: todos os 5 arquivos em `docs/dev/` lidos
-- [ ] Memory: memórias carregadas (aparecem automaticamente)
+- [ ] Git: pull mais recente + verificar que está em `main` limpo
+- [ ] Docs: todos os 5 specs em `docs/dev/` lidos
+- [ ] Memory: 3 arquivos em `docs/dev/memory/` lidos (ou copiados para o path de auto-load conforme `docs/dev/memory/README.md`)
 - [ ] Visual Companion: servidor rodando (se pergunta próxima for UI)
 - [ ] Usuário confirmou retomada? Sim → começar pela Pergunta 51 (FT-4)

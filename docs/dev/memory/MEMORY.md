@@ -1,0 +1,3 @@
+- [Projeto evoluteam](project_evoluteam.md) — SaaS B2B de gestão de pessoas; estado atual do brainstorm e próximos passos
+- [Protocolo de brainstorming](feedback_brainstorming_protocol.md) — regras rigorosas validadas em 50+ iterações (1 pergunta/mensagem, A/B/C, recomendação com rationale, Visual Companion para UI, gate de revisão)
+- [Preferências do Marcio](user_preferences.md) — simplicidade > rigor; pede pros/cons reais; valoriza consistência de UX; UI clean sem over-explaining
