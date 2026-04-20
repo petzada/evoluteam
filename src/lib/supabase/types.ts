@@ -167,10 +167,12 @@ export type Database = {
           full_name: string
           hire_date: string
           id: string
+          internal_notes: string | null
           manager_id: string | null
           phone: string | null
           position_id: string | null
           status: string
+          terminated_at: string | null
           updated_at: string
           user_id: string | null
         }
@@ -182,10 +184,12 @@ export type Database = {
           full_name: string
           hire_date: string
           id?: string
+          internal_notes?: string | null
           manager_id?: string | null
           phone?: string | null
           position_id?: string | null
           status?: string
+          terminated_at?: string | null
           updated_at?: string
           user_id?: string | null
         }
@@ -197,10 +201,12 @@ export type Database = {
           full_name?: string
           hire_date?: string
           id?: string
+          internal_notes?: string | null
           manager_id?: string | null
           phone?: string | null
           position_id?: string | null
           status?: string
+          terminated_at?: string | null
           updated_at?: string
           user_id?: string | null
         }
@@ -422,6 +428,10 @@ export type Database = {
     Functions: {
       my_company_id: { Args: never; Returns: string }
       my_role: { Args: never; Returns: string }
+      get_employee_descendants: {
+        Args: { root_id: string }
+        Returns: { id: string }[]
+      }
     }
     Enums: {
       [_ in never]: never

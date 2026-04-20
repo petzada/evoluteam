@@ -6,7 +6,10 @@ import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 import { logActivity } from '@/lib/activity';
 import { notify } from '@/lib/notifications';
 import { Resend } from 'resend';
-import type { EmployeeInput } from './schema';
+import type { EmployeeInput, TransferOption } from './schema';
+import { TransferOptionSchema } from './schema';
+import { validateManagerAssignment } from './validators';
+import type { TablesInsert, TablesUpdate } from '@/lib/supabase/types';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -23,10 +26,47 @@ async function getActorContext() {
   return { user, profile: profile as { company_id: string; role: string }, supabase };
 }
 
+async function assertValidManager(
+  employeeId: string | null,
+  proposedManagerId: string | null,
+  companyId: string,
+): Promise<string | null> {
+  if (!proposedManagerId) return null;
+
+  const admin = createAdminSupabaseClient();
+
+  const { data: prop } = await admin
+    .from('employees')
+    .select('id, company_id')
+    .eq('id', proposedManagerId)
+    .maybeSingle();
+  if (!prop || prop.company_id !== companyId) {
+    return 'Gestor inválido.';
+  }
+
+  let descendantIds: string[] = [];
+  if (employeeId) {
+    const { data: descendants, error } = await admin
+      .rpc('get_employee_descendants', { root_id: employeeId });
+    if (error) return null;
+    descendantIds = (descendants ?? []).map((x) => x.id);
+  }
+
+  const result = validateManagerAssignment({ employeeId, proposedManagerId, descendantIds });
+  return result.ok ? null : result.reason;
+}
+
 export async function updateEmployee(employeeId: string, input: EmployeeInput) {
   const ctx = await getActorContext();
   if (!ctx) return { error: 'Não autenticado.' };
   if (ctx.profile.role !== 'admin_rh') return { error: 'Sem permissão.' };
+
+  const managerError = await assertValidManager(
+    employeeId,
+    input.managerId ?? null,
+    ctx.profile.company_id,
+  );
+  if (managerError) return { error: managerError };
 
   const supabase = await createServerSupabaseClient();
   const { data: existing } = await supabase
@@ -37,18 +77,23 @@ export async function updateEmployee(employeeId: string, input: EmployeeInput) {
     .single();
   if (!existing) return { error: 'Colaborador não encontrado.' };
 
+  const update: TablesUpdate<'employees'> = {
+    full_name: input.fullName,
+    email: input.email,
+    phone: input.phone ?? null,
+    position_id: input.positionId,
+    department_id: input.departmentId ?? null,
+    manager_id: input.managerId ?? null,
+    hire_date: input.hireDate,
+    updated_at: new Date().toISOString(),
+  };
+  if (input.internalNotes !== undefined) {
+    update.internal_notes = input.internalNotes ?? null;
+  }
+
   const { error: updErr } = await supabase
     .from('employees')
-    .update({
-      full_name: input.fullName,
-      email: input.email,
-      phone: input.phone ?? null,
-      position_id: input.positionId,
-      department_id: input.departmentId ?? null,
-      manager_id: input.managerId ?? null,
-      hire_date: input.hireDate,
-      updated_at: new Date().toISOString(),
-    })
+    .update(update)
     .eq('id', employeeId)
     .eq('company_id', ctx.profile.company_id);
 
@@ -57,7 +102,6 @@ export async function updateEmployee(employeeId: string, input: EmployeeInput) {
     return { error: 'Erro ao atualizar colaborador.' };
   }
 
-  // Se há user_id vinculado e não é o próprio admin, atualiza o papel
   if (existing.user_id && existing.user_id !== ctx.user.id) {
     await supabase
       .from('profiles')
@@ -75,6 +119,7 @@ export async function updateEmployee(employeeId: string, input: EmployeeInput) {
   });
 
   revalidatePath('/colaboradores');
+  revalidatePath(`/colaboradores/${employeeId}`);
   return { ok: true };
 }
 
@@ -83,22 +128,32 @@ export async function createEmployee(input: EmployeeInput) {
   if (!ctx) return { error: 'Não autenticado.' };
   if (ctx.profile.role !== 'admin_rh') return { error: 'Sem permissão.' };
 
+  const managerError = await assertValidManager(
+    null,
+    input.managerId ?? null,
+    ctx.profile.company_id,
+  );
+  if (managerError) return { error: managerError };
+
   const admin = createAdminSupabaseClient();
   const companyId = ctx.profile.company_id;
 
+  const insert: TablesInsert<'employees'> = {
+    company_id: companyId,
+    full_name: input.fullName,
+    email: input.email,
+    phone: input.phone ?? null,
+    position_id: input.positionId,
+    department_id: input.departmentId ?? null,
+    manager_id: input.managerId ?? null,
+    hire_date: input.hireDate,
+    status: 'active',
+  };
+  if (input.internalNotes) insert.internal_notes = input.internalNotes;
+
   const { data: employee, error: empErr } = await admin
     .from('employees')
-    .insert({
-      company_id: companyId,
-      full_name: input.fullName,
-      email: input.email,
-      phone: input.phone ?? null,
-      position_id: input.positionId,
-      department_id: input.departmentId ?? null,
-      manager_id: input.managerId ?? null,
-      hire_date: input.hireDate,
-      status: 'active',
-    })
+    .insert(insert)
     .select('id')
     .single();
 
@@ -177,7 +232,6 @@ export async function resendInvite(employeeId: string) {
   const admin = createAdminSupabaseClient();
   const companyId = ctx.profile.company_id;
 
-  // Invalida tokens anteriores
   await admin
     .from('invites')
     .update({ revoked_at: new Date().toISOString() })
@@ -229,6 +283,18 @@ export async function updateRole(employeeUserId: string, role: 'admin_rh' | 'dir
   if (!ctx || ctx.profile.role !== 'admin_rh') return { error: 'Sem permissão.' };
   if (ctx.user.id === employeeUserId) return { error: 'Você não pode alterar o próprio papel.' };
 
+  if (role !== 'admin_rh') {
+    const adminCount = await countActiveAdmins(ctx.profile.company_id);
+    const { data: target } = await (await createServerSupabaseClient())
+      .from('profiles')
+      .select('role')
+      .eq('id', employeeUserId)
+      .single();
+    if (target?.role === 'admin_rh' && adminCount <= 1) {
+      return { error: 'A empresa precisa de ao menos um administrador.' };
+    }
+  }
+
   const supabase = await createServerSupabaseClient();
   await supabase
     .from('profiles')
@@ -242,19 +308,194 @@ export async function updateRole(employeeUserId: string, role: 'admin_rh' | 'dir
   return { ok: true };
 }
 
-export async function deactivateEmployee(employeeId: string) {
+async function countActiveAdmins(companyId: string): Promise<number> {
+  const admin = createAdminSupabaseClient();
+  const { count } = await admin
+    .from('profiles')
+    .select('*', { count: 'exact', head: true })
+    .eq('company_id', companyId)
+    .eq('role', 'admin_rh');
+  return count ?? 0;
+}
+
+async function transferSubordinates(
+  managerId: string,
+  option: TransferOption,
+  companyId: string,
+  actorUserId: string,
+) {
+  const admin = createAdminSupabaseClient();
+  const targetManagerId = option.mode === 'transfer' ? option.newManagerId : null;
+  await admin
+    .from('employees')
+    .update({ manager_id: targetManagerId })
+    .eq('manager_id', managerId)
+    .eq('company_id', companyId);
+
+  await logActivity({
+    companyId,
+    actorUserId,
+    action: 'employee.updated',
+    entityType: 'employee',
+    entityId: managerId,
+    metadata: { transfer: { toManagerId: targetManagerId } },
+  });
+}
+
+async function countSubordinates(managerId: string) {
+  const admin = createAdminSupabaseClient();
+  const { count } = await admin
+    .from('employees')
+    .select('*', { count: 'exact', head: true })
+    .eq('manager_id', managerId);
+  return count ?? 0;
+}
+
+export async function deactivateEmployee(
+  employeeId: string,
+  transferOption?: TransferOption,
+) {
   const ctx = await getActorContext();
   if (!ctx || ctx.profile.role !== 'admin_rh') return { error: 'Sem permissão.' };
 
   const supabase = await createServerSupabaseClient();
-  const { data: emp } = await supabase.from('employees').select('user_id').eq('id', employeeId).single();
-  if (emp?.user_id === ctx.user.id) return { error: 'Você não pode desativar a si mesmo.' };
+  const { data: emp } = await supabase
+    .from('employees')
+    .select('user_id')
+    .eq('id', employeeId)
+    .eq('company_id', ctx.profile.company_id)
+    .single();
+  if (!emp) return { error: 'Colaborador não encontrado.' };
+  if (emp.user_id === ctx.user.id) return { error: 'Você não pode desativar a si mesmo.' };
 
-  await supabase.from('employees').update({ status: 'inactive', updated_at: new Date().toISOString() }).eq('id', employeeId).eq('company_id', ctx.profile.company_id);
+  const subCount = await countSubordinates(employeeId);
+  if (subCount > 0) {
+    if (!transferOption) {
+      return { error: 'subordinates', subordinatesCount: subCount };
+    }
+    const parsed = TransferOptionSchema.safeParse(transferOption);
+    if (!parsed.success) return { error: 'Opção de transferência inválida.' };
+    await transferSubordinates(employeeId, parsed.data, ctx.profile.company_id, ctx.user.id);
+  }
 
-  await logActivity({ companyId: ctx.profile.company_id, actorUserId: ctx.user.id, action: 'user.deactivated', entityType: 'employee', entityId: employeeId });
+  await supabase
+    .from('employees')
+    .update({ status: 'inactive', updated_at: new Date().toISOString() })
+    .eq('id', employeeId)
+    .eq('company_id', ctx.profile.company_id);
+
+  await logActivity({
+    companyId: ctx.profile.company_id,
+    actorUserId: ctx.user.id,
+    action: 'user.deactivated',
+    entityType: 'employee',
+    entityId: employeeId,
+  });
 
   revalidatePath('/colaboradores');
+  revalidatePath(`/colaboradores/${employeeId}`);
+  return { ok: true };
+}
+
+export async function reactivateEmployee(employeeId: string) {
+  const ctx = await getActorContext();
+  if (!ctx || ctx.profile.role !== 'admin_rh') return { error: 'Sem permissão.' };
+
+  const supabase = await createServerSupabaseClient();
+  const { data: emp } = await supabase
+    .from('employees')
+    .select('status')
+    .eq('id', employeeId)
+    .eq('company_id', ctx.profile.company_id)
+    .single();
+  if (!emp) return { error: 'Colaborador não encontrado.' };
+  if (emp.status === 'terminated') return { error: 'Colaborador desligado não pode ser reativado.' };
+
+  await supabase
+    .from('employees')
+    .update({ status: 'active', updated_at: new Date().toISOString() })
+    .eq('id', employeeId)
+    .eq('company_id', ctx.profile.company_id);
+
+  await logActivity({
+    companyId: ctx.profile.company_id,
+    actorUserId: ctx.user.id,
+    action: 'user.activated',
+    entityType: 'employee',
+    entityId: employeeId,
+  });
+
+  revalidatePath('/colaboradores');
+  revalidatePath(`/colaboradores/${employeeId}`);
+  return { ok: true };
+}
+
+export async function terminateEmployee(
+  employeeId: string,
+  transferOption?: TransferOption,
+) {
+  const ctx = await getActorContext();
+  if (!ctx || ctx.profile.role !== 'admin_rh') return { error: 'Sem permissão.' };
+
+  const admin = createAdminSupabaseClient();
+  const { data: emp } = await admin
+    .from('employees')
+    .select('user_id')
+    .eq('id', employeeId)
+    .eq('company_id', ctx.profile.company_id)
+    .single();
+  if (!emp) return { error: 'Colaborador não encontrado.' };
+  if (emp.user_id === ctx.user.id) return { error: 'Você não pode desligar a si mesmo.' };
+
+  if (emp.user_id) {
+    const { data: prof } = await admin
+      .from('profiles')
+      .select('role')
+      .eq('id', emp.user_id)
+      .maybeSingle();
+    if (prof?.role === 'admin_rh') {
+      const adminCount = await countActiveAdmins(ctx.profile.company_id);
+      if (adminCount <= 1) {
+        return { error: 'A empresa precisa de ao menos um administrador.' };
+      }
+    }
+  }
+
+  const subCount = await countSubordinates(employeeId);
+  if (subCount > 0) {
+    if (!transferOption) {
+      return { error: 'subordinates', subordinatesCount: subCount };
+    }
+    const parsed = TransferOptionSchema.safeParse(transferOption);
+    if (!parsed.success) return { error: 'Opção de transferência inválida.' };
+    await transferSubordinates(employeeId, parsed.data, ctx.profile.company_id, ctx.user.id);
+  }
+
+  const now = new Date().toISOString();
+  await admin
+    .from('employees')
+    .update({ status: 'terminated', terminated_at: now, updated_at: now })
+    .eq('id', employeeId)
+    .eq('company_id', ctx.profile.company_id);
+
+  if (emp.user_id) {
+    try {
+      await admin.auth.admin.signOut(emp.user_id);
+    } catch {
+      // best-effort
+    }
+  }
+
+  await logActivity({
+    companyId: ctx.profile.company_id,
+    actorUserId: ctx.user.id,
+    action: 'employee.terminated',
+    entityType: 'employee',
+    entityId: employeeId,
+  });
+
+  revalidatePath('/colaboradores');
+  revalidatePath(`/colaboradores/${employeeId}`);
   return { ok: true };
 }
 
@@ -272,7 +513,6 @@ export async function acceptInvite(token: string, data: { fullName: string; pass
   if (invite.revoked_at) return { error: 'invalid' };
   if (new Date(invite.expires_at) < new Date()) return { error: 'expired' };
 
-  // Criar auth.user
   const { data: newUser, error: authErr } = await admin.auth.admin.createUser({
     email: invite.email,
     password: data.password,
@@ -282,7 +522,6 @@ export async function acceptInvite(token: string, data: { fullName: string; pass
 
   const userId = newUser.user.id;
 
-  // Inserir profile
   await admin.from('profiles').insert({
     id: userId,
     company_id: invite.company_id,
@@ -290,13 +529,10 @@ export async function acceptInvite(token: string, data: { fullName: string; pass
     full_name: data.fullName,
   });
 
-  // Vincular employee
   await admin.from('employees').update({ user_id: userId, full_name: data.fullName, updated_at: new Date().toISOString() }).eq('id', invite.employee_id);
 
-  // Marcar aceito
   await admin.from('invites').update({ accepted_at: new Date().toISOString() }).eq('id', invite.id);
 
-  // Notificar admin
   const { data: adminProfile } = await admin
     .from('profiles')
     .select('id')

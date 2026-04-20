@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
@@ -10,9 +10,14 @@ import {
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
 import { EmployeeSchema, type EmployeeInput } from '../schema';
 import { createEmployee, updateEmployee } from '../actions';
+import { createTaxonomy } from '@/features/taxonomies/actions';
 
 interface Position { id: string; name: string }
 interface Department { id: string; name: string }
@@ -29,6 +34,8 @@ export interface ExistingEmployee {
   role: 'admin_rh' | 'director' | 'user';
   hireDate: string;
   isSelf: boolean;
+  internalNotes?: string | null;
+  descendantIds?: string[];
 }
 
 interface Props {
@@ -38,6 +45,7 @@ interface Props {
   departments: Department[];
   managers: ManagerOption[];
   employee?: ExistingEmployee | null;
+  isAdmin: boolean;
 }
 
 const ROLE_LABELS = { admin_rh: 'Administrador RH', director: 'Diretor', user: 'Colaborador' };
@@ -52,17 +60,28 @@ const EMPTY_DEFAULTS: EmployeeInput = {
   hireDate: new Date().toISOString().split('T')[0],
   phone: '',
   sendInvite: true,
+  internalNotes: '',
 };
 
-export function EmployeeSheet({ open, onOpenChange, positions, departments, managers, employee }: Props) {
+export function EmployeeSheet({
+  open, onOpenChange, positions, departments, managers, employee, isAdmin,
+}: Props) {
   const [loading, setLoading] = useState(false);
+  const [localDepartments, setLocalDepartments] = useState<Department[]>(departments);
+  const [createDeptOpen, setCreateDeptOpen] = useState(false);
+  const [newDeptName, setNewDeptName] = useState('');
+  const [creatingDept, setCreatingDept] = useState(false);
   const isEdit = !!employee;
 
-  // Maps id/enum → label para que <SelectValue> mostre o nome legível em vez do UUID
+  useEffect(() => {
+    setLocalDepartments(departments);
+  }, [departments]);
+
   const positionItems = positions.map((p) => ({ value: p.id, label: p.name }));
   const departmentItems = [
     { value: '__none__', label: 'Nenhum' },
-    ...departments.map((d) => ({ value: d.id, label: d.name })),
+    ...localDepartments.map((d) => ({ value: d.id, label: d.name })),
+    ...(isAdmin ? [{ value: '__create__', label: '+ Criar novo departamento' }] : []),
   ];
   const roleItems = (Object.entries(ROLE_LABELS) as [EmployeeInput['role'], string][])
     .map(([value, label]) => ({ value, label }));
@@ -87,6 +106,7 @@ export function EmployeeSheet({ open, onOpenChange, positions, departments, mana
         hireDate: employee.hireDate,
         phone: employee.phone ?? '',
         sendInvite: false,
+        internalNotes: employee.internalNotes ?? '',
       });
     } else {
       form.reset(EMPTY_DEFAULTS);
@@ -121,12 +141,15 @@ export function EmployeeSheet({ open, onOpenChange, positions, departments, mana
       ? 'Cadastrar e enviar convite'
       : 'Cadastrar sem enviar';
 
-  // Disponibiliza apenas managers que não são o próprio employee em modo edit
-  const managerOptions = isEdit
-    ? managers.filter((m) => m.id !== employee!.id)
-    : managers;
+  const managerOptions = useMemo(() => {
+    if (!isEdit) return managers;
+    const blocked = new Set<string>([
+      employee!.id,
+      ...(employee!.descendantIds ?? []),
+    ]);
+    return managers.filter((m) => !blocked.has(m.id));
+  }, [managers, employee, isEdit]);
 
-  // Em modo edit do próprio admin, bloqueia mudança de papel
   const roleDisabled = isEdit && employee!.isSelf;
 
   return (
@@ -207,7 +230,14 @@ export function EmployeeSheet({ open, onOpenChange, positions, departments, mana
                 <FormItem>
                   <FormLabel>Departamento</FormLabel>
                   <Select
-                    onValueChange={(v) => field.onChange(v === '__none__' ? null : v)}
+                    onValueChange={(v) => {
+                      if (v === '__create__') {
+                        setNewDeptName('');
+                        setCreateDeptOpen(true);
+                        return;
+                      }
+                      field.onChange(v === '__none__' ? null : v);
+                    }}
                     value={field.value ?? '__none__'}
                     items={departmentItems}
                   >
@@ -269,6 +299,24 @@ export function EmployeeSheet({ open, onOpenChange, positions, departments, mana
                 )} />
               </div>
 
+              {isAdmin && (
+                <FormField control={form.control} name="internalNotes" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Observações internas</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        rows={3}
+                        placeholder="Visível apenas para Admin RH."
+                        {...field}
+                        value={field.value ?? ''}
+                      />
+                    </FormControl>
+                    <p className="text-[11px] text-muted-foreground">Visível apenas para Admin RH.</p>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+              )}
+
               {!isEdit && (
                 <FormField control={form.control} name="sendInvite" render={({ field }) => (
                   <FormItem className="flex items-start gap-3 rounded-lg border p-3">
@@ -300,6 +348,50 @@ export function EmployeeSheet({ open, onOpenChange, positions, departments, mana
           </Button>
         </div>
       </SheetContent>
+
+      <Dialog open={createDeptOpen} onOpenChange={setCreateDeptOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Novo departamento</DialogTitle>
+            <DialogDescription>Fica disponível imediatamente para seleção.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <label className="text-sm font-medium" htmlFor="new-dept-name">Nome *</label>
+            <Input
+              id="new-dept-name"
+              autoFocus
+              value={newDeptName}
+              onChange={(e) => setNewDeptName(e.target.value)}
+              placeholder="Ex: Engenharia"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') { e.preventDefault(); void createDept(); }
+              }}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" type="button" onClick={() => setCreateDeptOpen(false)} disabled={creatingDept}>
+              Cancelar
+            </Button>
+            <Button type="button" onClick={() => void createDept()} disabled={creatingDept || newDeptName.trim().length < 2}>
+              {creatingDept ? 'Criando…' : 'Criar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Sheet>
   );
+
+  async function createDept() {
+    const name = newDeptName.trim();
+    if (name.length < 2) { toast.error('Nome muito curto.'); return; }
+    setCreatingDept(true);
+    const result = await createTaxonomy('department', { name });
+    setCreatingDept(false);
+    if (result.error || !result.id) { toast.error(result.error ?? 'Erro ao criar.'); return; }
+    const next: Department = { id: result.id, name };
+    setLocalDepartments((prev) => [...prev, next].sort((a, b) => a.name.localeCompare(b.name)));
+    form.setValue('departmentId', result.id, { shouldDirty: true });
+    setCreateDeptOpen(false);
+    toast.success('Departamento criado e selecionado.');
+  }
 }

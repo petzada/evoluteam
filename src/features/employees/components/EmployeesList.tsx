@@ -1,8 +1,12 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { toast } from 'sonner';
-import { MoreHorizontal, Plus, Search, UserPlus, Users } from 'lucide-react';
+import {
+  MoreHorizontal, Plus, Search, UserPlus, Users, Download, Settings2,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -13,10 +17,15 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { MultiSelectFilter } from '@/components/MultiSelectFilter';
 import { EmployeeSheet, type ExistingEmployee } from './EmployeeSheet';
-import { resendInvite, revokeInvite, deactivateEmployee } from '../actions';
+import { ConfirmStatusDialog, type StatusAction } from './ConfirmStatusDialog';
+import { resendInvite, revokeInvite } from '../actions';
 import { EmptyState } from '@/components/EmptyState';
 import { PageHeader } from '@/components/PageHeader';
+import { formatDate } from '@/lib/date';
 
 type Invite = {
   id: string;
@@ -34,6 +43,7 @@ type Employee = {
   status: string;
   hire_date: string;
   user_id: string | null;
+  manager_id: string | null;
   position: { id: string; name: string } | null;
   department: { id: string; name: string } | null;
   manager: { id: string; full_name: string } | null;
@@ -51,9 +61,15 @@ interface Props {
   isAdmin: boolean;
   profileRoles: Record<string, 'admin_rh' | 'director' | 'user'>;
   openSheet?: boolean;
+  editingEmployee?: ExistingEmployee | null;
 }
 
-function deriveStatus(emp: Employee): 'ativo' | 'convite_pendente' | 'convite_expirado' | 'sem_acesso' | 'inativo' {
+type DerivedStatus =
+  | 'ativo' | 'inativo' | 'desligado'
+  | 'convite_pendente' | 'convite_expirado' | 'sem_acesso';
+
+function deriveStatus(emp: Employee): DerivedStatus {
+  if (emp.status === 'terminated') return 'desligado';
   if (emp.status === 'inactive') return 'inativo';
   if (emp.user_id) return 'ativo';
   const pending = emp.invite?.find(
@@ -67,30 +83,52 @@ function deriveStatus(emp: Employee): 'ativo' | 'convite_pendente' | 'convite_ex
   return 'sem_acesso';
 }
 
-const STATUS_LABELS: Record<string, string> = {
+const STATUS_LABELS: Record<DerivedStatus, string> = {
   ativo: 'Ativo',
+  inativo: 'Inativo',
+  desligado: 'Desligado',
   convite_pendente: 'Convite pendente',
   convite_expirado: 'Convite expirado',
   sem_acesso: 'Sem acesso',
-  inativo: 'Inativo',
 };
 
-const STATUS_VARIANTS: Record<string, 'default' | 'secondary' | 'outline' | 'destructive'> = {
+const STATUS_VARIANTS: Record<DerivedStatus, 'default' | 'secondary' | 'outline' | 'destructive'> = {
   ativo: 'default',
+  inativo: 'outline',
+  desligado: 'outline',
   convite_pendente: 'secondary',
   convite_expirado: 'outline',
   sem_acesso: 'outline',
-  inativo: 'outline',
 };
 
 const STATUS_FILTER_ITEMS = [
   { value: 'all', label: 'Todos os status' },
   { value: 'ativo', label: 'Ativo' },
+  { value: 'inativo', label: 'Inativo' },
+  { value: 'desligado', label: 'Desligado' },
   { value: 'convite_pendente', label: 'Convite pendente' },
   { value: 'convite_expirado', label: 'Convite expirado' },
   { value: 'sem_acesso', label: 'Sem acesso' },
-  { value: 'inativo', label: 'Inativo' },
 ];
+
+const ROLE_PILL: Record<string, string> = {
+  admin_rh: 'Admin RH',
+  director: 'Diretor',
+};
+
+type ColumnKey = 'email' | 'role' | 'admission' | 'phone';
+const DEFAULT_COLUMNS: Record<ColumnKey, boolean> = {
+  email: false,
+  role: false,
+  admission: false,
+  phone: false,
+};
+const COLUMN_LABELS: Record<ColumnKey, string> = {
+  email: 'E-mail',
+  role: 'Papel',
+  admission: 'Admissão',
+  phone: 'Telefone',
+};
 
 export function EmployeesList({
   employees,
@@ -100,23 +138,77 @@ export function EmployeesList({
   isAdmin,
   profileRoles,
   openSheet = false,
+  editingEmployee = null,
 }: Props) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   const [sheetOpen, setSheetOpen] = useState(openSheet);
-  const [editing, setEditing] = useState<ExistingEmployee | null>(null);
+  const [editing, setEditing] = useState<ExistingEmployee | null>(editingEmployee);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [positionFilter, setPositionFilter] = useState<string[]>(() => {
+    const v = searchParams.get('position');
+    return v ? [v] : [];
+  });
+  const [departmentFilter, setDepartmentFilter] = useState<string[]>(() => {
+    const v = searchParams.get('department');
+    return v ? [v] : [];
+  });
+  const [managerFilter, setManagerFilter] = useState<string[]>([]);
+  const [showTerminated, setShowTerminated] = useState(false);
+  const [columns, setColumns] = useState<Record<ColumnKey, boolean>>(DEFAULT_COLUMNS);
+  const [statusAction, setStatusAction] = useState<StatusAction | null>(null);
+  const [statusTarget, setStatusTarget] = useState<
+    { id: string; full_name: string; subordinatesCount: number } | null
+  >(null);
+
+  const subordinatesByManager = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const e of employees) {
+      if (e.manager_id) map[e.manager_id] = (map[e.manager_id] ?? 0) + 1;
+    }
+    return map;
+  }, [employees]);
+
+  const activeManagers = useMemo(
+    () => employees.filter((e) => e.status === 'active')
+      .map((e) => ({ id: e.id, full_name: e.full_name })),
+    [employees],
+  );
+
+  const metrics = useMemo(() => {
+    let ativos = 0;
+    let pendentes = 0;
+    let desligados = 0;
+    for (const e of employees) {
+      const s = deriveStatus(e);
+      if (s === 'ativo') ativos++;
+      else if (s === 'convite_pendente') pendentes++;
+      else if (s === 'desligado') desligados++;
+    }
+    return { ativos, pendentes, desligados };
+  }, [employees]);
 
   const filtered = useMemo(() => {
     return employees.filter((emp) => {
+      const status = deriveStatus(emp);
+      if (status === 'desligado' && !showTerminated) return false;
+
       const matchSearch =
         !search ||
         emp.full_name.toLowerCase().includes(search.toLowerCase()) ||
         emp.email.toLowerCase().includes(search.toLowerCase());
-      const status = deriveStatus(emp);
       const matchStatus = statusFilter === 'all' || status === statusFilter;
-      return matchSearch && matchStatus;
+      const matchPos = positionFilter.length === 0
+        || (emp.position?.id ? positionFilter.includes(emp.position.id) : false);
+      const matchDep = departmentFilter.length === 0
+        || departmentFilter.includes(emp.department?.id ?? '__none__');
+      const matchMgr = managerFilter.length === 0
+        || managerFilter.includes(emp.manager_id ?? '__none__');
+      return matchSearch && matchStatus && matchPos && matchDep && matchMgr;
     });
-  }, [employees, search, statusFilter]);
+  }, [employees, search, statusFilter, positionFilter, departmentFilter, managerFilter, showTerminated]);
 
   function openCreate() {
     setEditing(null);
@@ -136,8 +228,18 @@ export function EmployeesList({
       role,
       hireDate: emp.hire_date,
       isSelf: emp.user_id === currentUserId,
+      descendantIds: collectDescendantIds(emp.id, employees),
     });
     setSheetOpen(true);
+  }
+
+  function openStatusDialog(action: StatusAction, emp: Employee) {
+    setStatusAction(action);
+    setStatusTarget({
+      id: emp.id,
+      full_name: emp.full_name,
+      subordinatesCount: subordinatesByManager[emp.id] ?? 0,
+    });
   }
 
   async function handleResend(employeeId: string) {
@@ -152,31 +254,47 @@ export function EmployeesList({
     toast.success('Convite revogado.');
   }
 
-  async function handleDeactivate(employeeId: string) {
-    const result = await deactivateEmployee(employeeId);
-    if (result.error) { toast.error(result.error); return; }
-    toast.success('Colaborador desativado.');
-  }
+  const positionOptions = positions.map((p) => ({ value: p.id, label: p.name }));
+  const departmentOptions = [
+    { value: '__none__', label: 'Sem departamento' },
+    ...departments.map((d) => ({ value: d.id, label: d.name })),
+  ];
+  const managerOptions = [
+    { value: '__none__', label: 'Sem gestor' },
+    ...activeManagers.map((m) => ({ value: m.id, label: m.full_name })),
+  ];
 
   return (
     <div>
       <PageHeader
         title="Colaboradores"
-        description="Gerencie sua equipe, papéis e convites."
+        description="Ficha de RH + gerenciamento de acesso ao sistema."
         actions={
           isAdmin && (
-            <Button onClick={openCreate}>
-              <Plus className="mr-2 h-4 w-4" />
-              Novo colaborador
-            </Button>
+            <>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Button variant="outline" disabled>
+                      <Download className="mr-2 h-4 w-4" />
+                      Exportar
+                    </Button>
+                  }
+                />
+                <TooltipContent>Em breve</TooltipContent>
+              </Tooltip>
+              <Button onClick={openCreate}>
+                <Plus className="mr-2 h-4 w-4" />
+                Novo colaborador
+              </Button>
+            </>
           )
         }
       />
 
       <div className="space-y-4">
-        {/* Filters */}
-        <div className="flex gap-3">
-          <div className="relative flex-1 max-w-xs">
+        <div className="flex flex-wrap gap-3">
+          <div className="relative flex-1 min-w-[240px] max-w-xs">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Buscar por nome ou e-mail…"
@@ -185,28 +303,91 @@ export function EmployeesList({
               className="pl-9"
             />
           </div>
-          <Select
-            value={statusFilter}
-            onValueChange={(v) => setStatusFilter(v ?? 'all')}
-            items={STATUS_FILTER_ITEMS}
-          >
-            <SelectTrigger className="w-44">
-              <SelectValue />
-            </SelectTrigger>
+          <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v ?? 'all')} items={STATUS_FILTER_ITEMS}>
+            <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
             <SelectContent>
               {STATUS_FILTER_ITEMS.map((it) => (
                 <SelectItem key={it.value} value={it.value}>{it.label}</SelectItem>
               ))}
             </SelectContent>
           </Select>
+          <MultiSelectFilter
+            label="Cargos"
+            options={positionOptions}
+            value={positionFilter}
+            onChange={setPositionFilter}
+            width="w-40"
+          />
+          <MultiSelectFilter
+            label="Departamentos"
+            options={departmentOptions}
+            value={departmentFilter}
+            onChange={setDepartmentFilter}
+            width="w-48"
+          />
+          <MultiSelectFilter
+            label="Gestores"
+            options={managerOptions}
+            value={managerFilter}
+            onChange={setManagerFilter}
+            width="w-44"
+          />
+
+          <Popover>
+            <PopoverTrigger
+              render={
+                <Button variant="outline">
+                  <Settings2 className="mr-2 h-4 w-4" />
+                  Colunas
+                </Button>
+              }
+            />
+            <PopoverContent align="end" className="w-48 p-2">
+              <p className="text-xs font-medium text-muted-foreground px-2 py-1">Colunas adicionais</p>
+              {(Object.keys(COLUMN_LABELS) as ColumnKey[]).map((key) => (
+                <label key={key} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted cursor-pointer text-sm">
+                  <input
+                    type="checkbox"
+                    checked={columns[key]}
+                    onChange={(e) => setColumns({ ...columns, [key]: e.target.checked })}
+                    className="h-3.5 w-3.5 accent-primary"
+                  />
+                  {COLUMN_LABELS[key]}
+                </label>
+              ))}
+            </PopoverContent>
+          </Popover>
         </div>
 
-        {/* Table */}
+        <div className="flex items-center justify-between rounded-md border bg-muted/30 px-4 py-2.5 text-sm">
+          <p className="text-muted-foreground">
+            <span className="font-medium text-foreground">{metrics.ativos}</span> ativo{metrics.ativos === 1 ? '' : 's'}
+            {' · '}
+            <span className="font-medium text-foreground">{metrics.pendentes}</span> convite{metrics.pendentes === 1 ? '' : 's'} pendente{metrics.pendentes === 1 ? '' : 's'}
+            {metrics.desligados > 0 && !showTerminated && (
+              <>{' · '}<span className="font-medium text-foreground">{metrics.desligados}</span> desligado{metrics.desligados === 1 ? '' : 's'} oculto{metrics.desligados === 1 ? '' : 's'}</>
+            )}
+          </p>
+          <label className="flex items-center gap-2 text-muted-foreground cursor-pointer">
+            <input
+              type="checkbox"
+              checked={showTerminated}
+              onChange={(e) => setShowTerminated(e.target.checked)}
+              className="h-3.5 w-3.5 accent-primary"
+            />
+            Mostrar desligados
+          </label>
+        </div>
+
         {filtered.length === 0 ? (
           <EmptyState
             icon={Users}
             title="Nenhum colaborador encontrado"
-            description={search || statusFilter !== 'all' ? 'Tente outros filtros.' : 'Adicione o primeiro colaborador.'}
+            description={
+              search || statusFilter !== 'all' || positionFilter.length > 0 || departmentFilter.length > 0 || managerFilter.length > 0
+                ? 'Tente outros filtros.'
+                : 'Adicione o primeiro colaborador.'
+            }
             action={isAdmin ? (
               <Button onClick={openCreate}>
                 <UserPlus className="mr-2 h-4 w-4" />
@@ -219,10 +400,14 @@ export function EmployeesList({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Nome / E-mail</TableHead>
+                  <TableHead>Nome</TableHead>
+                  {columns.email && <TableHead>E-mail</TableHead>}
                   <TableHead>Cargo</TableHead>
+                  {columns.role && <TableHead>Papel</TableHead>}
                   <TableHead>Departamento</TableHead>
                   <TableHead>Gestor direto</TableHead>
+                  {columns.admission && <TableHead>Admissão</TableHead>}
+                  {columns.phone && <TableHead>Telefone</TableHead>}
                   <TableHead>Status</TableHead>
                   {isAdmin && <TableHead className="w-12" />}
                 </TableRow>
@@ -237,33 +422,59 @@ export function EmployeesList({
                   const expiredInvite = emp.invite?.find(
                     (i) => !i.accepted_at && !i.revoked_at && new Date(i.expires_at) <= new Date(),
                   );
+                  const role = (emp.user_id && profileRoles[emp.user_id]) || 'user';
+                  const rolePill = ROLE_PILL[role];
 
                   return (
-                    <TableRow key={emp.id}>
-                      <TableCell>
-                        <div>
+                    <TableRow
+                      key={emp.id}
+                      className="cursor-pointer"
+                      onClick={() => router.push(`/colaboradores/${emp.id}`)}
+                    >
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <Link href={`/colaboradores/${emp.id}`} className="block hover:underline">
                           <p className="font-medium">
                             {emp.full_name}
                             {isSelf && <span className="ml-2 text-xs text-muted-foreground">(você)</span>}
                           </p>
-                          <p className="text-sm text-muted-foreground">{emp.email}</p>
+                          {!columns.email && (
+                            <p className="text-sm text-muted-foreground">{emp.email}</p>
+                          )}
+                        </Link>
+                      </TableCell>
+                      {columns.email && <TableCell>{emp.email}</TableCell>}
+                      <TableCell>
+                        <div className="flex items-center gap-1.5">
+                          <span>{emp.position?.name ?? '—'}</span>
+                          {!columns.role && rolePill && (
+                            <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">· {rolePill}</span>
+                          )}
                         </div>
                       </TableCell>
-                      <TableCell>{emp.position?.name ?? '—'}</TableCell>
+                      {columns.role && (
+                        <TableCell>
+                          {ROLE_PILL[role] ?? 'Colaborador'}
+                        </TableCell>
+                      )}
                       <TableCell>{emp.department?.name ?? '—'}</TableCell>
                       <TableCell>{emp.manager?.full_name ?? '—'}</TableCell>
+                      {columns.admission && <TableCell>{formatDate(emp.hire_date)}</TableCell>}
+                      {columns.phone && <TableCell>{emp.phone ?? '—'}</TableCell>}
                       <TableCell>
                         <Badge variant={STATUS_VARIANTS[status]}>
                           {STATUS_LABELS[status]}
                         </Badge>
                       </TableCell>
                       {isAdmin && (
-                        <TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
                           <DropdownMenu>
                             <DropdownMenuTrigger className="flex h-8 w-8 items-center justify-center rounded-md hover:bg-muted transition-colors">
                               <MoreHorizontal className="h-4 w-4" />
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => router.push(`/colaboradores/${emp.id}`)}>
+                                Ver perfil
+                              </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => openEdit(emp)}>
                                 Editar
                               </DropdownMenuItem>
@@ -282,15 +493,27 @@ export function EmployeesList({
                                   Enviar convite
                                 </DropdownMenuItem>
                               )}
-                              {!isSelf && status === 'ativo' && (
+                              {!isSelf && (
                                 <>
                                   <DropdownMenuSeparator />
-                                  <DropdownMenuItem
-                                    className="text-destructive focus:text-destructive"
-                                    onClick={() => handleDeactivate(emp.id)}
-                                  >
-                                    Desativar
-                                  </DropdownMenuItem>
+                                  {status === 'ativo' && (
+                                    <DropdownMenuItem onClick={() => openStatusDialog('deactivate', emp)}>
+                                      Desativar
+                                    </DropdownMenuItem>
+                                  )}
+                                  {status === 'inativo' && (
+                                    <DropdownMenuItem onClick={() => openStatusDialog('reactivate', emp)}>
+                                      Reativar
+                                    </DropdownMenuItem>
+                                  )}
+                                  {(status === 'ativo' || status === 'inativo') && (
+                                    <DropdownMenuItem
+                                      className="text-destructive focus:text-destructive"
+                                      onClick={() => openStatusDialog('terminate', emp)}
+                                    >
+                                      Desligar
+                                    </DropdownMenuItem>
+                                  )}
                                 </>
                               )}
                             </DropdownMenuContent>
@@ -311,9 +534,33 @@ export function EmployeesList({
         onOpenChange={(o) => { setSheetOpen(o); if (!o) setEditing(null); }}
         positions={positions}
         departments={departments}
-        managers={employees.filter((e) => e.full_name).map((e) => ({ id: e.id, full_name: e.full_name }))}
+        managers={activeManagers}
         employee={editing}
+        isAdmin={isAdmin}
+      />
+
+      <ConfirmStatusDialog
+        open={!!statusAction}
+        action={statusAction ?? 'deactivate'}
+        target={statusTarget}
+        managerCandidates={activeManagers}
+        onOpenChange={(o) => { if (!o) { setStatusAction(null); setStatusTarget(null); } }}
       />
     </div>
   );
+}
+
+function collectDescendantIds(rootId: string, all: Employee[]): string[] {
+  const result: string[] = [];
+  const queue = [rootId];
+  while (queue.length) {
+    const current = queue.shift()!;
+    for (const e of all) {
+      if (e.manager_id === current) {
+        result.push(e.id);
+        queue.push(e.id);
+      }
+    }
+  }
+  return result;
 }

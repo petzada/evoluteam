@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { EmployeeSchema, UpdateRoleSchema } from './schema';
+import {
+  EmployeeSchema, UpdateRoleSchema, TransferOptionSchema,
+} from './schema';
 
 describe('EmployeeSchema', () => {
   const valid = {
@@ -16,6 +18,12 @@ describe('EmployeeSchema', () => {
 
   it('aceita input mínimo válido', () => {
     expect(EmployeeSchema.safeParse(valid).success).toBe(true);
+  });
+
+  it('aceita com internalNotes opcional', () => {
+    expect(
+      EmployeeSchema.safeParse({ ...valid, internalNotes: 'texto' }).success,
+    ).toBe(true);
   });
 
   it('rejeita nome curto', () => {
@@ -51,6 +59,30 @@ describe('UpdateRoleSchema', () => {
   it('rejeita employeeId não-uuid', () => {
     expect(
       UpdateRoleSchema.safeParse({ employeeId: 'abc', role: 'user' }).success,
+    ).toBe(false);
+  });
+});
+
+describe('TransferOptionSchema', () => {
+  it('aceita mode=null sem manager', () => {
+    expect(TransferOptionSchema.safeParse({ mode: 'null' }).success).toBe(true);
+  });
+
+  it('aceita mode=transfer com newManagerId uuid', () => {
+    expect(
+      TransferOptionSchema.safeParse({ mode: 'transfer', newManagerId: crypto.randomUUID() }).success,
+    ).toBe(true);
+  });
+
+  it('rejeita mode=transfer sem newManagerId', () => {
+    expect(
+      TransferOptionSchema.safeParse({ mode: 'transfer' }).success,
+    ).toBe(false);
+  });
+
+  it('rejeita mode=transfer com newManagerId não-uuid', () => {
+    expect(
+      TransferOptionSchema.safeParse({ mode: 'transfer', newManagerId: 'abc' }).success,
     ).toBe(false);
   });
 });

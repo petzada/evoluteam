@@ -10,6 +10,7 @@ export const EmployeeSchema = z.object({
   hireDate: z.string().min(1, 'Data obrigatória'),
   phone: z.string().optional().nullable(),
   sendInvite: z.boolean().optional(),
+  internalNotes: z.string().optional().nullable(),
 });
 
 export const UpdateRoleSchema = z.object({
@@ -17,5 +18,19 @@ export const UpdateRoleSchema = z.object({
   role: z.enum(['admin_rh', 'director', 'user']),
 });
 
+export const TransferOptionSchema = z.discriminatedUnion('mode', [
+  z.object({ mode: z.literal('transfer'), newManagerId: z.string().uuid() }),
+  z.object({ mode: z.literal('null') }),
+]);
+
+export const DepartmentInputSchema = z.object({
+  name: z.string().min(2, 'Nome obrigatório'),
+});
+
+export const PositionInputSchema = DepartmentInputSchema;
+
 export type EmployeeInput = z.infer<typeof EmployeeSchema>;
 export type UpdateRoleInput = z.infer<typeof UpdateRoleSchema>;
+export type TransferOption = z.infer<typeof TransferOptionSchema>;
+export type DepartmentInput = z.infer<typeof DepartmentInputSchema>;
+export type PositionInput = z.infer<typeof PositionInputSchema>;

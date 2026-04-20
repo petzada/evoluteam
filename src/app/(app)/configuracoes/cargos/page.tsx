@@ -1,16 +1,22 @@
-import { Briefcase } from 'lucide-react';
-import { EmptyState } from '@/components/EmptyState';
-import { PageHeader } from '@/components/PageHeader';
+import { redirect } from 'next/navigation';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { listPositionsWithCounts } from '@/features/taxonomies/queries';
+import { TaxonomyList } from '@/features/taxonomies/components/TaxonomyList';
 
-export default function CargosPage() {
-  return (
-    <div>
-      <PageHeader title="Cargos" description="Gerencie os cargos da empresa." />
-      <EmptyState
-        icon={Briefcase}
-        title="Em breve"
-        description="O CRUD completo de cargos estará disponível na próxima fase."
-      />
-    </div>
-  );
+export default async function CargosPage() {
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('company_id, role')
+    .eq('id', user.id)
+    .single();
+  if (!profile?.company_id) redirect('/onboarding/criar-empresa');
+  if (profile.role !== 'admin_rh') redirect('/dashboard');
+
+  const items = await listPositionsWithCounts(profile.company_id);
+
+  return <TaxonomyList kind="position" items={items} />;
 }
