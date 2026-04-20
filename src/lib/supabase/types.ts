@@ -380,6 +380,51 @@ export type Database = {
           },
         ]
       }
+      feedbacks: {
+        Row: {
+          company_id: string
+          competency_id: string | null
+          created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
+          id: string
+          message: string
+          read_at: string | null
+          recipient_id: string
+          sender_id: string
+          type: string
+          visibility: string
+        }
+        Insert: {
+          company_id: string
+          competency_id?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          id?: string
+          message: string
+          read_at?: string | null
+          recipient_id: string
+          sender_id: string
+          type: string
+          visibility: string
+        }
+        Update: {
+          company_id?: string
+          competency_id?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          id?: string
+          message?: string
+          read_at?: string | null
+          recipient_id?: string
+          sender_id?: string
+          type?: string
+          visibility?: string
+        }
+        Relationships: []
+      }
       review_cycles: {
         Row: {
           archived_at: string | null
@@ -659,6 +704,10 @@ export type Database = {
       my_employee_id: { Args: never; Returns: string }
       get_employee_descendants: {
         Args: { root_id: string }
+        Returns: { id: string }[]
+      }
+      get_employee_ancestors: {
+        Args: { emp_id: string }
         Returns: { id: string }[]
       }
     }

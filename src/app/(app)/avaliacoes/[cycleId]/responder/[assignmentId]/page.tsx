@@ -5,6 +5,7 @@ import {
 } from '@/features/reviews/queries';
 import { getDirectReports } from '@/features/employees/queries';
 import { AssignmentResponder } from '@/features/reviews/components/AssignmentResponder';
+import { listFeedbacksForReviewee } from '@/features/feedbacks/queries';
 
 export default async function ResponderPage({
   params,
@@ -42,7 +43,20 @@ export default async function ResponderPage({
     redirect(`/avaliacoes/${cycleId}`);
   }
 
-  const [{ data: questionsRaw }, answers, directReports, { data: competencies }] = await Promise.all([
+  const cycle = assignment.cycle as unknown as {
+    id: string; name: string; response_start: string; response_end: string;
+    status: string; period_start?: string; period_end?: string;
+  } | null;
+
+  const { data: cycleRow } = await supabase
+    .from('review_cycles')
+    .select('period_start, period_end')
+    .eq('id', cycleId)
+    .maybeSingle();
+  const periodStart = cycleRow?.period_start ?? cycle?.response_start ?? '1970-01-01';
+  const periodEnd = cycleRow?.period_end ?? cycle?.response_end ?? new Date().toISOString().split('T')[0];
+
+  const [{ data: questionsRaw }, answers, directReports, { data: competencies }, feedbacks] = await Promise.all([
     supabase
       .from('review_questions')
       .select('id, competency_id, question_order, type, question_text, is_required, scale_min, scale_max')
@@ -54,6 +68,7 @@ export default async function ResponderPage({
       .from('competencies')
       .select('id, name')
       .eq('company_id', profile.company_id),
+    listFeedbacksForReviewee(assignment.reviewee_id, periodStart, periodEnd),
   ]);
 
   return (
@@ -63,6 +78,7 @@ export default async function ResponderPage({
       existingAnswers={answers}
       competencies={competencies ?? []}
       directReports={directReports as Parameters<typeof AssignmentResponder>[0]['directReports']}
+      feedbacks={feedbacks}
     />
   );
 }

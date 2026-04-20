@@ -56,7 +56,7 @@ export function Step2Participants({ deps, value, onChange, resolvedIds, onBack, 
       <div>
         <h2 className="text-lg font-semibold">Participantes</h2>
         <p className="text-sm text-muted-foreground">
-          Selecione quem será avaliado no ciclo. Você pode combinar "todos os ativos" ou filtros por departamento, cargo e seleção manual.
+          Selecione quem será avaliado no ciclo. Você pode combinar &ldquo;todos os ativos&rdquo; ou filtros por departamento, cargo e seleção manual.
         </p>
       </div>
 

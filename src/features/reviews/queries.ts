@@ -477,7 +477,7 @@ export async function getEligibleEmployees(companyId: string) {
   const supabase = await createServerSupabaseClient();
   const { data } = await supabase
     .from('employees')
-    .select('id, full_name, email, manager_id, position:positions(id, name), department:departments(id, name)')
+    .select('id, full_name, email, status, manager_id, position:positions(id, name), department:departments(id, name)')
     .eq('company_id', companyId)
     .eq('status', 'active')
     .order('full_name');

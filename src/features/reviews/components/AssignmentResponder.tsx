@@ -16,6 +16,10 @@ import {
 import { cn } from '@/lib/utils';
 import { formatDate } from '@/lib/date';
 import { saveAnswerDraft, submitAssignment } from '../actions';
+import type { FeedbackRow } from '@/features/feedbacks/queries';
+import {
+  FEEDBACK_TYPE_LABELS, type FeedbackType,
+} from '@/features/feedbacks/schema';
 
 type Question = {
   id: string;
@@ -51,6 +55,7 @@ interface Props {
   existingAnswers: { question_id: string; scale_value: number | null; text_value: string | null }[];
   competencies: { id: string; name: string }[];
   directReports: { id: string; full_name: string }[];
+  feedbacks: FeedbackRow[];
 }
 
 type AnswerState = { scaleValue: number | null; textValue: string };
@@ -79,7 +84,7 @@ const SCALE_LABEL_LEFT = 'Precisa melhorar';
 const SCALE_LABEL_RIGHT = 'Excelente';
 
 export function AssignmentResponder({
-  assignment, questions, existingAnswers, competencies, directReports,
+  assignment, questions, existingAnswers, competencies, directReports, feedbacks,
 }: Props) {
   const router = useRouter();
   const [answers, setAnswers] = useState<Record<string, AnswerState>>(() =>
@@ -240,12 +245,35 @@ export function AssignmentResponder({
           </div>
 
           <div className="rounded-md border p-4 text-sm">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">
-              Feedbacks
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">
+              Feedbacks no período
             </p>
-            <p className="text-muted-foreground italic text-xs">
-              Disponível após FT-3.
-            </p>
+            {feedbacks.length === 0 ? (
+              <p className="text-muted-foreground italic text-xs">
+                Nenhum feedback visível no período avaliado.
+              </p>
+            ) : (
+              <ul className="space-y-2">
+                {feedbacks.slice(0, 10).map((fb) => (
+                  <li key={fb.id} className="text-xs">
+                    <Badge variant="outline" className="mr-1.5">
+                      {FEEDBACK_TYPE_LABELS[fb.type as FeedbackType]}
+                    </Badge>
+                    <span className="text-muted-foreground line-clamp-2">
+                      {fb.message}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {feedbacks.length > 0 && assignment.reviewee && (
+              <Link
+                href={`/colaboradores/${assignment.reviewee.id}?tab=feedbacks`}
+                className="mt-2 inline-block text-[11px] text-primary hover:underline"
+              >
+                Ver todos no perfil →
+              </Link>
+            )}
           </div>
 
           <div className="rounded-md border border-amber-200 bg-amber-50/50 p-3 text-sm">

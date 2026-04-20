@@ -14,6 +14,7 @@ import {
 } from '@/features/employees/queries';
 import { canViewEmployee, canSeeInternalNotes } from '@/features/employees/permissions';
 import { EmployeeProfile } from '@/features/employees/components/EmployeeProfile';
+import { listFeedbacksForEmployee } from '@/features/feedbacks/queries';
 
 export default async function EmployeeProfilePage({
   params,
@@ -58,13 +59,14 @@ export default async function EmployeeProfilePage({
     redirect('/colaboradores');
   }
 
-  const [directReports, subordinatesCount, activityLog, positions, departments, managers] = await Promise.all([
+  const [directReports, subordinatesCount, activityLog, positions, departments, managers, feedbacks] = await Promise.all([
     getDirectReports(id),
     countDirectReports(id),
     getEmployeeActivityLog(profile.company_id, id, employee.user_id),
     getPositions(profile.company_id),
     getDepartments(profile.company_id),
     getManagerCandidates(profile.company_id, id),
+    listFeedbacksForEmployee(id),
   ]);
 
   // Último login via admin auth
@@ -119,6 +121,7 @@ export default async function EmployeeProfilePage({
       descendantIds={descendantIds}
       subordinatesCount={subordinatesCount}
       actors={actors}
+      feedbacks={feedbacks}
     />
   );
 }

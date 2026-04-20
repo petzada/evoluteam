@@ -16,6 +16,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { EmployeeSheet, type ExistingEmployee } from './EmployeeSheet';
 import { ConfirmStatusDialog, type StatusAction } from './ConfirmStatusDialog';
+import { FeedbackCard } from '@/features/feedbacks/components/FeedbackCard';
+import type { FeedbackRow } from '@/features/feedbacks/queries';
 import { formatDate, formatDateTime } from '@/lib/date';
 import { ACTIVITY_LABELS } from '@/lib/activity';
 import { resendInvite, revokeInvite, updateRole } from '../actions';
@@ -73,6 +75,7 @@ interface Props {
   descendantIds: string[];
   subordinatesCount: number;
   actors: Record<string, string>;
+  feedbacks: FeedbackRow[];
 }
 
 const ROLE_LABELS: Record<Role, string> = {
@@ -95,7 +98,7 @@ function initials(name: string) {
 export function EmployeeProfile({
   employee, directReports, activityLog, role, lastSignInAt, isAdmin, isSelf,
   canSeeInternalNotes, positions, departments, managers, descendantIds,
-  subordinatesCount, actors,
+  subordinatesCount, actors, feedbacks,
 }: Props) {
   const router = useRouter();
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -226,7 +229,7 @@ export function EmployeeProfile({
           <TabsTrigger value="acesso">Acesso</TabsTrigger>
           <TabsTrigger value="historico">Histórico</TabsTrigger>
           <TabDisabled label="Avaliações" tip="Disponível quando FT-2 for implementada" />
-          <TabDisabled label="Feedbacks" tip="Disponível quando FT-3 for implementada" />
+          <TabsTrigger value="feedbacks">Feedbacks</TabsTrigger>
           <TabDisabled label="PDI" tip="Disponível quando FT-4 for implementada" />
         </TabsList>
 
@@ -425,6 +428,35 @@ export function EmployeeProfile({
                 </li>
               ))}
             </ol>
+          )}
+        </TabsContent>
+
+        <TabsContent value="feedbacks" className="mt-6">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm text-muted-foreground">
+              {feedbacks.length} feedback{feedbacks.length === 1 ? '' : 's'} recebido{feedbacks.length === 1 ? '' : 's'}
+              <span className="text-muted-foreground/70"> · conforme sua visibilidade</span>
+            </p>
+            {!isSelf && (
+              <Link href={`/feedbacks/novo?recipient=${employee.id}`}>
+                <Button size="sm" variant="outline">Enviar feedback</Button>
+              </Link>
+            )}
+          </div>
+          {feedbacks.length === 0 ? (
+            <p className="text-sm text-muted-foreground italic">Nenhum feedback para exibir.</p>
+          ) : (
+            <ul className="space-y-3">
+              {feedbacks.map((fb) => (
+                <li key={fb.id}>
+                  <FeedbackCard
+                    feedback={fb}
+                    perspective="received"
+                    isAdmin={isAdmin}
+                  />
+                </li>
+              ))}
+            </ul>
           )}
         </TabsContent>
       </Tabs>
