@@ -12,7 +12,20 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // External tooling not part of the product code:
+    ".agents/**",
+    ".superpowers/**",
   ]),
+  // Accept `_`-prefixed vars/args as intentionally unused.
+  {
+    rules: {
+      "@typescript-eslint/no-unused-vars": ["warn", {
+        argsIgnorePattern: "^_",
+        varsIgnorePattern: "^_",
+        caughtErrorsIgnorePattern: "^_",
+      }],
+    },
+  },
 ]);
 
 export default eslintConfig;

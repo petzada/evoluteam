@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 import { Search } from 'lucide-react';
@@ -71,8 +71,9 @@ export function PdiSheet({
     defaultValues: EMPTY_DEFAULTS,
   });
 
-  const employeeId = form.watch('employeeId');
-  const objective = form.watch('objective');
+  const employeeId = useWatch({ control: form.control, name: 'employeeId' });
+  const objective = useWatch({ control: form.control, name: 'objective' });
+  const dueDate = useWatch({ control: form.control, name: 'dueDate' });
 
   useEffect(() => {
     if (!open) return;
@@ -82,6 +83,8 @@ export function PdiSheet({
       cycleId: presetCycleId ?? null,
       competencyId: presetCompetencyId ?? null,
     });
+    // Reset do estado auxiliar de busca ao abrir o sheet — intencional.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setEmployeeSearch('');
   }, [open, presetEmployeeId, presetCycleId, presetCompetencyId, form]);
 
@@ -123,7 +126,7 @@ export function PdiSheet({
   const canSubmit =
     !!employeeId
     && objective.trim().length >= 10
-    && form.watch('dueDate').length > 0;
+    && dueDate.length > 0;
 
   const activeCycles = cycles.filter((c) => c.status === 'published' || c.status === 'closed');
 

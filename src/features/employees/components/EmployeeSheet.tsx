@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 import {
@@ -67,15 +67,17 @@ export function EmployeeSheet({
   open, onOpenChange, positions, departments, managers, employee, isAdmin,
 }: Props) {
   const [loading, setLoading] = useState(false);
-  const [localDepartments, setLocalDepartments] = useState<Department[]>(departments);
+  const [createdLocally, setCreatedLocally] = useState<Department[]>([]);
   const [createDeptOpen, setCreateDeptOpen] = useState(false);
   const [newDeptName, setNewDeptName] = useState('');
   const [creatingDept, setCreatingDept] = useState(false);
   const isEdit = !!employee;
 
-  useEffect(() => {
-    setLocalDepartments(departments);
-  }, [departments]);
+  const localDepartments = useMemo(() => {
+    const existing = new Set(departments.map((d) => d.id));
+    const fresh = createdLocally.filter((c) => !existing.has(c.id));
+    return [...departments, ...fresh].sort((a, b) => a.name.localeCompare(b.name));
+  }, [departments, createdLocally]);
 
   const positionItems = positions.map((p) => ({ value: p.id, label: p.name }));
   const departmentItems = [
@@ -91,7 +93,7 @@ export function EmployeeSheet({
     defaultValues: EMPTY_DEFAULTS,
   });
 
-  const sendInvite = form.watch('sendInvite');
+  const sendInvite = useWatch({ control: form.control, name: 'sendInvite' });
 
   useEffect(() => {
     if (!open) return;
@@ -389,7 +391,7 @@ export function EmployeeSheet({
     setCreatingDept(false);
     if (result.error || !result.id) { toast.error(result.error ?? 'Erro ao criar.'); return; }
     const next: Department = { id: result.id, name };
-    setLocalDepartments((prev) => [...prev, next].sort((a, b) => a.name.localeCompare(b.name)));
+    setCreatedLocally((prev) => [...prev, next]);
     form.setValue('departmentId', result.id, { shouldDirty: true });
     setCreateDeptOpen(false);
     toast.success('Departamento criado e selecionado.');

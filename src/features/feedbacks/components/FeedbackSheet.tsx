@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 import { Search } from 'lucide-react';
@@ -59,10 +59,10 @@ export function FeedbackSheet({
     defaultValues: EMPTY_DEFAULTS,
   });
 
-  const type = form.watch('type');
-  const visibility = form.watch('visibility');
-  const recipientId = form.watch('recipientId');
-  const message = form.watch('message');
+  const type = useWatch({ control: form.control, name: 'type' });
+  const visibility = useWatch({ control: form.control, name: 'visibility' });
+  const recipientId = useWatch({ control: form.control, name: 'recipientId' });
+  const message = useWatch({ control: form.control, name: 'message' });
 
   useEffect(() => {
     if (!open) return;
@@ -70,6 +70,8 @@ export function FeedbackSheet({
       ...EMPTY_DEFAULTS,
       recipientId: (presetRecipientId ?? '') as FeedbackInput['recipientId'],
     });
+    // Reset do estado auxiliar de busca ao abrir o sheet — intencional.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setRecipientSearch('');
   }, [open, presetRecipientId, form]);
 
