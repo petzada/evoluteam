@@ -83,6 +83,15 @@ const STATUS_VARIANTS: Record<string, 'default' | 'secondary' | 'outline' | 'des
   inativo: 'outline',
 };
 
+const STATUS_FILTER_ITEMS = [
+  { value: 'all', label: 'Todos os status' },
+  { value: 'ativo', label: 'Ativo' },
+  { value: 'convite_pendente', label: 'Convite pendente' },
+  { value: 'convite_expirado', label: 'Convite expirado' },
+  { value: 'sem_acesso', label: 'Sem acesso' },
+  { value: 'inativo', label: 'Inativo' },
+];
+
 export function EmployeesList({
   employees,
   positions,
@@ -176,17 +185,18 @@ export function EmployeesList({
               className="pl-9"
             />
           </div>
-          <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v ?? 'all')}>
+          <Select
+            value={statusFilter}
+            onValueChange={(v) => setStatusFilter(v ?? 'all')}
+            items={STATUS_FILTER_ITEMS}
+          >
             <SelectTrigger className="w-44">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Todos os status</SelectItem>
-              <SelectItem value="ativo">Ativo</SelectItem>
-              <SelectItem value="convite_pendente">Convite pendente</SelectItem>
-              <SelectItem value="convite_expirado">Convite expirado</SelectItem>
-              <SelectItem value="sem_acesso">Sem acesso</SelectItem>
-              <SelectItem value="inativo">Inativo</SelectItem>
+              {STATUS_FILTER_ITEMS.map((it) => (
+                <SelectItem key={it.value} value={it.value}>{it.label}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>

@@ -58,6 +58,15 @@ export function EmployeeSheet({ open, onOpenChange, positions, departments, mana
   const [loading, setLoading] = useState(false);
   const isEdit = !!employee;
 
+  // Maps id/enum → label para que <SelectValue> mostre o nome legível em vez do UUID
+  const positionItems = positions.map((p) => ({ value: p.id, label: p.name }));
+  const departmentItems = [
+    { value: '__none__', label: 'Nenhum' },
+    ...departments.map((d) => ({ value: d.id, label: d.name })),
+  ];
+  const roleItems = (Object.entries(ROLE_LABELS) as [EmployeeInput['role'], string][])
+    .map(([value, label]) => ({ value, label }));
+
   const form = useForm<EmployeeInput>({
     resolver: zodResolver(EmployeeSchema),
     defaultValues: EMPTY_DEFAULTS,
@@ -159,7 +168,7 @@ export function EmployeeSheet({ open, onOpenChange, positions, departments, mana
                 <FormField control={form.control} name="positionId" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Cargo *</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value} items={positionItems}>
                       <FormControl>
                         <SelectTrigger className="w-full"><SelectValue placeholder="Selecione…" /></SelectTrigger>
                       </FormControl>
@@ -176,13 +185,13 @@ export function EmployeeSheet({ open, onOpenChange, positions, departments, mana
                 <FormField control={form.control} name="role" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Papel *</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value} disabled={roleDisabled}>
+                    <Select onValueChange={field.onChange} value={field.value} disabled={roleDisabled} items={roleItems}>
                       <FormControl>
                         <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {(Object.entries(ROLE_LABELS) as [EmployeeInput['role'], string][]).map(([v, l]) => (
-                          <SelectItem key={v} value={v}>{l}</SelectItem>
+                        {roleItems.map((r) => (
+                          <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -200,14 +209,14 @@ export function EmployeeSheet({ open, onOpenChange, positions, departments, mana
                   <Select
                     onValueChange={(v) => field.onChange(v === '__none__' ? null : v)}
                     value={field.value ?? '__none__'}
+                    items={departmentItems}
                   >
                     <FormControl>
                       <SelectTrigger className="w-full"><SelectValue placeholder="Nenhum" /></SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="__none__">Nenhum</SelectItem>
-                      {departments.map((d) => (
-                        <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                      {departmentItems.map((d) => (
+                        <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -215,26 +224,32 @@ export function EmployeeSheet({ open, onOpenChange, positions, departments, mana
                 </FormItem>
               )} />
 
-              <FormField control={form.control} name="managerId" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Gestor direto</FormLabel>
-                  <Select
-                    onValueChange={(v) => field.onChange(v === '__none__' ? null : v)}
-                    value={field.value ?? '__none__'}
-                  >
-                    <FormControl>
-                      <SelectTrigger className="w-full"><SelectValue placeholder="Nenhum" /></SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="__none__">Nenhum</SelectItem>
-                      {managerOptions.map((m) => (
-                        <SelectItem key={m.id} value={m.id}>{m.full_name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )} />
+              <FormField control={form.control} name="managerId" render={({ field }) => {
+                const managerItems = [
+                  { value: '__none__', label: 'Nenhum' },
+                  ...managerOptions.map((m) => ({ value: m.id, label: m.full_name })),
+                ];
+                return (
+                  <FormItem>
+                    <FormLabel>Gestor direto</FormLabel>
+                    <Select
+                      onValueChange={(v) => field.onChange(v === '__none__' ? null : v)}
+                      value={field.value ?? '__none__'}
+                      items={managerItems}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="w-full"><SelectValue placeholder="Nenhum" /></SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {managerItems.map((m) => (
+                          <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                );
+              }} />
 
               <div className="grid grid-cols-2 gap-4">
                 <FormField control={form.control} name="hireDate" render={({ field }) => (
