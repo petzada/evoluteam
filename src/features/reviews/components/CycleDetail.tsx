@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { Archive, MoreHorizontal, RefreshCw, Send, X } from 'lucide-react';
+import { Archive, MoreHorizontal, Pencil, RefreshCw, Send, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -200,6 +200,14 @@ export function CycleDetail({
         </div>
         <div className="flex items-center gap-2">
           <Badge>{deriveLabel}</Badge>
+          {isAdmin && (cycle.status === 'draft' || cycle.status === 'published') && (
+            <Link href={`/avaliacoes/${cycle.id}/editar`}>
+              <Button variant="outline">
+                <Pencil className="h-3.5 w-3.5 mr-1.5" />
+                Editar
+              </Button>
+            </Link>
+          )}
           {isAdmin && cycle.status === 'draft' && (
             <Button
               onClick={() => setConfirmPublish(true)}

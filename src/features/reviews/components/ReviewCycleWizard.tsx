@@ -18,7 +18,7 @@ import {
   type ParticipantsSelection,
   type QuestionInput,
 } from '../schema';
-import { createCycleDraft, publishCycle } from '../actions';
+import { createCycleDraft, updateCycleDraft, publishCycle } from '../actions';
 
 export interface WizardDependencies {
   positions: { id: string; name: string }[];
@@ -34,8 +34,17 @@ export interface WizardDependencies {
   competencies: { id: string; name: string }[];
 }
 
+export interface WizardInitialValues {
+  basics: CycleBasicsInput;
+  participants: ParticipantsSelection;
+  types: CycleTypesInput;
+  questions: QuestionInput[];
+}
+
 interface Props {
   deps: WizardDependencies;
+  editCycleId?: string;
+  initialValues?: WizardInitialValues;
 }
 
 type Step = 1 | 2 | 3 | 4 | 5;
@@ -49,25 +58,32 @@ const emptyBasics = (): CycleBasicsInput => ({
   responseEnd: '',
 });
 
-export function ReviewCycleWizard({ deps }: Props) {
+export function ReviewCycleWizard({ deps, editCycleId, initialValues }: Props) {
   const router = useRouter();
+  const isEdit = !!editCycleId;
   const [step, setStep] = useState<Step>(1);
   const [loading, setLoading] = useState(false);
 
-  const [basics, setBasics] = useState<CycleBasicsInput>(emptyBasics);
-  const [participants, setParticipants] = useState<ParticipantsSelection>({
-    mode: 'all',
-    departmentIds: [],
-    positionIds: [],
-    manualEmployeeIds: [],
-    excludedEmployeeIds: [],
-  });
-  const [types, setTypes] = useState<CycleTypesInput>({
-    includeSelf: true,
-    includeManager: true,
-  });
+  const [basics, setBasics] = useState<CycleBasicsInput>(
+    initialValues?.basics ?? emptyBasics(),
+  );
+  const [participants, setParticipants] = useState<ParticipantsSelection>(
+    initialValues?.participants ?? {
+      mode: 'all',
+      departmentIds: [],
+      positionIds: [],
+      manualEmployeeIds: [],
+      excludedEmployeeIds: [],
+    },
+  );
+  const [types, setTypes] = useState<CycleTypesInput>(
+    initialValues?.types ?? {
+      includeSelf: true,
+      includeManager: true,
+    },
+  );
   const [questions, setQuestions] = useState<QuestionInput[]>(() =>
-    resolveTemplateQuestions(DEFAULT_QUESTION_TEMPLATE, deps.competencies),
+    initialValues?.questions ?? resolveTemplateQuestions(DEFAULT_QUESTION_TEMPLATE, deps.competencies),
   );
 
   const resolvedParticipantIds = useMemo(
@@ -77,30 +93,39 @@ export function ReviewCycleWizard({ deps }: Props) {
 
   async function handleSave(publish: boolean) {
     setLoading(true);
-    const result = await createCycleDraft({
-      basics,
-      types,
-      participants,
-      questions,
-    });
-    if (result.error || !result.cycleId) {
-      toast.error(result.error ?? 'Erro ao criar ciclo.');
-      setLoading(false);
-      return;
+
+    let cycleId: string | undefined;
+    if (isEdit && editCycleId) {
+      const result = await updateCycleDraft(editCycleId, { basics, types, participants, questions });
+      if (result.error) {
+        toast.error(result.error);
+        setLoading(false);
+        return;
+      }
+      cycleId = editCycleId;
+    } else {
+      const result = await createCycleDraft({ basics, types, participants, questions });
+      if (result.error || !result.cycleId) {
+        toast.error(result.error ?? 'Erro ao criar ciclo.');
+        setLoading(false);
+        return;
+      }
+      cycleId = result.cycleId;
     }
-    if (publish) {
-      const pub = await publishCycle(result.cycleId);
+
+    if (publish && cycleId) {
+      const pub = await publishCycle(cycleId);
       if (pub.error) {
         toast.error(pub.error);
-        router.push(`/avaliacoes/${result.cycleId}`);
+        router.push(`/avaliacoes/${cycleId}`);
         setLoading(false);
         return;
       }
       toast.success(`Ciclo publicado! ${pub.assignments ?? 0} avaliações geradas.`);
     } else {
-      toast.success('Rascunho salvo.');
+      toast.success(isEdit ? 'Alterações salvas.' : 'Rascunho salvo.');
     }
-    router.push(`/avaliacoes/${result.cycleId}`);
+    router.push(`/avaliacoes/${cycleId}`);
   }
 
   return (
