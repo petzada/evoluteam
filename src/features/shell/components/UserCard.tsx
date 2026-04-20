@@ -44,14 +44,14 @@ export function UserCard({ fullName, companyName, avatarUrl }: UserCardProps) {
           )}
         </DropdownMenuTrigger>
         <DropdownMenuContent side="top" align="start" className="w-48">
-          <DropdownMenuItem onSelect={() => router.push('/configuracoes/perfil')}>
+          <DropdownMenuItem onClick={() => router.push('/configuracoes/perfil')}>
             <UserCircle className="mr-2 h-4 w-4" />
             Meu perfil
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
             className="text-destructive focus:text-destructive"
-            onSelect={() => signOut()}
+            onClick={() => signOut()}
           >
             <LogOut className="mr-2 h-4 w-4" />
             Sair

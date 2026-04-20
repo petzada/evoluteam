@@ -254,21 +254,21 @@ export function EmployeesList({
                               <MoreHorizontal className="h-4 w-4" />
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onSelect={() => openEdit(emp)}>
+                              <DropdownMenuItem onClick={() => openEdit(emp)}>
                                 Editar
                               </DropdownMenuItem>
                               {pendingInvite && (
-                                <DropdownMenuItem onSelect={() => handleRevoke(pendingInvite.id)}>
+                                <DropdownMenuItem onClick={() => handleRevoke(pendingInvite.id)}>
                                   Revogar convite
                                 </DropdownMenuItem>
                               )}
                               {expiredInvite && (
-                                <DropdownMenuItem onSelect={() => handleResend(emp.id)}>
+                                <DropdownMenuItem onClick={() => handleResend(emp.id)}>
                                   Reenviar convite
                                 </DropdownMenuItem>
                               )}
                               {status === 'sem_acesso' && (
-                                <DropdownMenuItem onSelect={() => handleResend(emp.id)}>
+                                <DropdownMenuItem onClick={() => handleResend(emp.id)}>
                                   Enviar convite
                                 </DropdownMenuItem>
                               )}
@@ -277,7 +277,7 @@ export function EmployeesList({
                                   <DropdownMenuSeparator />
                                   <DropdownMenuItem
                                     className="text-destructive focus:text-destructive"
-                                    onSelect={() => handleDeactivate(emp.id)}
+                                    onClick={() => handleDeactivate(emp.id)}
                                   >
                                     Desativar
                                   </DropdownMenuItem>
