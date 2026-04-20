@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
-import { DEFAULT_QUESTION_TEMPLATE, type QuestionInput } from '../../schema';
+import { DEFAULT_QUESTION_TEMPLATE, resolveTemplateQuestions, type QuestionInput } from '../../schema';
 
 interface Props {
   competencies: { id: string; name: string }[];
@@ -29,7 +29,7 @@ export function Step4Form({ competencies, value, onChange, onBack, onNext }: Pro
 
   function applyTemplate(t: TemplateChoice) {
     setTemplate(t);
-    if (t === 'default') onChange(DEFAULT_QUESTION_TEMPLATE.map((q) => ({ ...q })));
+    if (t === 'default') onChange(resolveTemplateQuestions(DEFAULT_QUESTION_TEMPLATE, competencies));
     if (t === 'blank') onChange([]);
   }
 

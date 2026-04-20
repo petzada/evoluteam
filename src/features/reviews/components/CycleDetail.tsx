@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { Archive, MoreHorizontal, RefreshCw, X } from 'lucide-react';
+import { Archive, MoreHorizontal, RefreshCw, Send, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -21,7 +21,7 @@ import {
 import { formatDate } from '@/lib/date';
 import {
   closeCycle, archiveCycle, cancelAssignment, removeParticipantAction,
-  sendReminders,
+  sendReminders, publishCycle,
 } from '../actions';
 
 type CycleDetailData = {
@@ -88,9 +88,13 @@ export function CycleDetail({
   cycle, participants, assignments, questions, competencies, isAdmin, deriveLabel,
 }: Props) {
   const router = useRouter();
+  const [confirmPublish, setConfirmPublish] = useState(false);
   const [confirmClose, setConfirmClose] = useState(false);
   const [confirmArchive, setConfirmArchive] = useState(false);
   const [busy, setBusy] = useState(false);
+
+  const activeParticipantsCount = participants.filter((p) => p.employee?.status === 'active').length;
+  const questionCount = questions.length;
 
   const kpis = useMemo(() => {
     const participantsActive = participants.filter((p) => p.employee?.status !== 'terminated').length;
@@ -125,6 +129,17 @@ export function CycleDetail({
     return Array.from(map.entries());
   }, [participants, assignments]);
 
+  async function handlePublish() {
+    setBusy(true);
+    const r = await publishCycle(cycle.id);
+    setBusy(false);
+    if (r.error) toast.error(r.error);
+    else {
+      toast.success(`Ciclo publicado! ${r.assignments ?? 0} avaliação(ões) gerada(s).`);
+      router.refresh();
+    }
+    setConfirmPublish(false);
+  }
   async function handleClose() {
     setBusy(true);
     const r = await closeCycle(cycle.id);
@@ -185,6 +200,15 @@ export function CycleDetail({
         </div>
         <div className="flex items-center gap-2">
           <Badge>{deriveLabel}</Badge>
+          {isAdmin && cycle.status === 'draft' && (
+            <Button
+              onClick={() => setConfirmPublish(true)}
+              disabled={activeParticipantsCount === 0 || questionCount === 0}
+            >
+              <Send className="h-3.5 w-3.5 mr-1.5" />
+              Publicar ciclo
+            </Button>
+          )}
           {isAdmin && (
             <DropdownMenu>
               <DropdownMenuTrigger className="h-8 w-8 flex items-center justify-center rounded-md border hover:bg-muted">
@@ -324,6 +348,24 @@ export function CycleDetail({
           )}
         </TabsContent>
       </Tabs>
+
+      <AlertDialog open={confirmPublish} onOpenChange={setConfirmPublish}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Publicar ciclo?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {activeParticipantsCount} colaborador(es) receberão avaliações.
+              Após publicar, apenas descrição e prazo de resposta poderão ser alterados.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={busy}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handlePublish} disabled={busy}>
+              {busy ? 'Publicando…' : 'Publicar'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={confirmClose} onOpenChange={setConfirmClose}>
         <AlertDialogContent>

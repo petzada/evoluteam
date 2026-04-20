@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   CycleBasicsSchema, CycleTypesSchema, QuestionInputSchema, ScaleAnswerSchema, TextAnswerSchema,
-  AnswerDraftSchema, DEFAULT_QUESTION_TEMPLATE,
+  AnswerDraftSchema, DEFAULT_QUESTION_TEMPLATE, resolveTemplateQuestions,
 } from './schema';
 
 describe('CycleBasicsSchema', () => {
@@ -82,9 +82,53 @@ describe('DEFAULT_QUESTION_TEMPLATE', () => {
     expect(DEFAULT_QUESTION_TEMPLATE.filter((q) => q.type === 'scale')).toHaveLength(7);
     expect(DEFAULT_QUESTION_TEMPLATE.filter((q) => q.type === 'text')).toHaveLength(2);
   });
-  it('todas as perguntas têm texto válido', () => {
-    for (const q of DEFAULT_QUESTION_TEMPLATE) {
+  it('todas as 7 perguntas de nota têm hint de competência', () => {
+    const scales = DEFAULT_QUESTION_TEMPLATE.filter((q) => q.type === 'scale');
+    expect(scales.every((q) => !!q.hintCompetencyName)).toBe(true);
+  });
+});
+
+describe('resolveTemplateQuestions', () => {
+  const competencies = [
+    { id: crypto.randomUUID(), name: 'Comunicação' },
+    { id: crypto.randomUUID(), name: 'Trabalho em equipe' },
+    { id: crypto.randomUUID(), name: 'Liderança' },
+    { id: crypto.randomUUID(), name: 'Proatividade' },
+    { id: crypto.randomUUID(), name: 'Resolução de problemas' },
+    { id: crypto.randomUUID(), name: 'Adaptabilidade' },
+    { id: crypto.randomUUID(), name: 'Orientação a resultados' },
+  ];
+
+  it('produz questões válidas conforme QuestionInputSchema', () => {
+    const resolved = resolveTemplateQuestions(DEFAULT_QUESTION_TEMPLATE, competencies);
+    for (const q of resolved) {
       expect(QuestionInputSchema.safeParse(q).success).toBe(true);
     }
+  });
+
+  it('vincula as 7 perguntas de nota às competências seed', () => {
+    const resolved = resolveTemplateQuestions(DEFAULT_QUESTION_TEMPLATE, competencies);
+    const scales = resolved.filter((q) => q.type === 'scale');
+    expect(scales.every((q) => !!q.competencyId)).toBe(true);
+  });
+
+  it('fallback para null quando competência não existe na empresa', () => {
+    const resolved = resolveTemplateQuestions(DEFAULT_QUESTION_TEMPLATE, []);
+    expect(resolved.every((q) => q.competencyId === null)).toBe(true);
+  });
+
+  it('casa nome case-insensitive', () => {
+    const compId = crypto.randomUUID();
+    const resolved = resolveTemplateQuestions(
+      [{ questionOrder: 0, type: 'scale', questionText: 'Comunica claramente.', isRequired: true, scaleMin: 1, scaleMax: 5, hintCompetencyName: 'comunicação' }],
+      [{ id: compId, name: 'Comunicação' }],
+    );
+    expect(resolved[0].competencyId).toBe(compId);
+  });
+
+  it('text questions sem hint ficam com competencyId null', () => {
+    const resolved = resolveTemplateQuestions(DEFAULT_QUESTION_TEMPLATE, competencies);
+    const texts = resolved.filter((q) => q.type === 'text');
+    expect(texts.every((q) => q.competencyId === null)).toBe(true);
   });
 });

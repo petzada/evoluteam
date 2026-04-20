@@ -12,6 +12,7 @@ import { Step4Form } from './wizard/Step4Form';
 import { Step5Review } from './wizard/Step5Review';
 import {
   DEFAULT_QUESTION_TEMPLATE,
+  resolveTemplateQuestions,
   type CycleBasicsInput,
   type CycleTypesInput,
   type ParticipantsSelection,
@@ -66,7 +67,7 @@ export function ReviewCycleWizard({ deps }: Props) {
     includeManager: true,
   });
   const [questions, setQuestions] = useState<QuestionInput[]>(() =>
-    DEFAULT_QUESTION_TEMPLATE.map((q) => ({ ...q })),
+    resolveTemplateQuestions(DEFAULT_QUESTION_TEMPLATE, deps.competencies),
   );
 
   const resolvedParticipantIds = useMemo(
