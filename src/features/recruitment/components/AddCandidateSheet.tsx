@@ -153,20 +153,23 @@ export function AddCandidateSheet({ open, onOpenChange, jobOpeningId, searchCand
                     <FormMessage />
                   </FormItem>
                 )} />
-                <FormField control={form.control} name="source" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Origem *</FormLabel>
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                      <SelectContent>
-                        {CANDIDATE_SOURCES.map((s) => (
-                          <SelectItem key={s} value={s}>{CANDIDATE_SOURCE_LABELS[s]}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )} />
+                <FormField control={form.control} name="source" render={({ field }) => {
+                  const items = CANDIDATE_SOURCES.map((s) => ({ value: s, label: CANDIDATE_SOURCE_LABELS[s] }));
+                  return (
+                    <FormItem>
+                      <FormLabel>Origem *</FormLabel>
+                      <Select value={field.value} onValueChange={field.onChange} items={items}>
+                        <FormControl><SelectTrigger className="w-full"><SelectValue /></SelectTrigger></FormControl>
+                        <SelectContent>
+                          {items.map((it) => (
+                            <SelectItem key={it.value} value={it.value}>{it.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }} />
                 {source === 'outro' && (
                   <FormField control={form.control} name="sourceOther" render={({ field }) => (
                     <FormItem>

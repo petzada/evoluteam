@@ -138,110 +138,138 @@ export function JobOpeningSheet({ open, onOpenChange, departments, positions, ma
             <FormField
               control={form.control}
               name="departmentId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Departamento</FormLabel>
-                  <Select
-                    value={field.value ?? NONE}
-                    onValueChange={(v) => field.onChange(v === NONE ? null : v)}
-                  >
-                    <FormControl>
-                      <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value={NONE}>Nenhum</SelectItem>
-                      {departments.map((d) => (
-                        <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
+              render={({ field }) => {
+                const items = [
+                  { value: NONE, label: 'Nenhum' },
+                  ...departments.map((d) => ({ value: d.id, label: d.name })),
+                ];
+                return (
+                  <FormItem>
+                    <FormLabel>Departamento</FormLabel>
+                    <Select
+                      value={field.value ?? NONE}
+                      onValueChange={(v) => field.onChange(v === NONE ? null : v)}
+                      items={items}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="w-full"><SelectValue placeholder="Nenhum" /></SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {items.map((d) => (
+                          <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                );
+              }}
             />
             <FormField
               control={form.control}
               name="positionId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Cargo</FormLabel>
-                  <Select
-                    value={field.value ?? NONE}
-                    onValueChange={(v) => field.onChange(v === NONE ? null : v)}
-                  >
-                    <FormControl>
-                      <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value={NONE}>Nenhum</SelectItem>
-                      {positions.map((p) => (
-                        <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
+              render={({ field }) => {
+                const items = [
+                  { value: NONE, label: 'Nenhum' },
+                  ...positions.map((p) => ({ value: p.id, label: p.name })),
+                ];
+                return (
+                  <FormItem>
+                    <FormLabel>Cargo</FormLabel>
+                    <Select
+                      value={field.value ?? NONE}
+                      onValueChange={(v) => field.onChange(v === NONE ? null : v)}
+                      items={items}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="w-full"><SelectValue placeholder="Nenhum" /></SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {items.map((p) => (
+                          <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                );
+              }}
             />
             <FormField
               control={form.control}
               name="hiringManagerId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Gestor responsável</FormLabel>
-                  <Select
-                    value={field.value ?? NONE}
-                    onValueChange={(v) => field.onChange(v === NONE ? null : v)}
-                  >
-                    <FormControl>
-                      <SelectTrigger><SelectValue placeholder="Sem gestor atribuído" /></SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value={NONE}>Sem gestor</SelectItem>
-                      {managers.map((m) => (
-                        <SelectItem key={m.id} value={m.id}>{m.full_name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
+              render={({ field }) => {
+                const items = [
+                  { value: NONE, label: 'Sem gestor' },
+                  ...managers.map((m) => ({ value: m.id, label: m.full_name })),
+                ];
+                return (
+                  <FormItem>
+                    <FormLabel>Gestor responsável</FormLabel>
+                    <Select
+                      value={field.value ?? NONE}
+                      onValueChange={(v) => field.onChange(v === NONE ? null : v)}
+                      items={items}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="w-full"><SelectValue placeholder="Sem gestor atribuído" /></SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {items.map((m) => (
+                          <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                );
+              }}
             />
             <FormField
               control={form.control}
               name="employmentType"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Tipo de contrato *</FormLabel>
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                    <SelectContent>
-                      {JOB_OPENING_EMPLOYMENT_TYPES.map((t) => (
-                        <SelectItem key={t} value={t}>{JOB_OPENING_EMPLOYMENT_TYPE_LABELS[t]}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
+              render={({ field }) => {
+                const items = JOB_OPENING_EMPLOYMENT_TYPES.map((t) => ({
+                  value: t, label: JOB_OPENING_EMPLOYMENT_TYPE_LABELS[t],
+                }));
+                return (
+                  <FormItem>
+                    <FormLabel>Tipo de contrato *</FormLabel>
+                    <Select value={field.value} onValueChange={field.onChange} items={items}>
+                      <FormControl><SelectTrigger className="w-full"><SelectValue /></SelectTrigger></FormControl>
+                      <SelectContent>
+                        {items.map((it) => (
+                          <SelectItem key={it.value} value={it.value}>{it.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                );
+              }}
             />
             <FormField
               control={form.control}
               name="workplaceType"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Modalidade *</FormLabel>
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                    <SelectContent>
-                      {JOB_OPENING_WORKPLACE_TYPES.map((t) => (
-                        <SelectItem key={t} value={t}>{JOB_OPENING_WORKPLACE_TYPE_LABELS[t]}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
+              render={({ field }) => {
+                const items = JOB_OPENING_WORKPLACE_TYPES.map((t) => ({
+                  value: t, label: JOB_OPENING_WORKPLACE_TYPE_LABELS[t],
+                }));
+                return (
+                  <FormItem>
+                    <FormLabel>Modalidade *</FormLabel>
+                    <Select value={field.value} onValueChange={field.onChange} items={items}>
+                      <FormControl><SelectTrigger className="w-full"><SelectValue /></SelectTrigger></FormControl>
+                      <SelectContent>
+                        {items.map((it) => (
+                          <SelectItem key={it.value} value={it.value}>{it.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                );
+              }}
             />
             <FormField
               control={form.control}

@@ -107,18 +107,21 @@ export function ArchiveReasonDialog({ open, onOpenChange, action, applicationId,
             <>
               <div className="space-y-1.5">
                 <Label>Motivo *</Label>
-                <Select value={reason} onValueChange={(v) => setReason(v ?? '')}>
-                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                  <SelectContent>
-                    {action === 'withdrawn'
-                      ? WITHDRAWAL_REASONS.map((r) => (
-                          <SelectItem key={r} value={r}>{WITHDRAWAL_REASON_LABELS[r]}</SelectItem>
-                        ))
-                      : REJECTION_REASONS.map((r) => (
-                          <SelectItem key={r} value={r}>{REJECTION_REASON_LABELS[r]}</SelectItem>
+                {(() => {
+                  const items = action === 'withdrawn'
+                    ? WITHDRAWAL_REASONS.map((r) => ({ value: r, label: WITHDRAWAL_REASON_LABELS[r] }))
+                    : REJECTION_REASONS.map((r) => ({ value: r, label: REJECTION_REASON_LABELS[r] }));
+                  return (
+                    <Select value={reason} onValueChange={(v) => setReason(v ?? '')} items={items}>
+                      <SelectTrigger className="w-full"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                      <SelectContent>
+                        {items.map((it) => (
+                          <SelectItem key={it.value} value={it.value}>{it.label}</SelectItem>
                         ))}
-                  </SelectContent>
-                </Select>
+                      </SelectContent>
+                    </Select>
+                  );
+                })()}
               </div>
               {isOther && (
                 <div className="space-y-1.5">

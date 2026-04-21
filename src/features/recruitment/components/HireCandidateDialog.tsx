@@ -153,52 +153,65 @@ function HireCandidateDialogInner({
                     Dados do colaborador
                   </p>
                   <div className="grid grid-cols-2 gap-2">
-                    <FormField control={form.control} name="positionId" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Cargo *</FormLabel>
-                        <Select value={field.value ?? ''} onValueChange={field.onChange}>
-                          <FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl>
-                          <SelectContent>
-                            {positions.map((p) => (
-                              <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )} />
-                    <FormField control={form.control} name="departmentId" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Departamento</FormLabel>
-                        <Select value={field.value ?? NONE} onValueChange={(v) => field.onChange(v === NONE ? null : v)}>
-                          <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                          <SelectContent>
-                            <SelectItem value={NONE}>Nenhum</SelectItem>
-                            {departments.map((d) => (
-                              <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )} />
+                    <FormField control={form.control} name="positionId" render={({ field }) => {
+                      const items = positions.map((p) => ({ value: p.id, label: p.name }));
+                      return (
+                        <FormItem>
+                          <FormLabel>Cargo *</FormLabel>
+                          <Select value={field.value ?? ''} onValueChange={field.onChange} items={items}>
+                            <FormControl><SelectTrigger className="w-full"><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl>
+                            <SelectContent>
+                              {items.map((it) => (
+                                <SelectItem key={it.value} value={it.value}>{it.label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }} />
+                    <FormField control={form.control} name="departmentId" render={({ field }) => {
+                      const items = [
+                        { value: NONE, label: 'Nenhum' },
+                        ...departments.map((d) => ({ value: d.id, label: d.name })),
+                      ];
+                      return (
+                        <FormItem>
+                          <FormLabel>Departamento</FormLabel>
+                          <Select value={field.value ?? NONE} onValueChange={(v) => field.onChange(v === NONE ? null : v)} items={items}>
+                            <FormControl><SelectTrigger className="w-full"><SelectValue /></SelectTrigger></FormControl>
+                            <SelectContent>
+                              {items.map((it) => (
+                                <SelectItem key={it.value} value={it.value}>{it.label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }} />
                   </div>
                   <div className="grid grid-cols-2 gap-2">
-                    <FormField control={form.control} name="managerId" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Gestor direto</FormLabel>
-                        <Select value={field.value ?? NONE} onValueChange={(v) => field.onChange(v === NONE ? null : v)}>
-                          <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                          <SelectContent>
-                            <SelectItem value={NONE}>Sem gestor</SelectItem>
-                            {managers.map((m) => (
-                              <SelectItem key={m.id} value={m.id}>{m.full_name}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )} />
+                    <FormField control={form.control} name="managerId" render={({ field }) => {
+                      const items = [
+                        { value: NONE, label: 'Sem gestor' },
+                        ...managers.map((m) => ({ value: m.id, label: m.full_name })),
+                      ];
+                      return (
+                        <FormItem>
+                          <FormLabel>Gestor direto</FormLabel>
+                          <Select value={field.value ?? NONE} onValueChange={(v) => field.onChange(v === NONE ? null : v)} items={items}>
+                            <FormControl><SelectTrigger className="w-full"><SelectValue /></SelectTrigger></FormControl>
+                            <SelectContent>
+                              {items.map((it) => (
+                                <SelectItem key={it.value} value={it.value}>{it.label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }} />
                     <FormField control={form.control} name="hiredAt" render={({ field }) => (
                       <FormItem>
                         <FormLabel>Data de admissão *</FormLabel>
