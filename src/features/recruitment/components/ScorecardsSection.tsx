@@ -113,7 +113,7 @@ export function ScorecardsSection({
 
   return (
     <>
-      <div className="space-y-3">
+      <div className="space-y-6">
         {applications.map((app) => {
           const stageMap = byAppStage.get(app.id) ?? new Map<string, ScorecardRow[]>();
           return (
@@ -163,11 +163,11 @@ function ScorecardAppGroup({
   const totalScorecards = Array.from(stageMap.values()).reduce((acc, arr) => acc + arr.length, 0);
 
   return (
-    <div className="rounded-md border bg-muted/20">
+    <div>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center gap-2 px-4 py-2.5 hover:bg-muted/30 transition-colors rounded-t-md"
+        className="w-full flex items-center gap-2 py-1.5 hover:text-foreground transition-colors"
       >
         <ChevronDown className={cn('h-4 w-4 text-muted-foreground transition-transform', !open && '-rotate-90')} />
         <span className="text-sm font-medium flex-1 text-left">{app.job_opening?.title ?? 'Vaga'}</span>
@@ -179,19 +179,19 @@ function ScorecardAppGroup({
         </span>
       </button>
       {open && (
-        <div className="px-4 pb-4 pt-1 space-y-3">
+        <div className="mt-2 space-y-3">
           {canSubmit && (
             <button
               type="button"
               onClick={onNewScorecard}
-              className="w-full text-xs text-primary hover:text-primary/80 flex items-center gap-1.5 py-1.5"
+              className="text-xs text-primary hover:text-primary/80 inline-flex items-center gap-1.5"
             >
               <Star className="h-3.5 w-3.5" />
               Preencher scorecard
             </button>
           )}
           {totalScorecards === 0 ? (
-            <p className="text-xs text-muted-foreground py-2">Nenhum scorecard registrado ainda.</p>
+            <p className="text-xs text-muted-foreground italic">Nenhum scorecard registrado ainda.</p>
           ) : (
             Array.from(stageMap.entries()).map(([stageId, scs]) => (
               <StageBlock
@@ -266,7 +266,7 @@ function SingleScorecardCard({ sc, currentEmployeeId, isAdmin, onEdit, onDelete 
   const canDelete = canEditByWindow || isAdmin;
   const showKebab = canEditByWindow || canDelete;
   return (
-    <div className="rounded-md bg-card border p-3 text-sm">
+    <div className="rounded-md border p-4 text-sm">
       <div className="flex items-start justify-between gap-3 mb-2">
         <div className="flex items-center gap-2 min-w-0">
           <span className="text-xs font-medium">{sc.author?.full_name ?? '—'}</span>

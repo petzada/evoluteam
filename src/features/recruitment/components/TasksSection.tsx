@@ -135,7 +135,7 @@ export function TasksSection({
 
   return (
     <>
-      <div className="space-y-3">
+      <div className="space-y-6">
         {applications.map((app) => {
           const appTasks = byApp.get(app.id) ?? [];
           return (
@@ -188,11 +188,11 @@ function TaskAppGroup({
   const [open, setOpen] = useState(defaultOpen);
   const pending = tasks.filter((t) => !t.completed_at).length;
   return (
-    <div className="rounded-md border bg-muted/20">
+    <div>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center gap-2 px-4 py-2.5 hover:bg-muted/30 transition-colors rounded-t-md"
+        className="w-full flex items-center gap-2 py-1.5 hover:text-foreground transition-colors"
       >
         <ChevronDown className={cn('h-4 w-4 text-muted-foreground transition-transform', !open && '-rotate-90')} />
         <span className="text-sm font-medium flex-1 text-left">{app.job_opening?.title ?? 'Vaga'}</span>
@@ -204,14 +204,14 @@ function TaskAppGroup({
         </span>
       </button>
       {open && (
-        <div className="px-4 pb-4 pt-1 space-y-2">
+        <div className="mt-2 space-y-2">
           {canManage && (
-            <Button size="sm" variant="ghost" onClick={onNew} className="w-full justify-start text-primary">
+            <Button size="sm" variant="ghost" onClick={onNew} className="justify-start text-primary px-0 hover:bg-transparent">
               <Plus className="mr-1.5 h-3.5 w-3.5" /> Adicionar tarefa
             </Button>
           )}
           {tasks.length === 0 ? (
-            <p className="text-xs text-muted-foreground py-2">Nenhuma tarefa ainda.</p>
+            <p className="text-xs text-muted-foreground italic">Nenhuma tarefa ainda.</p>
           ) : (
             tasks.map((t) => (
               <TaskRow

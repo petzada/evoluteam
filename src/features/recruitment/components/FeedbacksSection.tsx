@@ -103,7 +103,7 @@ export function FeedbacksSection({
 
   return (
     <>
-      <div className="space-y-3">
+      <div className="space-y-6">
         {applications.map((app) => {
           const appFeedbacks = byApp.get(app.id) ?? [];
           const isActive = app.status === 'in_progress';
@@ -152,11 +152,11 @@ function FeedbackGroup({
 }: GroupProps) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="rounded-md border bg-muted/20">
+    <div>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center gap-2 px-4 py-2.5 hover:bg-muted/30 transition-colors rounded-t-md"
+        className="w-full flex items-center gap-2 py-1.5 hover:text-foreground transition-colors"
       >
         <ChevronDown className={cn('h-4 w-4 text-muted-foreground transition-transform', !open && '-rotate-90')} />
         <span className="text-sm font-medium flex-1 text-left">{app.job_opening?.title ?? 'Vaga'}</span>
@@ -169,19 +169,19 @@ function FeedbackGroup({
       </button>
 
       {open && (
-        <div className="px-4 pb-4 pt-1 space-y-2">
+        <div className="mt-2 space-y-2">
           {canGiveFeedback && (
             <button
               type="button"
               onClick={onNewFeedback}
-              className="w-full text-xs text-primary hover:text-primary/80 flex items-center gap-1.5 py-1.5"
+              className="text-xs text-primary hover:text-primary/80 inline-flex items-center gap-1.5"
             >
               <MessageSquare className="h-3.5 w-3.5" />
               Dar feedback nesta aplicação
             </button>
           )}
           {feedbacks.length === 0 ? (
-            <p className="text-xs text-muted-foreground py-2">Nenhum feedback registrado ainda.</p>
+            <p className="text-xs text-muted-foreground italic">Nenhum feedback registrado ainda.</p>
           ) : (
             feedbacks.map((fb) => (
               <FeedbackCard
@@ -231,7 +231,7 @@ function FeedbackCard({ fb, currentEmployeeId, isAdmin, onEdit, onDelete }: Card
   const showKebab = canEditByWindow || canDelete;
 
   return (
-    <div className="rounded-md bg-card border p-3 text-sm">
+    <div className="rounded-md border p-4 text-sm">
       <div className="flex items-start justify-between gap-3 mb-2">
         <div className="flex items-center gap-2 min-w-0">
           <span className="text-xs font-medium">{fb.author?.full_name ?? '—'}</span>
