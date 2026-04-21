@@ -192,6 +192,13 @@ export function JobOpeningDetail({
         <span className="text-muted-foreground">
           {job.open_positions} {job.open_positions === 1 ? 'posição' : 'posições'}
         </span>
+        <span className="text-muted-foreground">·</span>
+        <span
+          className="text-xs text-muted-foreground"
+          title="Esta vaga usa o funil de etapas de quando foi criada. Mudanças em /recrutamento/etapas afetam apenas vagas novas."
+        >
+          Funil congelado em {formatDate(job.created_at)}
+        </span>
       </div>
 
       <Tabs defaultValue="kanban">

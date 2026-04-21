@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { Plus, GripVertical, Archive, Pencil, Check, X, RotateCcw } from 'lucide-react';
+import { Plus, GripVertical, Archive, Pencil, Check, X, RotateCcw, Info } from 'lucide-react';
 import {
   DndContext, DragEndEvent, PointerSensor, useSensor, useSensors,
   closestCenter,
@@ -125,13 +125,21 @@ export function RecruitmentStagesManager({ stages: initialStages }: Props) {
     <div>
       <PageHeader
         title="Etapas de recrutamento"
-        description="Personalize as etapas do funil usado em todas as vagas."
+        description="Personalize as etapas do funil usado em vagas novas."
         actions={
           <Button onClick={() => setCreateOpen(true)}>
             <Plus className="mr-2 h-4 w-4" /> Nova etapa
           </Button>
         }
       />
+
+      <div className="mb-4 flex items-start gap-2 rounded-md border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
+        <Info className="mt-0.5 h-4 w-4 shrink-0 text-foreground/60" />
+        <p>
+          Mudanças aqui se aplicam apenas a <span className="font-medium text-foreground">vagas novas</span>.
+          As vagas abertas hoje mantêm o funil de quando foram criadas, para preservar o histórico e os relatórios.
+        </p>
+      </div>
 
       <div className="rounded-md border bg-card shadow-card">
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
