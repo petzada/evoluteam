@@ -9,8 +9,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import type {
   MetricsKpis, FunnelStageRow, OriginBreakdown, StageDuration,
   StalledCandidate, OverdueTask,
+  JobOption, EmployeeOption,
 } from '../queries/metrics';
 import { PageHeader } from '@/components/PageHeader';
+import { DashboardFilters } from './dashboard/DashboardFilters';
 
 interface Props {
   kpis: MetricsKpis;
@@ -20,12 +22,16 @@ interface Props {
   stalled: StalledCandidate[];
   overdue: OverdueTask[];
   periodLabel: string;
+  jobsForFilter: JobOption[];
+  employeesForFilter: EmployeeOption[];
+  hideManagerFilter?: boolean;
 }
 
 const ORIGIN_COLORS = ['#f97316', '#8b5cf6', '#10b981', '#0ea5e9', '#a3a3a3', '#ef4444', '#eab308'];
 
 export function RelatoriosDashboard({
   kpis, funnel, origins, durations, stalled, overdue, periodLabel,
+  jobsForFilter, employeesForFilter, hideManagerFilter,
 }: Props) {
   const maxFunnel = Math.max(...funnel.map((f) => f.count), 1);
 
@@ -34,6 +40,12 @@ export function RelatoriosDashboard({
       <PageHeader
         title="Relatórios de Recrutamento"
         description={`Métricas do funil, tempo por etapa, origens e tarefas pendentes. Período: ${periodLabel}.`}
+      />
+
+      <DashboardFilters
+        jobs={jobsForFilter}
+        employees={employeesForFilter}
+        hideManagerFilter={hideManagerFilter}
       />
 
       <div className="grid gap-3 grid-cols-2 md:grid-cols-4 mb-5">

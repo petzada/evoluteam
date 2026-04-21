@@ -1,10 +1,67 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { STALLED_THRESHOLD_DAYS } from '../schema';
 
+export type ViewerRole = 'admin_rh' | 'director' | 'gestor';
+
 export interface MetricsFilter {
   companyId: string;
   from: Date | null;
   to: Date | null;
+  /** IDs de vagas explicitamente selecionadas no MultiSelect; null = todas visíveis. */
+  jobIds?: string[] | null;
+  /** IDs de hiring_managers no MultiSelect; null = todos. */
+  ownerIds?: string[] | null;
+  /** Busca por nome/email do candidato (substring, case-insensitive). */
+  candidateQuery?: string | null;
+  /** Identifica o usuário logado para aplicar escopo por role. */
+  viewerRole?: ViewerRole;
+  viewerEmployeeId?: string | null;
+}
+
+/**
+ * Resolve a lista final de job_opening_ids permitidos pelo filtro,
+ * combinando: escopo do role (gestor só vê suas vagas) + ownerIds
+ * (vagas cujo hiring_manager_id esteja na lista) + jobIds (filtro
+ * explícito). Retorna null quando não há restrição (admin/director
+ * sem filtros específicos).
+ */
+export async function resolveJobIds(f: MetricsFilter): Promise<string[] | null> {
+  const needsDerivation = f.viewerRole === 'gestor'
+    || (f.ownerIds && f.ownerIds.length > 0);
+  const explicit = f.jobIds && f.jobIds.length > 0 ? f.jobIds : null;
+
+  if (!needsDerivation) return explicit;
+
+  const supabase = await createServerSupabaseClient();
+  let q = supabase
+    .from('job_openings')
+    .select('id')
+    .eq('company_id', f.companyId);
+  if (f.viewerRole === 'gestor' && f.viewerEmployeeId) {
+    q = q.eq('hiring_manager_id', f.viewerEmployeeId);
+  }
+  if (f.ownerIds && f.ownerIds.length > 0) {
+    q = q.in('hiring_manager_id', f.ownerIds);
+  }
+  const { data } = await q;
+  const derived = (data ?? []).map((r) => r.id);
+  if (!explicit) return derived;
+  // Intersecção: apenas vagas que o user pode ver E foram explicitamente escolhidas
+  const explicitSet = new Set(explicit);
+  return derived.filter((id) => explicitSet.has(id));
+}
+
+/** Resolve IDs de candidatos que casam com a query de busca (null = sem filtro). */
+export async function resolveCandidateIds(f: MetricsFilter): Promise<string[] | null> {
+  if (!f.candidateQuery || !f.candidateQuery.trim()) return null;
+  const supabase = await createServerSupabaseClient();
+  const q = `%${f.candidateQuery.trim()}%`;
+  const { data } = await supabase
+    .from('candidates')
+    .select('id')
+    .eq('company_id', f.companyId)
+    .or(`name.ilike.${q},email.ilike.${q}`);
+  return (data ?? []).map((r) => r.id);
 }
 
 export type MetricsKpis = {
@@ -17,13 +74,25 @@ export type MetricsKpis = {
 
 export async function getMetricsKpis(f: MetricsFilter): Promise<MetricsKpis> {
   const supabase = await createServerSupabaseClient();
+  const jobIds = await resolveJobIds(f);
+  const candidateIds = await resolveCandidateIds(f);
+  // Se o filtro exigia escopo e resultou vazio, retorna zeros
+  if (jobIds !== null && jobIds.length === 0) {
+    return { activeCandidates: 0, activeCandidatesJobCount: 0, hiredInPeriod: 0, medianTimeToHireDays: null, overdueTasks: 0 };
+  }
+  if (candidateIds !== null && candidateIds.length === 0) {
+    return { activeCandidates: 0, activeCandidatesJobCount: 0, hiredInPeriod: 0, medianTimeToHireDays: null, overdueTasks: 0 };
+  }
 
   // Ativos
-  const { data: active } = await supabase
+  let activeQ = supabase
     .from('job_applications')
     .select('job_opening_id')
     .eq('company_id', f.companyId)
     .eq('status', 'in_progress');
+  if (jobIds) activeQ = activeQ.in('job_opening_id', jobIds);
+  if (candidateIds) activeQ = activeQ.in('candidate_id', candidateIds);
+  const { data: active } = await activeQ;
   const activeJobs = new Set((active ?? []).map((a) => a.job_opening_id));
 
   // Contratados no período
@@ -32,6 +101,8 @@ export async function getMetricsKpis(f: MetricsFilter): Promise<MetricsKpis> {
     .select('created_at, updated_at', { count: 'exact', head: false })
     .eq('company_id', f.companyId)
     .eq('status', 'hired');
+  if (jobIds) hiredQuery = hiredQuery.in('job_opening_id', jobIds);
+  if (candidateIds) hiredQuery = hiredQuery.in('candidate_id', candidateIds);
   if (f.from) hiredQuery = hiredQuery.gte('updated_at', f.from.toISOString());
   if (f.to) hiredQuery = hiredQuery.lte('updated_at', f.to.toISOString());
   const { data: hired, count: hiredCount } = await hiredQuery;
@@ -50,23 +121,36 @@ export async function getMetricsKpis(f: MetricsFilter): Promise<MetricsKpis> {
       : days[mid];
   }
 
-  // Tarefas atrasadas
+  // Tarefas atrasadas (respeitando escopo de vagas do viewer)
   const nowISO = new Date().toISOString();
-  const { count: overdue } = await supabase
+  const overdueQ = supabase
     .from('candidate_tasks')
-    .select('*', { count: 'exact', head: true })
+    .select('application:job_applications(job_opening_id, candidate_id)', { count: 'exact', head: false })
     .eq('company_id', f.companyId)
     .is('deleted_at', null)
     .is('completed_at', null)
     .not('due_date', 'is', null)
     .lt('due_date', nowISO);
+  const { data: overdueRows } = await overdueQ;
+  let overdue = (overdueRows ?? []).length;
+  if (jobIds || candidateIds) {
+    const jobSet = jobIds ? new Set(jobIds) : null;
+    const candSet = candidateIds ? new Set(candidateIds) : null;
+    overdue = (overdueRows ?? []).filter((r) => {
+      const app = r.application as unknown as { job_opening_id: string; candidate_id: string } | null;
+      if (!app) return false;
+      if (jobSet && !jobSet.has(app.job_opening_id)) return false;
+      if (candSet && !candSet.has(app.candidate_id)) return false;
+      return true;
+    }).length;
+  }
 
   return {
     activeCandidates: (active ?? []).length,
     activeCandidatesJobCount: activeJobs.size,
     hiredInPeriod: hiredCount ?? 0,
     medianTimeToHireDays: median !== null ? Math.round(median) : null,
-    overdueTasks: overdue ?? 0,
+    overdueTasks: overdue,
   };
 }
 
@@ -80,6 +164,10 @@ export type FunnelStageRow = {
 
 export async function getFunnel(f: MetricsFilter): Promise<FunnelStageRow[]> {
   const supabase = await createServerSupabaseClient();
+  const jobIds = await resolveJobIds(f);
+  const candidateIds = await resolveCandidateIds(f);
+  if (jobIds !== null && jobIds.length === 0) return [];
+  if (candidateIds !== null && candidateIds.length === 0) return [];
 
   const { data: stages } = await supabase
     .from('recruitment_stages')
@@ -99,11 +187,14 @@ export async function getFunnel(f: MetricsFilter): Promise<FunnelStageRow[]> {
   if (f.to) histQuery = histQuery.lte('changed_at', f.to.toISOString());
   const { data: hist } = await histQuery;
 
-  // Filtra pelo company via application (só as da company do filter)
-  const { data: appsOfCompany } = await supabase
+  // Filtra pelo company + escopo de vaga/candidato (applications permitidas)
+  let appsQ = supabase
     .from('job_applications')
     .select('id')
     .eq('company_id', f.companyId);
+  if (jobIds) appsQ = appsQ.in('job_opening_id', jobIds);
+  if (candidateIds) appsQ = appsQ.in('candidate_id', candidateIds);
+  const { data: appsOfCompany } = await appsQ;
   const appSet = new Set((appsOfCompany ?? []).map((a) => a.id));
 
   const perStage = new Map<string, Set<string>>();
@@ -137,15 +228,34 @@ export type OriginBreakdown = {
 
 export async function getOriginsBreakdown(f: MetricsFilter): Promise<OriginBreakdown[]> {
   const supabase = await createServerSupabaseClient();
+  const jobIds = await resolveJobIds(f);
+  const candidateIds = await resolveCandidateIds(f);
+  if (jobIds !== null && jobIds.length === 0) return [];
+  if (candidateIds !== null && candidateIds.length === 0) return [];
+
+  // Se há filtro de vaga, restringe candidatos aos que têm aplicação em vaga filtrada
+  let candidateIdsFromJobs: Set<string> | null = null;
+  if (jobIds) {
+    const { data: apps } = await supabase
+      .from('job_applications')
+      .select('candidate_id')
+      .eq('company_id', f.companyId)
+      .in('job_opening_id', jobIds);
+    candidateIdsFromJobs = new Set((apps ?? []).map((a) => a.candidate_id));
+  }
 
   // Total de candidatos por origem (na company; período opcional em created_at)
   let candQuery = supabase
     .from('candidates')
-    .select('source, source_other')
+    .select('id, source, source_other')
     .eq('company_id', f.companyId);
   if (f.from) candQuery = candQuery.gte('created_at', f.from.toISOString());
   if (f.to) candQuery = candQuery.lte('created_at', f.to.toISOString());
-  const { data: cands } = await candQuery;
+  if (candidateIds) candQuery = candQuery.in('id', candidateIds);
+  const { data: candsRaw } = await candQuery;
+  const cands = (candsRaw ?? []).filter((c) =>
+    !candidateIdsFromJobs || candidateIdsFromJobs.has(c.id),
+  );
 
   // Candidatos contratados por origem (via candidates.hired_employee_id != null + aplicação hired no período)
   let hiredAppsQuery = supabase
@@ -153,6 +263,8 @@ export async function getOriginsBreakdown(f: MetricsFilter): Promise<OriginBreak
     .select('candidate_id, updated_at')
     .eq('company_id', f.companyId)
     .eq('status', 'hired');
+  if (jobIds) hiredAppsQuery = hiredAppsQuery.in('job_opening_id', jobIds);
+  if (candidateIds) hiredAppsQuery = hiredAppsQuery.in('candidate_id', candidateIds);
   if (f.from) hiredAppsQuery = hiredAppsQuery.gte('updated_at', f.from.toISOString());
   if (f.to) hiredAppsQuery = hiredAppsQuery.lte('updated_at', f.to.toISOString());
   const { data: hiredApps } = await hiredAppsQuery;
@@ -201,6 +313,11 @@ export type StageDuration = {
 
 export async function getStageDurations(f: MetricsFilter): Promise<StageDuration[]> {
   const supabase = await createServerSupabaseClient();
+  const jobIds = await resolveJobIds(f);
+  const candidateIds = await resolveCandidateIds(f);
+  if (jobIds !== null && jobIds.length === 0) return [];
+  if (candidateIds !== null && candidateIds.length === 0) return [];
+
   const { data: stages } = await supabase
     .from('recruitment_stages')
     .select('id, name, position')
@@ -208,6 +325,16 @@ export async function getStageDurations(f: MetricsFilter): Promise<StageDuration
     .is('archived_at', null)
     .order('position', { ascending: true });
   if (!stages?.length) return [];
+
+  // Restringe applications pelo escopo atual
+  let appsQ = supabase
+    .from('job_applications')
+    .select('id')
+    .eq('company_id', f.companyId);
+  if (jobIds) appsQ = appsQ.in('job_opening_id', jobIds);
+  if (candidateIds) appsQ = appsQ.in('candidate_id', candidateIds);
+  const { data: apps } = await appsQ;
+  const appSet = new Set((apps ?? []).map((a) => a.id));
 
   // Só calcula de quem JÁ SAIU da etapa (duração real).
   // Precisamos calcular, por aplicação, quanto tempo ficou em cada etapa.
@@ -223,6 +350,7 @@ export async function getStageDurations(f: MetricsFilter): Promise<StageDuration
 
   const perApp = new Map<string, { stageId: string | null; ts: number }[]>();
   for (const h of hist ?? []) {
+    if (!appSet.has(h.application_id)) continue;
     const arr = perApp.get(h.application_id) ?? [];
     arr.push({ stageId: h.to_stage_id ?? null, ts: new Date(h.changed_at as string).getTime() });
     perApp.set(h.application_id, arr);
@@ -271,9 +399,14 @@ export type StalledCandidate = {
 
 export async function getStalledCandidates(f: MetricsFilter, limit = 10): Promise<StalledCandidate[]> {
   const supabase = await createServerSupabaseClient();
+  const jobIds = await resolveJobIds(f);
+  const candidateIds = await resolveCandidateIds(f);
+  if (jobIds !== null && jobIds.length === 0) return [];
+  if (candidateIds !== null && candidateIds.length === 0) return [];
+
   const threshold = new Date();
   threshold.setDate(threshold.getDate() - STALLED_THRESHOLD_DAYS);
-  const { data } = await supabase
+  let q = supabase
     .from('job_applications')
     .select(`
       id, candidate_id, stage_entered_at,
@@ -283,7 +416,10 @@ export async function getStalledCandidates(f: MetricsFilter, limit = 10): Promis
     `)
     .eq('company_id', f.companyId)
     .eq('status', 'in_progress')
-    .lt('stage_entered_at', threshold.toISOString())
+    .lt('stage_entered_at', threshold.toISOString());
+  if (jobIds) q = q.in('job_opening_id', jobIds);
+  if (candidateIds) q = q.in('candidate_id', candidateIds);
+  const { data } = await q
     .order('stage_entered_at', { ascending: true })
     .limit(limit);
   const now = Date.now();
@@ -313,13 +449,18 @@ export type OverdueTask = {
 
 export async function getOverdueTasks(f: MetricsFilter, limit = 10): Promise<OverdueTask[]> {
   const supabase = await createServerSupabaseClient();
+  const jobIds = await resolveJobIds(f);
+  const candidateIds = await resolveCandidateIds(f);
+  if (jobIds !== null && jobIds.length === 0) return [];
+  if (candidateIds !== null && candidateIds.length === 0) return [];
+
   const now = new Date();
   const { data } = await supabase
     .from('candidate_tasks')
     .select(`
       id, application_id, title, due_date,
       responsible:employees!responsible_id(full_name),
-      application:job_applications(candidate_id,
+      application:job_applications(candidate_id, job_opening_id,
         candidate:candidates(name),
         job_opening:job_openings(title))
     `)
@@ -329,8 +470,18 @@ export async function getOverdueTasks(f: MetricsFilter, limit = 10): Promise<Ove
     .not('due_date', 'is', null)
     .lt('due_date', now.toISOString())
     .order('due_date', { ascending: true })
-    .limit(limit);
-  return (data ?? []).map((row) => {
+    .limit(limit * 3); // busca mais pra compensar possível filtragem em JS
+  const jobSet = jobIds ? new Set(jobIds) : null;
+  const candSet = candidateIds ? new Set(candidateIds) : null;
+  const filtered = (data ?? []).filter((row) => {
+    if (!jobSet && !candSet) return true;
+    const app = row.application as unknown as { job_opening_id: string; candidate_id: string } | null;
+    if (!app) return false;
+    if (jobSet && !jobSet.has(app.job_opening_id)) return false;
+    if (candSet && !candSet.has(app.candidate_id)) return false;
+    return true;
+  }).slice(0, limit);
+  return filtered.map((row) => {
     const due = new Date((row.due_date as string) + 'T00:00:00');
     const days = Math.floor((now.getTime() - due.getTime()) / (1000 * 60 * 60 * 24));
     const app = row.application as unknown as {
@@ -349,4 +500,61 @@ export async function getOverdueTasks(f: MetricsFilter, limit = 10): Promise<Ove
       daysOverdue: days,
     };
   });
+}
+
+// ============================================================
+// Queries auxiliares para os MultiSelects do DashboardFilters
+// ============================================================
+
+export type JobOption = { id: string; title: string };
+export type EmployeeOption = { id: string; name: string };
+
+/**
+ * Lista de vagas disponíveis no MultiSelect de filtro.
+ * Admin/director veem todas; gestor vê apenas as suas.
+ */
+export async function getJobsForFilter(
+  companyId: string,
+  viewer: { role: ViewerRole; employeeId: string | null },
+): Promise<JobOption[]> {
+  const supabase = await createServerSupabaseClient();
+  let q = supabase
+    .from('job_openings')
+    .select('id, title')
+    .eq('company_id', companyId)
+    .order('title', { ascending: true });
+  if (viewer.role === 'gestor' && viewer.employeeId) {
+    q = q.eq('hiring_manager_id', viewer.employeeId);
+  }
+  const { data } = await q;
+  return (data ?? []).map((r) => ({ id: r.id, title: r.title }));
+}
+
+/**
+ * Lista de employees que são hiring_manager de ao menos uma vaga na company.
+ * Admin/director veem todos; gestor vê apenas a si mesmo (irrelevante na prática
+ * porque o MultiSelect de Responsável fica oculto pra gestor — mas deixamos a
+ * consulta coerente).
+ */
+export async function getManagersForFilter(
+  companyId: string,
+  viewer: { role: ViewerRole; employeeId: string | null },
+): Promise<EmployeeOption[]> {
+  const supabase = await createServerSupabaseClient();
+  let q = supabase
+    .from('job_openings')
+    .select('hiring_manager_id, manager:employees!hiring_manager_id(id, full_name)')
+    .eq('company_id', companyId)
+    .not('hiring_manager_id', 'is', null);
+  if (viewer.role === 'gestor' && viewer.employeeId) {
+    q = q.eq('hiring_manager_id', viewer.employeeId);
+  }
+  const { data } = await q;
+  const dedup = new Map<string, EmployeeOption>();
+  for (const row of data ?? []) {
+    const mgr = row.manager as unknown as { id: string; full_name: string } | null;
+    if (!mgr) continue;
+    if (!dedup.has(mgr.id)) dedup.set(mgr.id, { id: mgr.id, name: mgr.full_name });
+  }
+  return Array.from(dedup.values()).sort((a, b) => a.name.localeCompare(b.name));
 }

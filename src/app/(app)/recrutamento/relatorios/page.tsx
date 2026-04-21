@@ -3,19 +3,26 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 import {
   getMetricsKpis, getFunnel, getOriginsBreakdown,
   getStageDurations, getStalledCandidates, getOverdueTasks,
+  getJobsForFilter, getManagersForFilter,
+  type MetricsFilter, type ViewerRole,
 } from '@/features/recruitment/queries/metrics';
 import { canAccessRecruitmentModule } from '@/features/recruitment/permissions';
 import { RelatoriosDashboard } from '@/features/recruitment/components/RelatoriosDashboard';
 
-type SearchParams = Promise<{ period?: string; from?: string; to?: string }>;
+type SearchParams = Promise<{
+  period?: string;
+  from?: string;
+  to?: string;
+  job_ids?: string;
+  owner_ids?: string;
+  q?: string;
+}>;
 
 type Preset = '7d' | '30d' | '90d' | 'all';
 
-function resolvePeriod(sp: { period?: string; from?: string; to?: string }): {
-  from: Date | null;
-  to: Date | null;
-  label: string;
-} {
+function resolvePeriod(sp: {
+  period?: string; from?: string; to?: string;
+}): { from: Date | null; to: Date | null; label: string } {
   if (sp.from && sp.to) {
     const from = new Date(sp.from);
     const to = new Date(sp.to);
@@ -31,6 +38,12 @@ function resolvePeriod(sp: { period?: string; from?: string; to?: string }): {
   const from = new Date();
   from.setDate(from.getDate() - days);
   return { from, to: new Date(), label: `últimos ${days} dias` };
+}
+
+function parseList(v: string | undefined): string[] | null {
+  if (!v) return null;
+  const arr = v.split(',').map((s) => s.trim()).filter(Boolean);
+  return arr.length > 0 ? arr : null;
 }
 
 export default async function RelatoriosPage({ searchParams }: { searchParams: SearchParams }) {
@@ -57,19 +70,33 @@ export default async function RelatoriosPage({ searchParams }: { searchParams: S
   if (!canAccessRecruitmentModule(actor)) redirect('/dashboard');
 
   const period = resolvePeriod(sp);
-  const filter = {
+  const viewerRole = (actor.role === 'admin_rh' || actor.role === 'director' || actor.role === 'gestor')
+    ? actor.role as ViewerRole
+    : 'gestor';
+
+  const filter: MetricsFilter = {
     companyId: profile.company_id,
     from: period.from,
     to: period.to,
+    jobIds: parseList(sp.job_ids),
+    ownerIds: parseList(sp.owner_ids),
+    candidateQuery: sp.q ?? null,
+    viewerRole,
+    viewerEmployeeId: actor.employeeId,
   };
 
-  const [kpis, funnel, origins, durations, stalled, overdue] = await Promise.all([
+  const [
+    kpis, funnel, origins, durations, stalled, overdue,
+    jobsForFilter, employeesForFilter,
+  ] = await Promise.all([
     getMetricsKpis(filter),
     getFunnel(filter),
     getOriginsBreakdown(filter),
     getStageDurations(filter),
     getStalledCandidates(filter),
     getOverdueTasks(filter),
+    getJobsForFilter(profile.company_id, { role: viewerRole, employeeId: actor.employeeId }),
+    getManagersForFilter(profile.company_id, { role: viewerRole, employeeId: actor.employeeId }),
   ]);
 
   return (
@@ -81,6 +108,9 @@ export default async function RelatoriosPage({ searchParams }: { searchParams: S
       stalled={stalled}
       overdue={overdue}
       periodLabel={period.label}
+      jobsForFilter={jobsForFilter}
+      employeesForFilter={employeesForFilter}
+      hideManagerFilter={viewerRole === 'gestor'}
     />
   );
 }

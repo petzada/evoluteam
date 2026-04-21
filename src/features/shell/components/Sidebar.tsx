@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, Home, Users, ClipboardList, MessageSquare, TrendingUp,
   Building2, Layers, Briefcase, Star, ScrollText,
-  UserPlus, KanbanSquare,
+  UserPlus, KanbanSquare, BarChart3,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -29,6 +29,7 @@ const MAIN_NAV: NavItem[] = [
 const RECRUITMENT_NAV: NavItem[] = [
   { label: 'Candidatos', href: '/recrutamento/candidatos', icon: UserPlus },
   { label: 'Vagas', href: '/recrutamento/vagas', icon: Briefcase },
+  { label: 'Relatórios', href: '/recrutamento/relatorios', icon: BarChart3 },
   { label: 'Etapas', href: '/recrutamento/etapas', icon: KanbanSquare, adminOnly: true },
 ];
 
