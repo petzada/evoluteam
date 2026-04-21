@@ -1,11 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import {
-  BarChart, Bar, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer,
-} from 'recharts';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { HoverCard, HoverCardTrigger, HoverCardContent } from '@/components/ui/hover-card';
 import type {
   MetricsKpis, FunnelStageRow, OriginBreakdown, StageDuration,
   StalledCandidate, OverdueTask,
@@ -13,6 +11,8 @@ import type {
 } from '../queries/metrics';
 import { PageHeader } from '@/components/PageHeader';
 import { DashboardFilters } from './dashboard/DashboardFilters';
+import { OriginsDualDonut } from './dashboard/OriginsDualDonut';
+import { StageDurationsLollipop } from './dashboard/StageDurationsLollipop';
 
 interface Props {
   kpis: MetricsKpis;
@@ -26,8 +26,6 @@ interface Props {
   employeesForFilter: EmployeeOption[];
   hideManagerFilter?: boolean;
 }
-
-const ORIGIN_COLORS = ['#f97316', '#8b5cf6', '#10b981', '#0ea5e9', '#a3a3a3', '#ef4444', '#eab308'];
 
 export function RelatoriosDashboard({
   kpis, funnel, origins, durations, stalled, overdue, periodLabel,
@@ -79,20 +77,45 @@ export function RelatoriosDashboard({
           ) : (
             <div className="space-y-1.5">
               {funnel.map((stage) => (
-                <div key={stage.stageId} className="flex items-center gap-3 text-xs">
-                  <span className="w-36 truncate text-muted-foreground">{stage.stageName}</span>
-                  <div className="flex-1 h-5 bg-muted rounded">
-                    <div
-                      className="h-full bg-primary rounded flex items-center justify-end px-2 text-primary-foreground text-[10px] font-medium"
-                      style={{ width: `${Math.max((stage.count / maxFunnel) * 100, 2)}%` }}
-                    >
-                      {stage.count > 0 ? stage.count : ''}
+                <HoverCard key={stage.stageId}>
+                  <HoverCardTrigger
+                    render={
+                      <div className="flex items-center gap-3 text-xs cursor-default hover:bg-muted/40 rounded px-1 py-0.5 -mx-1 transition-colors">
+                        <span className="w-36 truncate text-muted-foreground">{stage.stageName}</span>
+                        <div className="flex-1 h-5 bg-muted rounded">
+                          <div
+                            className="h-full bg-primary rounded flex items-center justify-end px-2 text-primary-foreground text-[10px] font-medium"
+                            style={{ width: `${Math.max((stage.count / maxFunnel) * 100, 2)}%` }}
+                          >
+                            {stage.count > 0 ? stage.count : ''}
+                          </div>
+                        </div>
+                        <span className="w-14 text-right tabular-nums text-muted-foreground">
+                          {stage.conversionFromFirst !== null ? `${stage.conversionFromFirst}%` : '—'}
+                        </span>
+                      </div>
+                    }
+                  />
+                  <HoverCardContent side="right" align="center" className="w-64">
+                    <div className="space-y-1.5">
+                      <p className="font-semibold text-sm">{stage.stageName}</p>
+                      <div className="text-[11px] space-y-0.5">
+                        <FunnelRow label="Candidatos na etapa" value={stage.count.toString()} />
+                        {stage.conversionFromPrev !== null && (
+                          <FunnelRow label="Conversão da anterior" value={`${stage.conversionFromPrev}%`} />
+                        )}
+                        {stage.conversionFromFirst !== null && (
+                          <FunnelRow label="Conversão desde o topo" value={`${stage.conversionFromFirst}%`} />
+                        )}
+                        <FunnelRow label="Avançaram" value={stage.advancedCount.toString()} />
+                        <FunnelRow label="Reprovados/desistiram" value={stage.rejectedOrWithdrawnCount.toString()} />
+                        {stage.medianDaysInStage !== null && (
+                          <FunnelRow label="Mediana na etapa" value={`${stage.medianDaysInStage}d`} />
+                        )}
+                      </div>
                     </div>
-                  </div>
-                  <span className="w-14 text-right tabular-nums text-muted-foreground">
-                    {stage.conversionFromFirst !== null ? `${stage.conversionFromFirst}%` : '—'}
-                  </span>
-                </div>
+                  </HoverCardContent>
+                </HoverCard>
               ))}
             </div>
           )}
@@ -102,62 +125,15 @@ export function RelatoriosDashboard({
       <div className="grid gap-4 md:grid-cols-2 mb-4">
         <Card>
           <CardContent className="pt-6">
-            <h3 className="text-sm font-semibold mb-3">Origens dos candidatos</h3>
-            {origins.length === 0 ? (
-              <p className="text-xs text-muted-foreground">Sem dados no período.</p>
-            ) : (
-              <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={origins} layout="vertical" margin={{ top: 4, right: 24, bottom: 4, left: 8 }}>
-                  <XAxis type="number" tick={{ fontSize: 10 }} />
-                  <YAxis type="category" dataKey="label" tick={{ fontSize: 10 }} width={80} />
-                  <Tooltip formatter={(v) => [v as number, 'Candidatos']} />
-                  <Bar dataKey="candidates">
-                    {origins.map((_, i) => (
-                      <Cell key={i} fill={ORIGIN_COLORS[i % ORIGIN_COLORS.length]} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-            {origins.some((o) => o.hired > 0) && (
-              <div className="mt-3 space-y-1 text-xs">
-                <p className="text-[10.5px] uppercase tracking-wider text-muted-foreground font-semibold">
-                  Contratados por origem
-                </p>
-                {origins.filter((o) => o.hired > 0).map((o) => (
-                  <div key={o.source} className="flex items-center justify-between">
-                    <span>{o.label}</span>
-                    <span className="tabular-nums text-emerald-700 font-medium">
-                      {o.hired} / {o.candidates} ({Math.round((o.hired / o.candidates) * 100)}%)
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
+            <h3 className="text-sm font-semibold mb-3">Origens — candidatos × contratados</h3>
+            <OriginsDualDonut origins={origins} />
           </CardContent>
         </Card>
 
         <Card>
           <CardContent className="pt-6">
-            <h3 className="text-sm font-semibold mb-3">Tempo mediano por etapa</h3>
-            {durations.every((d) => d.medianDays === null) ? (
-              <p className="text-xs text-muted-foreground">Sem dados no período.</p>
-            ) : (
-              <div className="space-y-1.5 pt-2">
-                {durations.map((d) => {
-                  if (d.medianDays === null) return null;
-                  const isBottleneck = d.medianDays > 5;
-                  return (
-                    <div key={d.stageId} className="flex items-center gap-3 text-xs">
-                      <span className="w-32 truncate text-muted-foreground">{d.stageName}</span>
-                      <span className={`tabular-nums font-medium ${isBottleneck ? 'text-destructive' : 'text-foreground'}`}>
-                        {d.medianDays}d {isBottleneck && '⚠'}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+            <h3 className="text-sm font-semibold mb-3">Tempo mediano por etapa (em dias)</h3>
+            <StageDurationsLollipop durations={durations} />
           </CardContent>
         </Card>
       </div>
@@ -239,6 +215,15 @@ export function RelatoriosDashboard({
           </CardContent>
         </Card>
       </div>
+    </div>
+  );
+}
+
+function FunnelRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="tabular-nums font-medium text-foreground">{value}</span>
     </div>
   );
 }

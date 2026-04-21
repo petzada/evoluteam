@@ -160,6 +160,10 @@ export type FunnelStageRow = {
   position: number;
   count: number;
   conversionFromFirst: number | null; // %
+  conversionFromPrev: number | null;  // % em relação à etapa anterior
+  advancedCount: number;              // passou desta etapa para outra posterior
+  rejectedOrWithdrawnCount: number;   // saiu por status terminal a partir desta etapa
+  medianDaysInStage: number | null;   // mediana de dias que ficaram nessa etapa
 };
 
 export async function getFunnel(f: MetricsFilter): Promise<FunnelStageRow[]> {
@@ -190,12 +194,14 @@ export async function getFunnel(f: MetricsFilter): Promise<FunnelStageRow[]> {
   // Filtra pelo company + escopo de vaga/candidato (applications permitidas)
   let appsQ = supabase
     .from('job_applications')
-    .select('id')
+    .select('id, status')
     .eq('company_id', f.companyId);
   if (jobIds) appsQ = appsQ.in('job_opening_id', jobIds);
   if (candidateIds) appsQ = appsQ.in('candidate_id', candidateIds);
   const { data: appsOfCompany } = await appsQ;
   const appSet = new Set((appsOfCompany ?? []).map((a) => a.id));
+  const appStatus = new Map<string, string>();
+  for (const a of appsOfCompany ?? []) appStatus.set(a.id, a.status as string);
 
   const perStage = new Map<string, Set<string>>();
   for (const h of hist ?? []) {
@@ -206,16 +212,82 @@ export async function getFunnel(f: MetricsFilter): Promise<FunnelStageRow[]> {
     perStage.set(h.to_stage_id, set);
   }
 
+  // Cria mapa stageId -> position pra comparar "avanços"
+  const stagePosition = new Map<string, number>();
+  stages.forEach((s) => stagePosition.set(s.id, s.position));
+
+  // Sequência temporal por application para calcular duração de estadia
+  const perApp = new Map<string, { stageId: string; ts: number }[]>();
+  for (const h of hist ?? []) {
+    if (!h.to_stage_id || !h.application_id) continue;
+    if (!appSet.has(h.application_id)) continue;
+    const arr = perApp.get(h.application_id) ?? [];
+    arr.push({ stageId: h.to_stage_id, ts: new Date(h.changed_at as string).getTime() });
+    perApp.set(h.application_id, arr);
+  }
+  for (const arr of perApp.values()) arr.sort((a, b) => a.ts - b.ts);
+
+  // Pra cada etapa, calcular durações a partir dos tempos de entrada/saída
+  const durationsPerStage = new Map<string, number[]>();
+  for (const arr of perApp.values()) {
+    for (let i = 0; i < arr.length - 1; i += 1) {
+      const curr = arr[i];
+      const next = arr[i + 1];
+      const days = (next.ts - curr.ts) / (1000 * 60 * 60 * 24);
+      const list = durationsPerStage.get(curr.stageId) ?? [];
+      list.push(days);
+      durationsPerStage.set(curr.stageId, list);
+    }
+  }
+
+  // advanced/terminal per stage — baseado na sequência por app
+  const advancedPerStage = new Map<string, number>();
+  const terminalPerStage = new Map<string, number>();
+  for (const [appId, arr] of perApp.entries()) {
+    const visited = new Set<string>();
+    for (let i = 0; i < arr.length; i += 1) {
+      const { stageId } = arr[i];
+      if (visited.has(stageId)) continue;
+      visited.add(stageId);
+      const pos = stagePosition.get(stageId) ?? -1;
+      // Avançou se em qualquer entrada futura a posição é maior
+      const didAdvance = arr.slice(i + 1).some((e) => (stagePosition.get(e.stageId) ?? -1) > pos);
+      if (didAdvance) advancedPerStage.set(stageId, (advancedPerStage.get(stageId) ?? 0) + 1);
+    }
+    // Status terminal conta na última etapa que o app visitou (se status terminal)
+    const status = appStatus.get(appId);
+    if (status === 'rejected' || status === 'withdrawn' || status === 'frozen') {
+      const last = arr[arr.length - 1];
+      if (last) terminalPerStage.set(last.stageId, (terminalPerStage.get(last.stageId) ?? 0) + 1);
+    }
+  }
+
   const firstCount = perStage.get(stages[0].id)?.size ?? 0;
-  return stages.map((s) => {
+  let prevCount = firstCount;
+  return stages.map((s, i) => {
     const count = perStage.get(s.id)?.size ?? 0;
-    return {
+    const durations = durationsPerStage.get(s.id) ?? [];
+    let median: number | null = null;
+    if (durations.length > 0) {
+      const sorted = [...durations].sort((a, b) => a - b);
+      const mid = Math.floor(sorted.length / 2);
+      median = sorted.length % 2 === 0
+        ? (sorted[mid - 1] + sorted[mid]) / 2
+        : sorted[mid];
+    }
+    const row: FunnelStageRow = {
       stageId: s.id,
       stageName: s.name,
       position: s.position,
       count,
       conversionFromFirst: firstCount > 0 ? Math.round((count / firstCount) * 100) : null,
+      conversionFromPrev: i === 0 ? null : prevCount > 0 ? Math.round((count / prevCount) * 100) : null,
+      advancedCount: advancedPerStage.get(s.id) ?? 0,
+      rejectedOrWithdrawnCount: terminalPerStage.get(s.id) ?? 0,
+      medianDaysInStage: median !== null ? Math.round(median * 10) / 10 : null,
     };
+    prevCount = count;
+    return row;
   });
 }
 
@@ -309,6 +381,11 @@ export type StageDuration = {
   stageName: string;
   position: number;
   medianDays: number | null;
+  meanDays: number | null;
+  minDays: number | null;
+  maxDays: number | null;
+  activeCount: number;       // aplicações atualmente nessa etapa com status='in_progress'
+  isBottleneck: boolean;     // mediana > STALLED_THRESHOLD_DAYS
 };
 
 export async function getStageDurations(f: MetricsFilter): Promise<StageDuration[]> {
@@ -326,15 +403,23 @@ export async function getStageDurations(f: MetricsFilter): Promise<StageDuration
     .order('position', { ascending: true });
   if (!stages?.length) return [];
 
-  // Restringe applications pelo escopo atual
+  // Restringe applications pelo escopo atual; traz também current_stage_id
+  // + status para contabilizar activeCount por etapa.
   let appsQ = supabase
     .from('job_applications')
-    .select('id')
+    .select('id, current_stage_id, status')
     .eq('company_id', f.companyId);
   if (jobIds) appsQ = appsQ.in('job_opening_id', jobIds);
   if (candidateIds) appsQ = appsQ.in('candidate_id', candidateIds);
   const { data: apps } = await appsQ;
   const appSet = new Set((apps ?? []).map((a) => a.id));
+
+  // Contagem ativa por etapa
+  const activeByStage = new Map<string, number>();
+  for (const a of apps ?? []) {
+    if (a.status !== 'in_progress') continue;
+    activeByStage.set(a.current_stage_id, (activeByStage.get(a.current_stage_id) ?? 0) + 1);
+  }
 
   // Só calcula de quem JÁ SAIU da etapa (duração real).
   // Precisamos calcular, por aplicação, quanto tempo ficou em cada etapa.
@@ -372,18 +457,31 @@ export async function getStageDurations(f: MetricsFilter): Promise<StageDuration
   return stages.map((s) => {
     const durations = durationsPerStage.get(s.id) ?? [];
     let median: number | null = null;
+    let mean: number | null = null;
+    let minV: number | null = null;
+    let maxV: number | null = null;
     if (durations.length > 0) {
       const sorted = [...durations].sort((a, b) => a - b);
       const mid = Math.floor(sorted.length / 2);
       median = sorted.length % 2 === 0
         ? (sorted[mid - 1] + sorted[mid]) / 2
         : sorted[mid];
+      mean = sorted.reduce((acc, v) => acc + v, 0) / sorted.length;
+      minV = sorted[0];
+      maxV = sorted[sorted.length - 1];
     }
+    const round1 = (v: number | null) => v !== null ? Math.round(v * 10) / 10 : null;
+    const medianRounded = round1(median);
     return {
       stageId: s.id,
       stageName: s.name,
       position: s.position,
-      medianDays: median !== null ? Math.round(median * 10) / 10 : null,
+      medianDays: medianRounded,
+      meanDays: round1(mean),
+      minDays: round1(minV),
+      maxDays: round1(maxV),
+      activeCount: activeByStage.get(s.id) ?? 0,
+      isBottleneck: medianRounded !== null && medianRounded > STALLED_THRESHOLD_DAYS,
     };
   });
 }
