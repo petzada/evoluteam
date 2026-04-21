@@ -113,7 +113,7 @@ export function ScorecardsSection({
 
   return (
     <>
-      <div className="space-y-6">
+      <div className="space-y-3">
         {applications.map((app) => {
           const stageMap = byAppStage.get(app.id) ?? new Map<string, ScorecardRow[]>();
           return (
@@ -163,11 +163,11 @@ function ScorecardAppGroup({
   const totalScorecards = Array.from(stageMap.values()).reduce((acc, arr) => acc + arr.length, 0);
 
   return (
-    <div>
+    <div className="rounded-md border p-4">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center gap-2 py-1.5 hover:text-foreground transition-colors"
+        className="w-full flex items-center gap-2 hover:text-foreground transition-colors"
       >
         <ChevronDown className={cn('h-4 w-4 text-muted-foreground transition-transform', !open && '-rotate-90')} />
         <span className="text-sm font-medium flex-1 text-left">{app.job_opening?.title ?? 'Vaga'}</span>
@@ -179,7 +179,7 @@ function ScorecardAppGroup({
         </span>
       </button>
       {open && (
-        <div className="mt-2 space-y-3">
+        <div className="mt-3 space-y-3">
           {canSubmit && (
             <button
               type="button"
@@ -193,16 +193,19 @@ function ScorecardAppGroup({
           {totalScorecards === 0 ? (
             <p className="text-xs text-muted-foreground italic">Nenhum scorecard registrado ainda.</p>
           ) : (
-            Array.from(stageMap.entries()).map(([stageId, scs]) => (
-              <StageBlock
-                key={stageId}
-                scorecards={scs}
-                currentEmployeeId={currentEmployeeId}
-                isAdmin={isAdmin}
-                onEdit={onEditScorecard}
-                onDelete={onDeleteScorecard}
-              />
-            ))
+            <ul className="divide-y">
+              {Array.from(stageMap.entries()).map(([stageId, scs]) => (
+                <li key={stageId} className="pt-3 first:pt-0">
+                  <StageBlock
+                    scorecards={scs}
+                    currentEmployeeId={currentEmployeeId}
+                    isAdmin={isAdmin}
+                    onEdit={onEditScorecard}
+                    onDelete={onDeleteScorecard}
+                  />
+                </li>
+              ))}
+            </ul>
           )}
         </div>
       )}
@@ -266,7 +269,7 @@ function SingleScorecardCard({ sc, currentEmployeeId, isAdmin, onEdit, onDelete 
   const canDelete = canEditByWindow || isAdmin;
   const showKebab = canEditByWindow || canDelete;
   return (
-    <div className="rounded-md border p-4 text-sm">
+    <div className="text-sm">
       <div className="flex items-start justify-between gap-3 mb-2">
         <div className="flex items-center gap-2 min-w-0">
           <span className="text-xs font-medium">{sc.author?.full_name ?? '—'}</span>
@@ -356,7 +359,7 @@ function ComparisonTable({ scorecards, currentEmployeeId, isAdmin, onEdit, onDel
   const totalRows = dims.length + 2;
 
   return (
-    <div className="rounded-md border bg-card p-3">
+    <div>
       <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <span className="text-xs font-semibold">{stageName}</span>

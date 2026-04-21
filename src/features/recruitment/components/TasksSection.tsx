@@ -135,7 +135,7 @@ export function TasksSection({
 
   return (
     <>
-      <div className="space-y-6">
+      <div className="space-y-3">
         {applications.map((app) => {
           const appTasks = byApp.get(app.id) ?? [];
           return (
@@ -188,11 +188,11 @@ function TaskAppGroup({
   const [open, setOpen] = useState(defaultOpen);
   const pending = tasks.filter((t) => !t.completed_at).length;
   return (
-    <div>
+    <div className="rounded-md border p-4">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center gap-2 py-1.5 hover:text-foreground transition-colors"
+        className="w-full flex items-center gap-2 hover:text-foreground transition-colors"
       >
         <ChevronDown className={cn('h-4 w-4 text-muted-foreground transition-transform', !open && '-rotate-90')} />
         <span className="text-sm font-medium flex-1 text-left">{app.job_opening?.title ?? 'Vaga'}</span>
@@ -204,7 +204,7 @@ function TaskAppGroup({
         </span>
       </button>
       {open && (
-        <div className="mt-2 space-y-2">
+        <div className="mt-3 space-y-2">
           {canManage && (
             <Button size="sm" variant="ghost" onClick={onNew} className="justify-start text-primary px-0 hover:bg-transparent">
               <Plus className="mr-1.5 h-3.5 w-3.5" /> Adicionar tarefa
@@ -251,8 +251,8 @@ function TaskRow({ task, currentEmployeeId, isAdmin, canManage, onEdit, onToggle
 
   return (
     <div className={cn(
-      'group flex items-center gap-2.5 rounded-md border bg-card px-2.5 py-2 text-xs',
-      completed && 'bg-muted/30',
+      'group flex items-center gap-2.5 rounded-md px-2.5 py-2 text-xs',
+      completed ? 'bg-muted/40' : 'bg-muted/20',
     )}>
       <button
         type="button"

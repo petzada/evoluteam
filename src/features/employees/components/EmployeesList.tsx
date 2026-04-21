@@ -498,9 +498,6 @@ export function EmployeesList({
                             {emp.full_name}
                             {isSelf && <span className="ml-2 text-xs text-muted-foreground">(você)</span>}
                           </p>
-                          {!columns.email && (
-                            <p className="text-sm text-muted-foreground">{emp.email}</p>
-                          )}
                         </Link>
                       </TableCell>
                       {columns.email && <TableCell>{emp.email}</TableCell>}

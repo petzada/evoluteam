@@ -103,7 +103,7 @@ export function FeedbacksSection({
 
   return (
     <>
-      <div className="space-y-6">
+      <div className="space-y-3">
         {applications.map((app) => {
           const appFeedbacks = byApp.get(app.id) ?? [];
           const isActive = app.status === 'in_progress';
@@ -152,11 +152,11 @@ function FeedbackGroup({
 }: GroupProps) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div>
+    <div className="rounded-md border p-4">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center gap-2 py-1.5 hover:text-foreground transition-colors"
+        className="w-full flex items-center gap-2 hover:text-foreground transition-colors"
       >
         <ChevronDown className={cn('h-4 w-4 text-muted-foreground transition-transform', !open && '-rotate-90')} />
         <span className="text-sm font-medium flex-1 text-left">{app.job_opening?.title ?? 'Vaga'}</span>
@@ -169,7 +169,7 @@ function FeedbackGroup({
       </button>
 
       {open && (
-        <div className="mt-2 space-y-2">
+        <div className="mt-3 space-y-3">
           {canGiveFeedback && (
             <button
               type="button"
@@ -183,16 +183,19 @@ function FeedbackGroup({
           {feedbacks.length === 0 ? (
             <p className="text-xs text-muted-foreground italic">Nenhum feedback registrado ainda.</p>
           ) : (
-            feedbacks.map((fb) => (
-              <FeedbackCard
-                key={fb.id}
-                fb={fb}
-                currentEmployeeId={currentEmployeeId}
-                isAdmin={isAdmin}
-                onEdit={() => onEditFeedback(fb)}
-                onDelete={() => onDeleteFeedback(fb.id)}
-              />
-            ))
+            <ul className="divide-y">
+              {feedbacks.map((fb) => (
+                <li key={fb.id} className="pt-3 first:pt-0">
+                  <FeedbackCard
+                    fb={fb}
+                    currentEmployeeId={currentEmployeeId}
+                    isAdmin={isAdmin}
+                    onEdit={() => onEditFeedback(fb)}
+                    onDelete={() => onDeleteFeedback(fb.id)}
+                  />
+                </li>
+              ))}
+            </ul>
           )}
         </div>
       )}
@@ -231,7 +234,7 @@ function FeedbackCard({ fb, currentEmployeeId, isAdmin, onEdit, onDelete }: Card
   const showKebab = canEditByWindow || canDelete;
 
   return (
-    <div className="rounded-md border p-4 text-sm">
+    <div className="text-sm">
       <div className="flex items-start justify-between gap-3 mb-2">
         <div className="flex items-center gap-2 min-w-0">
           <span className="text-xs font-medium">{fb.author?.full_name ?? '—'}</span>
