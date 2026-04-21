@@ -259,8 +259,11 @@ export async function createAndLinkCandidate(input: CandidateInput, jobOpeningId
 
 /**
  * Move candidato entre etapas. Respeitando RLS (admin ou hiring_manager).
- * Bloqueio pro MVP Onda 1: não permite mover para stage kind='hired_terminal'.
- * Onda 2 remove esse bloqueio e dispara wizard.
+ *
+ * Invariante do schema (spec 13 §4.5): status='hired' implica stage kind='hired_terminal'
+ * e só é atingido via hireCandidate (que cria o employee atomicamente). Por isso esta
+ * action recusa mover para hired_terminal — seria bypass do wizard. O Kanban intercepta
+ * o drop antes de chamar aqui e abre o HireCandidateDialog.
  */
 export async function moveApplicationStage(applicationId: string, targetStageId: string) {
   const actor = await getActor();
@@ -296,7 +299,10 @@ export async function moveApplicationStage(applicationId: string, targetStageId:
     return { error: 'Etapa inválida.' };
   }
   if (target.kind === 'hired_terminal') {
-    return { error: 'Contratação disponível em breve.', code: 'HIRING_NOT_AVAILABLE_IN_ONDA_1' };
+    return {
+      error: 'Para contratar use o assistente (drop em "Contratado" abre o wizard).',
+      code: 'USE_HIRE_ACTION',
+    };
   }
 
   // Pega nome da etapa anterior pra metadata
