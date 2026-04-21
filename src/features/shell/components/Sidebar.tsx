@@ -37,7 +37,7 @@ const RECRUITMENT_NAV: NavItem[] = [
 ];
 
 const CONFIG_NAV: NavItem[] = [
-  { label: 'Empresa', href: '/configuracoes/empresa', icon: Building2 },
+  { label: 'Empresa', href: '/configuracoes/empresa', icon: Building2, permission: 'can_employees' },
   { label: 'Departamentos', href: '/configuracoes/departamentos', icon: Layers, permission: 'can_employees' },
   { label: 'Cargos', href: '/configuracoes/cargos', icon: Briefcase, permission: 'can_employees' },
   { label: 'Competências', href: '/configuracoes/competencias', icon: Star, permission: 'can_employees' },
@@ -64,12 +64,10 @@ export function Sidebar({ role, rhPermissions, isOperationalOnly, footer }: Side
     if (item.permission) return hasAdminPower(actorForGate, item.permission);
     return true;
   };
-  // Configuracoes aparece pra admin OU pra rh com qualquer toggle
-  // que destrave algum item dentro de Configuracoes (employees ou audit).
-  const showConfigSection =
-    isAdmin
-    || hasAdminPower(actorForGate, 'can_employees')
-    || hasAdminPower(actorForGate, 'can_audit');
+  // Configuracoes aparece se houver pelo menos 1 item visivel dentro
+  // dela (deriva da regra acima — evita lista paralela de toggles).
+  const visibleConfigItems = CONFIG_NAV.filter(isItemVisible);
+  const showConfigSection = visibleConfigItems.length > 0;
 
   const homeItem: NavItem = isOperationalOnly
     ? { label: 'Início', href: '/dashboard', icon: Home }
@@ -177,7 +175,7 @@ export function Sidebar({ role, rhPermissions, isOperationalOnly, footer }: Side
                 Configurações
               </p>
             )}
-            <ul className="space-y-0.5">{CONFIG_NAV.filter(isItemVisible).map(renderItem)}</ul>
+            <ul className="space-y-0.5">{visibleConfigItems.map(renderItem)}</ul>
           </div>
         )}
       </nav>
