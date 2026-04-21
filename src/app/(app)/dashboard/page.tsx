@@ -238,12 +238,12 @@ export default async function DashboardPage({
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 items-start">
-              <Card>
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+              <Card className="flex flex-col">
                 <CardHeader>
                   <CardTitle className="text-base">Média por departamento</CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="flex-1 flex flex-col">
                   {deptAverages.length > 0 ? (
                     <DepartmentBarsChart data={deptAverages} />
                   ) : (
