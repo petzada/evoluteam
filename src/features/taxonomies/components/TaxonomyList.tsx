@@ -176,7 +176,7 @@ export function TaxonomyList(props: Props) {
         </label>
       </div>
 
-      <div className="rounded-md border">
+      <div className="rounded-md border bg-card shadow-card">
         <Table>
           <TableHeader>
             <TableRow>

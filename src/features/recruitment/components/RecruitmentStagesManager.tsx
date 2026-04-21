@@ -119,7 +119,7 @@ export function RecruitmentStagesManager({ stages: initialStages }: Props) {
         }
       />
 
-      <div className="rounded-md border bg-card">
+      <div className="rounded-md border bg-card shadow-card">
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
           <SortableContext items={activeStages.map((s) => s.id)} strategy={verticalListSortingStrategy}>
             <ul className="divide-y">
@@ -144,7 +144,7 @@ export function RecruitmentStagesManager({ stages: initialStages }: Props) {
       {archivedStages.length > 0 && (
         <div className="mt-6">
           <h3 className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Arquivadas</h3>
-          <ul className="rounded-md border bg-card divide-y">
+          <ul className="rounded-md border bg-card shadow-card divide-y">
             {archivedStages.map((stage) => (
               <li key={stage.id} className="flex items-center gap-3 px-4 py-3">
                 <span className="text-sm font-medium text-muted-foreground">{stage.name}</span>

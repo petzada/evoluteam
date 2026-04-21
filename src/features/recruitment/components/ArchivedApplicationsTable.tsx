@@ -35,7 +35,7 @@ export function ArchivedApplicationsTable({ applications }: Props) {
     );
   }
   return (
-    <div className="rounded-md border bg-card">
+    <div className="rounded-md border bg-card shadow-card">
       <Table>
         <TableHeader>
           <TableRow>

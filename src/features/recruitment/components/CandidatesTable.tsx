@@ -45,7 +45,7 @@ export function CandidatesTable({ candidates, canCreate }: Props) {
           )}
         />
       ) : (
-        <div className="rounded-md border bg-card">
+        <div className="rounded-md border bg-card shadow-card">
           <Table>
             <TableHeader>
               <TableRow>

@@ -39,7 +39,7 @@ export function ActivityLogList({ logs, total, pageSize, page }: Props) {
 
   return (
     <div className="space-y-3">
-      <div className="rounded-md border">
+      <div className="rounded-md border bg-card shadow-card">
         <Table>
           <TableHeader>
             <TableRow>

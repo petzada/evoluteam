@@ -3,6 +3,7 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { getCurrentCompany } from '@/features/company/queries';
 import { CompanyEditForm } from '@/features/company/components/CompanyEditForm';
 import { PageHeader } from '@/components/PageHeader';
+import { Card, CardContent } from '@/components/ui/card';
 
 export default async function EmpresaPage() {
   const supabase = await createServerSupabaseClient();
@@ -15,14 +16,18 @@ export default async function EmpresaPage() {
   return (
     <div>
       <PageHeader title="Empresa" description="Edite os dados da sua empresa." />
-      <CompanyEditForm
-        defaultValues={{
-          name: company.name,
-          cnpj: company.cnpj ?? '',
-          segment: company.segment as Parameters<typeof CompanyEditForm>[0]['defaultValues']['segment'],
-          teamSize: company.team_size as Parameters<typeof CompanyEditForm>[0]['defaultValues']['teamSize'],
-        }}
-      />
+      <Card>
+        <CardContent>
+          <CompanyEditForm
+            defaultValues={{
+              name: company.name,
+              cnpj: company.cnpj ?? '',
+              segment: company.segment as Parameters<typeof CompanyEditForm>[0]['defaultValues']['segment'],
+              teamSize: company.team_size as Parameters<typeof CompanyEditForm>[0]['defaultValues']['teamSize'],
+            }}
+          />
+        </CardContent>
+      </Card>
     </div>
   );
 }
