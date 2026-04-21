@@ -128,6 +128,9 @@ export async function updateUserAccess(input: {
 
   revalidatePath('/colaboradores');
   revalidatePath(`/colaboradores/${input.profileId}`);
+  // Invalida o layout do (app) tambem — a Sidebar le rhPermissions e
+  // muda os items visiveis quando os toggles do RH afetado mudam.
+  revalidatePath('/', 'layout');
   return { ok: true };
 }
 
