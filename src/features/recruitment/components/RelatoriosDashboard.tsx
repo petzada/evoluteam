@@ -55,7 +55,7 @@ export function RelatoriosDashboard({
   return (
     <div>
       <PageHeader
-        title="Relatórios de Recrutamento"
+        title="Relatórios"
         description="Indicadores de gestão de recrutamentos da empresa."
         actions={<DashboardPeriodChips />}
       />

@@ -113,6 +113,7 @@ export async function listStageHistoryByCandidate(candidateId: string): Promise<
       changed_by_profile:profiles!changed_by(id, full_name)
     `)
     .in('application_id', appIds)
+    .eq('synthetic', false)
     .order('changed_at', { ascending: false });
   return (data ?? []) as unknown as StageHistoryRow[];
 }

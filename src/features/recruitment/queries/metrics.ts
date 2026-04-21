@@ -1,5 +1,9 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { STALLED_THRESHOLD_DAYS } from '../schema';
+import {
+  STALLED_THRESHOLD_DAYS,
+  CANDIDATE_SOURCE_LABELS,
+  type CandidateSource,
+} from '../schema';
 
 export type ViewerRole = 'admin_rh' | 'director' | 'gestor';
 
@@ -341,7 +345,7 @@ export async function getOriginsBreakdown(f: MetricsFilter): Promise<OriginBreak
 
   function labelFor(source: string, sourceOther: string | null): string {
     if (source === 'outro' && sourceOther) return sourceOther;
-    return source;
+    return CANDIDATE_SOURCE_LABELS[source as CandidateSource] ?? source;
   }
 
   // P4 decisão C: dois recortes independentes no mesmo período.
@@ -452,9 +456,13 @@ export async function getStageDurations(f: MetricsFilter): Promise<StageDuration
   // Precisamos calcular, por aplicação, quanto tempo ficou em cada etapa.
   // Algoritmo: para cada application, construir a sequência por (stage, tempo) e
   // calcular o delta de cada stage até a próxima entrada.
+  //
+  // Entradas sintéticas (pulos de etapa) ficam de fora: elas têm delta ~0 e
+  // distorcem a mediana. O funil em getFunnel conta inclusive sintéticas.
   let histQuery = supabase
     .from('candidate_stage_history')
-    .select('application_id, to_stage_id, changed_at');
+    .select('application_id, to_stage_id, changed_at')
+    .eq('synthetic', false);
   if (f.from) histQuery = histQuery.gte('changed_at', f.from.toISOString());
   if (f.to) histQuery = histQuery.lte('changed_at', f.to.toISOString());
   const { data: hist } = await histQuery

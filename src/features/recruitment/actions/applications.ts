@@ -305,11 +305,19 @@ export async function moveApplicationStage(applicationId: string, targetStageId:
     };
   }
 
-  // Pega nome da etapa anterior pra metadata
+  // Pega etapa anterior (com position) e lista todas ativas da company
+  // pra detectar eventual pulo de etapas.
   const { data: fromStage } = await admin
     .from('recruitment_stages')
-    .select('id, name')
+    .select('id, name, position')
     .eq('id', app.current_stage_id)
+    .maybeSingle();
+
+  // Busca target com position pra calcular pulo
+  const { data: targetWithPos } = await admin
+    .from('recruitment_stages')
+    .select('id, position')
+    .eq('id', targetStageId)
     .maybeSingle();
 
   const { error: updErr } = await admin
@@ -322,12 +330,63 @@ export async function moveApplicationStage(applicationId: string, targetStageId:
     .eq('id', applicationId);
   if (updErr) return { error: 'Falha ao mover candidato.' };
 
-  await admin.from('candidate_stage_history').insert({
-    application_id: applicationId,
-    from_stage_id: app.current_stage_id,
-    to_stage_id: targetStageId,
-    changed_by: actor.userId,
-  });
+  // Se o usuário pulou etapas (diff de position > 1), preencher o histórico
+  // com entries sintéticas pra cada etapa intermediária, mantendo o funil de
+  // relatórios consistente. Entries sintéticas ficam fora do timeline do
+  // candidato e do cálculo de tempo mediano.
+  const fromPos = fromStage?.position ?? null;
+  const toPos = targetWithPos?.position ?? null;
+  if (fromPos !== null && toPos !== null && toPos - fromPos > 1) {
+    const { data: intermediate } = await admin
+      .from('recruitment_stages')
+      .select('id, position')
+      .eq('company_id', actor.companyId)
+      .is('archived_at', null)
+      .gt('position', fromPos)
+      .lt('position', toPos)
+      .order('position', { ascending: true });
+
+    const baseMs = Date.now();
+    let prevStageId = app.current_stage_id;
+    const inserts: Array<{
+      application_id: string;
+      from_stage_id: string | null;
+      to_stage_id: string;
+      changed_by: string;
+      changed_at: string;
+      synthetic: boolean;
+    }> = [];
+    (intermediate ?? []).forEach((s, i) => {
+      inserts.push({
+        application_id: applicationId,
+        from_stage_id: prevStageId,
+        to_stage_id: s.id,
+        changed_by: actor.userId,
+        // timestamps incrementais em ms pra preservar ordem de visita
+        changed_at: new Date(baseMs + i).toISOString(),
+        synthetic: true,
+      });
+      prevStageId = s.id;
+    });
+    // Entrada real da etapa de destino, não sintética.
+    inserts.push({
+      application_id: applicationId,
+      from_stage_id: prevStageId,
+      to_stage_id: targetStageId,
+      changed_by: actor.userId,
+      changed_at: new Date(baseMs + (intermediate?.length ?? 0)).toISOString(),
+      synthetic: false,
+    });
+    await admin.from('candidate_stage_history').insert(inserts);
+  } else {
+    // Movimento normal (1 etapa) — comportamento original
+    await admin.from('candidate_stage_history').insert({
+      application_id: applicationId,
+      from_stage_id: app.current_stage_id,
+      to_stage_id: targetStageId,
+      changed_by: actor.userId,
+    });
+  }
 
   const candName = (app.candidate as unknown as { name: string } | null)?.name ?? 'Candidato';
   const jobTitle = (app.job_opening as unknown as { title: string; hiring_manager_id: string | null } | null)?.title ?? '';

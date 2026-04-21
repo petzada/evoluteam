@@ -1013,6 +1013,7 @@ export type Database = {
           reason_notes: string | null
           changed_at: string
           changed_by: string | null
+          synthetic: boolean
         }
         Insert: {
           id?: string
@@ -1024,6 +1025,7 @@ export type Database = {
           reason_notes?: string | null
           changed_at?: string
           changed_by?: string | null
+          synthetic?: boolean
         }
         Update: Partial<Database['public']['Tables']['candidate_stage_history']['Insert']>
         Relationships: [
