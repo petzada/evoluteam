@@ -787,6 +787,84 @@ export type Database = {
         }
         Relationships: []
       }
+      review_result_comments: {
+        Row: {
+          id: string
+          company_id: string
+          cycle_id: string
+          reviewee_employee_id: string
+          author_employee_id: string
+          content: string
+          created_at: string
+          updated_at: string
+          deleted_at: string | null
+          deleted_by: string | null
+        }
+        Insert: {
+          id?: string
+          company_id: string
+          cycle_id: string
+          reviewee_employee_id: string
+          author_employee_id: string
+          content: string
+          created_at?: string
+          updated_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+        }
+        Update: {
+          id?: string
+          company_id?: string
+          cycle_id?: string
+          reviewee_employee_id?: string
+          author_employee_id?: string
+          content?: string
+          created_at?: string
+          updated_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+        }
+        Relationships: []
+      }
+      rh_permissions: {
+        Row: {
+          profile_id: string
+          company_id: string
+          can_employees: boolean
+          can_reviews: boolean
+          can_recruitment: boolean
+          can_pdi_feedback: boolean
+          can_invites: boolean
+          can_audit: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          profile_id: string
+          company_id: string
+          can_employees?: boolean
+          can_reviews?: boolean
+          can_recruitment?: boolean
+          can_pdi_feedback?: boolean
+          can_invites?: boolean
+          can_audit?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          profile_id?: string
+          company_id?: string
+          can_employees?: boolean
+          can_reviews?: boolean
+          can_recruitment?: boolean
+          can_pdi_feedback?: boolean
+          can_invites?: boolean
+          can_audit?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null

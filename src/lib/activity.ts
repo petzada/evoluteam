@@ -2,7 +2,7 @@ import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 
 type ActivityAction =
   | 'company.created' | 'company.updated'
-  | 'user.invited' | 'user.activated' | 'user.deactivated' | 'user.updated' | 'user.role_changed'
+  | 'user.invited' | 'user.activated' | 'user.deactivated' | 'user.updated' | 'user.role_changed' | 'user.permissions_changed'
   | 'invite.sent' | 'invite.accepted' | 'invite.revoked' | 'invite.resent'
   | 'employee.created' | 'employee.updated' | 'employee.terminated'
   | 'review_cycle.created' | 'review_cycle.updated' | 'review_cycle.published'
@@ -63,6 +63,7 @@ export const ACTIVITY_LABELS: Record<string, string> = {
   'user.deactivated': 'Usuário desativado',
   'user.updated': 'Usuário atualizado',
   'user.role_changed': 'Papel alterado',
+  'user.permissions_changed': 'Permissões alteradas',
   'invite.sent': 'Convite enviado',
   'invite.accepted': 'Convite aceito',
   'invite.revoked': 'Convite revogado',
