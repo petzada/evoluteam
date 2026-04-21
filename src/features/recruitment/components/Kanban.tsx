@@ -10,7 +10,7 @@ import {
 import { toast } from 'sonner';
 import {
   MoreVertical, ArrowUp, ArrowDown, X, Snowflake,
-  CheckCircle2, MessageSquare, Star,
+  CheckCircle2, MessageSquare, Star, Eye,
 } from 'lucide-react';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -27,13 +27,16 @@ import {
 } from '../schema';
 import type { ApplicationRow } from '../queries/applications';
 import type { StageRow } from '../queries/stages';
-import type { TaskKanbanState } from '../queries/tasks';
+import type { TaskKanbanState, TaskRow } from '../queries/tasks';
+import type { CandidateFeedbackRow } from '../queries/feedbacks';
+import type { ScorecardRow } from '../queries/scorecards';
 import { ArchiveReasonDialog, type ArchiveAction } from './ArchiveReasonDialog';
 import { FeedbackSheet, type FeedbackContext } from './FeedbackSheet';
 import {
   HireCandidateDialog, type HireContext,
 } from './HireCandidateDialog';
 import type { HireEligibility } from '../actions/hire';
+import { CandidateQuickSheet } from './CandidateQuickSheet';
 
 interface TaxonomyItem { id: string; name: string }
 interface ManagerItem { id: string; full_name: string }
@@ -55,6 +58,11 @@ interface Props {
   feedbackCounts: Map<string, number>;
   scorecardCounts: Map<string, number>;
   taskStates: Map<string, TaskKanbanState>;
+  feedbacks: CandidateFeedbackRow[];
+  scorecards: ScorecardRow[];
+  tasks: TaskRow[];
+  currentEmployeeId: string | null;
+  isAdmin: boolean;
   job: JobContext;
   positions: TaxonomyItem[];
   departments: TaxonomyItem[];
@@ -69,6 +77,7 @@ function daysSince(iso: string): number {
 export function Kanban({
   stages, applications, canMove, canGiveFeedback, canHire,
   feedbackCounts, scorecardCounts, taskStates,
+  feedbacks, scorecards, tasks, currentEmployeeId, isAdmin,
   job, positions, departments, managers,
 }: Props) {
   const router = useRouter();
@@ -89,6 +98,28 @@ export function Kanban({
     eligibility: HireEligibility | null;
     context: HireContext | null;
   }>({ open: false, eligibility: null, context: null });
+  const [quickSheetAppId, setQuickSheetAppId] = useState<string | null>(null);
+
+  // Listas filtradas pela application aberta no QuickSheet
+  const quickSheetApp = quickSheetAppId
+    ? applications.find((a) => a.id === quickSheetAppId) ?? null
+    : null;
+  const quickSheetFeedbacks = useMemo(
+    () => (quickSheetAppId ? feedbacks.filter((f) => f.application_id === quickSheetAppId) : []),
+    [feedbacks, quickSheetAppId],
+  );
+  const quickSheetScorecards = useMemo(
+    () => (quickSheetAppId ? scorecards.filter((s) => s.application_id === quickSheetAppId) : []),
+    [scorecards, quickSheetAppId],
+  );
+  const quickSheetTasks = useMemo(
+    () => (quickSheetAppId ? tasks.filter((t) => t.application_id === quickSheetAppId) : []),
+    [tasks, quickSheetAppId],
+  );
+  const responsibleOptions = useMemo(
+    () => managers.map((m) => ({ id: m.id, full_name: m.full_name })),
+    [managers],
+  );
 
   const byStage = useMemo(() => {
     const map = new Map<string, ApplicationRow[]>();
@@ -223,6 +254,7 @@ export function Kanban({
               onArchiveAction={openArchive}
               onFeedbackAction={openFeedback}
               onHireAction={triggerHire}
+              onViewProfile={(app) => setQuickSheetAppId(app.id)}
               onMoveTo={onMoveTo}
               stages={stages}
             />
@@ -262,6 +294,18 @@ export function Kanban({
         departments={departments}
         managers={managers}
       />
+      <CandidateQuickSheet
+        open={quickSheetAppId !== null}
+        onOpenChange={(v) => { if (!v) setQuickSheetAppId(null); }}
+        application={quickSheetApp}
+        feedbacks={quickSheetFeedbacks}
+        scorecards={quickSheetScorecards}
+        tasks={quickSheetTasks}
+        currentEmployeeId={currentEmployeeId}
+        isAdmin={isAdmin}
+        canGiveFeedback={canGiveFeedback}
+        responsibleOptions={responsibleOptions}
+      />
     </>
   );
 }
@@ -278,6 +322,7 @@ interface ColumnProps {
   onArchiveAction: (action: ArchiveAction, app: ApplicationRow) => void;
   onFeedbackAction: (app: ApplicationRow) => void;
   onHireAction: (app: ApplicationRow) => void;
+  onViewProfile: (app: ApplicationRow) => void;
   onMoveTo: (appId: string, targetStageId: string) => void | Promise<void>;
   stages: StageRow[];
 }
@@ -285,7 +330,7 @@ interface ColumnProps {
 function KanbanColumn({
   stage, applications, canMove, canGiveFeedback, canHire,
   feedbackCounts, scorecardCounts, taskStates,
-  onArchiveAction, onFeedbackAction, onHireAction, onMoveTo, stages,
+  onArchiveAction, onFeedbackAction, onHireAction, onViewProfile, onMoveTo, stages,
 }: ColumnProps) {
   const { isOver, setNodeRef } = useDroppable({
     id: stage.id,
@@ -326,6 +371,7 @@ function KanbanColumn({
             onArchiveAction={onArchiveAction}
             onFeedbackAction={onFeedbackAction}
             onHireAction={onHireAction}
+            onViewProfile={onViewProfile}
             onMoveTo={onMoveTo}
           />
         ))}
@@ -347,13 +393,14 @@ interface DraggableCardProps {
   onArchiveAction: (action: ArchiveAction, app: ApplicationRow) => void;
   onFeedbackAction: (app: ApplicationRow) => void;
   onHireAction: (app: ApplicationRow) => void;
+  onViewProfile: (app: ApplicationRow) => void;
   onMoveTo: (appId: string, targetStageId: string) => void | Promise<void>;
 }
 
 function DraggableCardWithMenu({
   app, stage, stages, canMove, canGiveFeedback, canHire,
   feedbackCount, scorecardCount, taskState,
-  onArchiveAction, onFeedbackAction, onHireAction, onMoveTo,
+  onArchiveAction, onFeedbackAction, onHireAction, onViewProfile, onMoveTo,
 }: DraggableCardProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: app.id,
@@ -371,7 +418,8 @@ function DraggableCardWithMenu({
   const prev = currentIdx > 0 ? sortedStages[currentIdx - 1] : null;
   const next = currentIdx >= 0 && currentIdx < sortedStages.length - 1 ? sortedStages[currentIdx + 1] : null;
 
-  const hasAnyAction = canMove || canGiveFeedback;
+  const canViewProfile = canGiveFeedback || canHire;
+  const hasAnyAction = canMove || canGiveFeedback || canViewProfile;
 
   return (
     <div ref={setNodeRef} style={style} className={cn(isDragging && 'opacity-30')}>
@@ -435,6 +483,14 @@ function DraggableCardWithMenu({
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => onHireAction(app)}>
                       <CheckCircle2 className="mr-2 h-4 w-4 text-emerald-600" /> Marcar contratado
+                    </DropdownMenuItem>
+                  </>
+                )}
+                {canViewProfile && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => onViewProfile(app)}>
+                      <Eye className="mr-2 h-4 w-4" /> Ver perfil
                     </DropdownMenuItem>
                   </>
                 )}

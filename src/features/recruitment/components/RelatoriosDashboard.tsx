@@ -30,6 +30,22 @@ interface Props {
   hideManagerFilter?: boolean;
 }
 
+/**
+ * Interpola verticalmente entre orange-300→400 no topo do funil e
+ * orange-700→800 no fundo. Cada etapa tem seu gradiente próprio, progredindo
+ * linearmente pelo índice. Intervalo geral: orange-300 → orange-800.
+ */
+function getFunnelBarGradient(idx: number, total: number): string {
+  if (total <= 1) return 'linear-gradient(180deg, #fdba74 0%, #fb923c 100%)';
+  const t = idx / (total - 1);
+  const lerp = (a: number, b: number) => Math.round(a + (b - a) * t);
+  // Topo: orange-300 (#fdba74) → orange-700 (#c2410c)
+  const tr = lerp(0xfd, 0xc2), tg = lerp(0xba, 0x41), tb = lerp(0x74, 0x0c);
+  // Fundo: orange-400 (#fb923c) → orange-800 (#9a3412)
+  const br = lerp(0xfb, 0x9a), bg = lerp(0x92, 0x34), bb = lerp(0x3c, 0x12);
+  return `linear-gradient(180deg, rgb(${tr} ${tg} ${tb}) 0%, rgb(${br} ${bg} ${bb}) 100%)`;
+}
+
 export function RelatoriosDashboard({
   kpis, funnel, origins, durations, stalled, overdue, periodLabel,
   jobsForFilter, employeesForFilter, hideManagerFilter,
@@ -79,26 +95,38 @@ export function RelatoriosDashboard({
 
       <Card className="mb-4">
         <CardContent className="pt-6">
-          <h3 className="text-sm font-semibold mb-3">Funil de conversão</h3>
+          <h3 className="text-sm font-semibold mb-4">Funil de conversão</h3>
           {funnel.length === 0 || funnel.every((f) => f.count === 0) ? (
             <p className="text-xs text-muted-foreground">Sem dados no período.</p>
           ) : (
-            <div className="space-y-1.5">
-              {funnel.map((stage) => (
+            <div className="flex flex-col gap-1">
+              {funnel.map((stage, idx) => (
                 <HoverCard key={stage.stageId}>
                   <HoverCardTrigger
                     render={
-                      <div className="flex items-center gap-3 text-xs cursor-default hover:bg-muted/40 rounded px-1 py-0.5 -mx-1 transition-colors">
-                        <span className="w-36 truncate text-muted-foreground">{stage.stageName}</span>
-                        <div className="flex-1 h-5 bg-muted rounded">
-                          <div
-                            className="h-full bg-primary rounded flex items-center justify-end px-2 text-primary-foreground text-[10px] font-medium"
-                            style={{ width: `${Math.max((stage.count / maxFunnel) * 100, 2)}%` }}
-                          >
-                            {stage.count > 0 ? stage.count : ''}
-                          </div>
+                      <div className="grid grid-cols-[150px_1fr_88px] items-center gap-3.5 min-h-[42px] cursor-default hover:bg-muted/30 rounded-md px-2 -mx-2 transition-colors">
+                        <span className="text-xs text-muted-foreground text-right truncate font-medium">
+                          {stage.stageName}
+                        </span>
+                        <div className="flex items-center justify-center h-9">
+                          {stage.count > 0 ? (
+                            <div
+                              className="h-full flex items-center justify-center text-white text-[11.5px] font-bold tabular-nums"
+                              style={{
+                                width: `${Math.max((stage.count / maxFunnel) * 100, 5)}%`,
+                                minWidth: 44,
+                                background: getFunnelBarGradient(idx, funnel.length),
+                                clipPath: 'polygon(10px 0, calc(100% - 10px) 0, 100% 100%, 0 100%)',
+                                textShadow: '0 1px 1px rgba(0,0,0,0.12)',
+                              }}
+                            >
+                              {stage.count}
+                            </div>
+                          ) : (
+                            <span className="text-xs text-muted-foreground/50">—</span>
+                          )}
                         </div>
-                        <span className="w-14 text-right tabular-nums text-muted-foreground">
+                        <span className="text-[15px] font-bold text-orange-700 tabular-nums tracking-tight">
                           {stage.conversionFromFirst !== null ? `${stage.conversionFromFirst}%` : '—'}
                         </span>
                       </div>
@@ -116,7 +144,25 @@ export function RelatoriosDashboard({
                           <FunnelRow label="Conversão desde o topo" value={`${stage.conversionFromFirst}%`} />
                         )}
                         <FunnelRow label="Avançaram" value={stage.advancedCount.toString()} />
-                        <FunnelRow label="Reprovados/desistiram" value={stage.rejectedOrWithdrawnCount.toString()} />
+                        <FunnelRow
+                          label="Reprovados"
+                          value={
+                            stage.rejectionRate !== null
+                              ? `${stage.rejectedCount} (${stage.rejectionRate}%)`
+                              : stage.rejectedCount.toString()
+                          }
+                        />
+                        <FunnelRow
+                          label="Desistentes"
+                          value={
+                            stage.withdrawalRate !== null
+                              ? `${stage.withdrawnCount} (${stage.withdrawalRate}%)`
+                              : stage.withdrawnCount.toString()
+                          }
+                        />
+                        {stage.frozenCount > 0 && (
+                          <FunnelRow label="Congelados" value={stage.frozenCount.toString()} />
+                        )}
                         {stage.medianDaysInStage !== null && (
                           <FunnelRow label="Mediana na etapa" value={`${stage.medianDaysInStage}d`} />
                         )}
@@ -139,7 +185,7 @@ export function RelatoriosDashboard({
         </Card>
 
         <Card>
-          <CardContent className="pt-6">
+          <CardContent className="pt-6 flex flex-col h-full">
             <h3 className="text-sm font-semibold mb-3">Tempo mediano por etapa (em dias)</h3>
             <StageDurationsLollipop durations={durations} />
           </CardContent>

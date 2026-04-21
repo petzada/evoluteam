@@ -25,7 +25,7 @@ export function StageDurationsLollipop({ durations }: Props) {
   const toHeight = (days: number) => Math.max(6, (days / maxDays) * (CHART_HEIGHT - PADDING_TOP));
 
   return (
-    <div>
+    <div className="flex flex-col h-full">
       <div
         className="relative flex items-end gap-2 border-b px-2 pb-6"
         style={{ height: CHART_HEIGHT }}
@@ -64,7 +64,15 @@ export function StageDurationsLollipop({ durations }: Props) {
                     {d.minDays !== null && <Row label="Mínimo" value={`${d.minDays}d`} />}
                     {d.maxDays !== null && <Row label="Máximo" value={`${d.maxDays}d`} />}
                     <Row label="Candidatos ativos" value={d.activeCount.toString()} />
+                    {d.returnCount > 0 && (
+                      <Row label="Voltaram pra esta etapa" value={d.returnCount.toString()} />
+                    )}
                   </div>
+                  {d.returnCount > 0 && (
+                    <p className="text-[10px] text-muted-foreground pt-1 border-t italic">
+                      Tempo = soma das passagens por candidato
+                    </p>
+                  )}
                   {d.isBottleneck && (
                     <p className="text-[10px] text-destructive font-medium pt-1 border-t">
                       ⚠ gargalo: mais que 5 dias
@@ -76,7 +84,7 @@ export function StageDurationsLollipop({ durations }: Props) {
           );
         })}
       </div>
-      <div className="mt-3 flex gap-3 text-[9.5px] text-muted-foreground">
+      <div className="mt-auto pt-3 flex gap-3 text-[9.5px] text-muted-foreground">
         <span className="flex items-center gap-1">
           <span className="inline-block h-2 w-2 rounded-full bg-primary" />
           normal

@@ -9,9 +9,9 @@ import {
   listArchivedApplicationsByJob,
 } from '@/features/recruitment/queries/applications';
 import { listActiveStages } from '@/features/recruitment/queries/stages';
-import { countFeedbacksByApplication } from '@/features/recruitment/queries/feedbacks';
-import { countScorecardsByApplication } from '@/features/recruitment/queries/scorecards';
-import { getTaskStatesByApplication } from '@/features/recruitment/queries/tasks';
+import { countFeedbacksByApplication, listFeedbacksByJob } from '@/features/recruitment/queries/feedbacks';
+import { countScorecardsByApplication, listScorecardsByJob } from '@/features/recruitment/queries/scorecards';
+import { getTaskStatesByApplication, listTasksByJob } from '@/features/recruitment/queries/tasks';
 import {
   canManageJobOpenings, canMoveApplication,
   canGiveFeedback, canHireCandidate,
@@ -57,10 +57,13 @@ export default async function VagaDetailPage({ params }: { params: Params }) {
   ]);
 
   const appIds = active.map((a) => a.id);
-  const [feedbackCounts, scorecardCounts, taskStates] = await Promise.all([
+  const [feedbackCounts, scorecardCounts, taskStates, feedbacks, scorecards, tasks] = await Promise.all([
     countFeedbacksByApplication(appIds),
     countScorecardsByApplication(appIds),
     getTaskStatesByApplication(appIds),
+    listFeedbacksByJob(id),
+    listScorecardsByJob(id),
+    listTasksByJob(id),
   ]);
 
   return (
@@ -78,6 +81,11 @@ export default async function VagaDetailPage({ params }: { params: Params }) {
         feedbackCounts={feedbackCounts}
         scorecardCounts={scorecardCounts}
         taskStates={taskStates}
+        feedbacks={feedbacks}
+        scorecards={scorecards}
+        tasks={tasks}
+        currentEmployeeId={actor.employeeId}
+        isAdmin={actor.role === 'admin_rh'}
         positions={positions}
         departments={departments}
         managers={managers}

@@ -39,6 +39,27 @@ export async function listTasksByCandidate(candidateId: string): Promise<TaskRow
   return (data ?? []) as unknown as TaskRow[];
 }
 
+/**
+ * Lista tarefas ativas de todas as applications de uma vaga. Usado pelo
+ * CandidateQuickSheet — consumer filtra por application_id em memória.
+ */
+export async function listTasksByJob(jobOpeningId: string): Promise<TaskRow[]> {
+  const supabase = await createServerSupabaseClient();
+  const { data: apps } = await supabase
+    .from('job_applications')
+    .select('id')
+    .eq('job_opening_id', jobOpeningId);
+  const appIds = (apps ?? []).map((a: { id: string }) => a.id);
+  if (appIds.length === 0) return [];
+  const { data } = await supabase
+    .from('candidate_tasks')
+    .select(TASK_SELECT)
+    .in('application_id', appIds)
+    .is('deleted_at', null)
+    .order('due_date', { ascending: true, nullsFirst: false });
+  return (data ?? []) as unknown as TaskRow[];
+}
+
 export type TaskKanbanState = {
   total: number;
   completed: number;

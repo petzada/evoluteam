@@ -49,7 +49,10 @@ export function CandidatesTable({ candidates, canCreate }: Props) {
     const q = search.trim().toLowerCase();
     return candidates.filter((c) => {
       if (q) {
-        const hit = c.name.toLowerCase().includes(q) || c.email.toLowerCase().includes(q);
+        const hit =
+          c.name.toLowerCase().includes(q) ||
+          c.email.toLowerCase().includes(q) ||
+          (c.phone?.toLowerCase().includes(q) ?? false);
         if (!hit) return false;
       }
       if (sourceFilter.length > 0 && !sourceFilter.includes(c.source)) return false;
@@ -90,7 +93,7 @@ export function CandidatesTable({ candidates, canCreate }: Props) {
             <div className="relative flex-1 min-w-[240px] max-w-xs">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar por nome ou e-mail…"
+                placeholder="Buscar por nome, e-mail ou telefone…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-9"

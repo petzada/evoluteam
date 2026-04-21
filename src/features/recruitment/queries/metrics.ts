@@ -162,7 +162,12 @@ export type FunnelStageRow = {
   conversionFromFirst: number | null; // %
   conversionFromPrev: number | null;  // % em relação à etapa anterior
   advancedCount: number;              // passou desta etapa para outra posterior
-  rejectedOrWithdrawnCount: number;   // saiu por status terminal a partir desta etapa
+  rejectedCount: number;              // saiu como rejected a partir desta etapa
+  withdrawnCount: number;             // saiu como withdrawn a partir desta etapa
+  frozenCount: number;                // saiu como frozen a partir desta etapa
+  rejectedOrWithdrawnCount: number;   // soma (mantido por compatibilidade)
+  rejectionRate: number | null;       // % rejected sobre count (null se count=0)
+  withdrawalRate: number | null;      // % withdrawn sobre count (null se count=0)
   medianDaysInStage: number | null;   // mediana de dias que ficaram nessa etapa
 };
 
@@ -241,24 +246,34 @@ export async function getFunnel(f: MetricsFilter): Promise<FunnelStageRow[]> {
   }
 
   // advanced/terminal per stage — baseado na sequência por app
+  // P3 decisão B: "avançou" conta só se a ÚLTIMA etapa visitada pela application
+  // tem position > esta etapa. Avanço desfeito por retorno não conta.
   const advancedPerStage = new Map<string, number>();
-  const terminalPerStage = new Map<string, number>();
+  const rejectedPerStage = new Map<string, number>();
+  const withdrawnPerStage = new Map<string, number>();
+  const frozenPerStage = new Map<string, number>();
   for (const [appId, arr] of perApp.entries()) {
+    const last = arr[arr.length - 1];
+    if (!last) continue;
+    const lastPos = stagePosition.get(last.stageId) ?? -1;
     const visited = new Set<string>();
     for (let i = 0; i < arr.length; i += 1) {
       const { stageId } = arr[i];
       if (visited.has(stageId)) continue;
       visited.add(stageId);
       const pos = stagePosition.get(stageId) ?? -1;
-      // Avançou se em qualquer entrada futura a posição é maior
-      const didAdvance = arr.slice(i + 1).some((e) => (stagePosition.get(e.stageId) ?? -1) > pos);
-      if (didAdvance) advancedPerStage.set(stageId, (advancedPerStage.get(stageId) ?? 0) + 1);
+      if (lastPos > pos) {
+        advancedPerStage.set(stageId, (advancedPerStage.get(stageId) ?? 0) + 1);
+      }
     }
-    // Status terminal conta na última etapa que o app visitou (se status terminal)
+    // Status terminal conta na última etapa que o app visitou (separado por tipo)
     const status = appStatus.get(appId);
-    if (status === 'rejected' || status === 'withdrawn' || status === 'frozen') {
-      const last = arr[arr.length - 1];
-      if (last) terminalPerStage.set(last.stageId, (terminalPerStage.get(last.stageId) ?? 0) + 1);
+    if (status === 'rejected') {
+      rejectedPerStage.set(last.stageId, (rejectedPerStage.get(last.stageId) ?? 0) + 1);
+    } else if (status === 'withdrawn') {
+      withdrawnPerStage.set(last.stageId, (withdrawnPerStage.get(last.stageId) ?? 0) + 1);
+    } else if (status === 'frozen') {
+      frozenPerStage.set(last.stageId, (frozenPerStage.get(last.stageId) ?? 0) + 1);
     }
   }
 
@@ -275,6 +290,9 @@ export async function getFunnel(f: MetricsFilter): Promise<FunnelStageRow[]> {
         ? (sorted[mid - 1] + sorted[mid]) / 2
         : sorted[mid];
     }
+    const rejectedCount = rejectedPerStage.get(s.id) ?? 0;
+    const withdrawnCount = withdrawnPerStage.get(s.id) ?? 0;
+    const frozenCount = frozenPerStage.get(s.id) ?? 0;
     const row: FunnelStageRow = {
       stageId: s.id,
       stageName: s.name,
@@ -283,7 +301,12 @@ export async function getFunnel(f: MetricsFilter): Promise<FunnelStageRow[]> {
       conversionFromFirst: firstCount > 0 ? Math.round((count / firstCount) * 100) : null,
       conversionFromPrev: i === 0 ? null : prevCount > 0 ? Math.round((count / prevCount) * 100) : null,
       advancedCount: advancedPerStage.get(s.id) ?? 0,
-      rejectedOrWithdrawnCount: terminalPerStage.get(s.id) ?? 0,
+      rejectedCount,
+      withdrawnCount,
+      frozenCount,
+      rejectedOrWithdrawnCount: rejectedCount + withdrawnCount + frozenCount,
+      rejectionRate: count > 0 ? Math.round((rejectedCount / count) * 100) : null,
+      withdrawalRate: count > 0 ? Math.round((withdrawnCount / count) * 100) : null,
       medianDaysInStage: median !== null ? Math.round(median * 10) / 10 : null,
     };
     prevCount = count;
@@ -316,7 +339,13 @@ export async function getOriginsBreakdown(f: MetricsFilter): Promise<OriginBreak
     candidateIdsFromJobs = new Set((apps ?? []).map((a) => a.candidate_id));
   }
 
-  // Total de candidatos por origem (na company; período opcional em created_at)
+  function labelFor(source: string, sourceOther: string | null): string {
+    if (source === 'outro' && sourceOther) return sourceOther;
+    return source;
+  }
+
+  // P4 decisão C: dois recortes independentes no mesmo período.
+  // Donut "Candidatos" — criados no período (+ filtros de vaga/candidato).
   let candQuery = supabase
     .from('candidates')
     .select('id, source, source_other')
@@ -329,10 +358,11 @@ export async function getOriginsBreakdown(f: MetricsFilter): Promise<OriginBreak
     !candidateIdsFromJobs || candidateIdsFromJobs.has(c.id),
   );
 
-  // Candidatos contratados por origem (via candidates.hired_employee_id != null + aplicação hired no período)
+  // Donut "Contratados" — hired no período (qualquer created_at do candidato).
+  // Source via join — não depende mais de candsAll.
   let hiredAppsQuery = supabase
     .from('job_applications')
-    .select('candidate_id, updated_at')
+    .select('candidate_id, updated_at, candidate:candidates(source, source_other)')
     .eq('company_id', f.companyId)
     .eq('status', 'hired');
   if (jobIds) hiredAppsQuery = hiredAppsQuery.in('job_opening_id', jobIds);
@@ -340,16 +370,9 @@ export async function getOriginsBreakdown(f: MetricsFilter): Promise<OriginBreak
   if (f.from) hiredAppsQuery = hiredAppsQuery.gte('updated_at', f.from.toISOString());
   if (f.to) hiredAppsQuery = hiredAppsQuery.lte('updated_at', f.to.toISOString());
   const { data: hiredApps } = await hiredAppsQuery;
-  const hiredIds = new Set((hiredApps ?? []).map((a) => a.candidate_id));
-
-  // Nome da origem (label humano)
-  function labelFor(source: string, sourceOther: string | null): string {
-    if (source === 'outro' && sourceOther) return sourceOther;
-    return source;
-  }
 
   const map = new Map<string, OriginBreakdown>();
-  for (const c of cands ?? []) {
+  for (const c of cands) {
     const key = c.source ?? 'manual';
     const entry = map.get(key) ?? {
       source: key,
@@ -361,19 +384,22 @@ export async function getOriginsBreakdown(f: MetricsFilter): Promise<OriginBreak
     map.set(key, entry);
   }
 
-  // Anexa hired aos seus source
-  const { data: candsAll } = await supabase
-    .from('candidates')
-    .select('id, source')
-    .eq('company_id', f.companyId);
-  for (const c of candsAll ?? []) {
-    if (!hiredIds.has(c.id)) continue;
-    const key = c.source ?? 'manual';
-    const entry = map.get(key);
-    if (entry) entry.hired += 1;
+  for (const h of hiredApps ?? []) {
+    const cand = h.candidate as unknown as { source: string; source_other: string | null } | null;
+    if (!cand) continue;
+    const key = cand.source ?? 'manual';
+    const entry = map.get(key) ?? {
+      source: key,
+      label: labelFor(key, cand.source_other ?? null),
+      candidates: 0,
+      hired: 0,
+    };
+    entry.hired += 1;
+    map.set(key, entry);
   }
 
-  return Array.from(map.values()).sort((a, b) => b.candidates - a.candidates);
+  return Array.from(map.values())
+    .sort((a, b) => (b.candidates + b.hired) - (a.candidates + a.hired));
 }
 
 export type StageDuration = {
@@ -385,6 +411,7 @@ export type StageDuration = {
   minDays: number | null;
   maxDays: number | null;
   activeCount: number;       // aplicações atualmente nessa etapa com status='in_progress'
+  returnCount: number;       // nº de applications que visitaram essa etapa 2+ vezes (P2)
   isBottleneck: boolean;     // mediana > STALLED_THRESHOLD_DAYS
 };
 
@@ -441,16 +468,29 @@ export async function getStageDurations(f: MetricsFilter): Promise<StageDuration
     perApp.set(h.application_id, arr);
   }
 
+  // P2 decisão D: somar passagens por application por etapa — cada application
+  // contribui com UM valor (a soma de todas as suas estadias) na distribuição
+  // daquela etapa. Retornos são contabilizados separadamente em returnsPerStage.
   const durationsPerStage = new Map<string, number[]>();
+  const returnsPerStage = new Map<string, number>();
   for (const arr of perApp.values()) {
+    const sumByStage = new Map<string, number>();
+    const visitsByStage = new Map<string, number>();
     for (let i = 0; i < arr.length - 1; i += 1) {
       const curr = arr[i];
       const next = arr[i + 1];
       if (!curr.stageId) continue;
       const days = (next.ts - curr.ts) / (1000 * 60 * 60 * 24);
-      const list = durationsPerStage.get(curr.stageId) ?? [];
-      list.push(days);
-      durationsPerStage.set(curr.stageId, list);
+      sumByStage.set(curr.stageId, (sumByStage.get(curr.stageId) ?? 0) + days);
+      visitsByStage.set(curr.stageId, (visitsByStage.get(curr.stageId) ?? 0) + 1);
+    }
+    for (const [stageId, sum] of sumByStage) {
+      const list = durationsPerStage.get(stageId) ?? [];
+      list.push(sum);
+      durationsPerStage.set(stageId, list);
+      if ((visitsByStage.get(stageId) ?? 0) >= 2) {
+        returnsPerStage.set(stageId, (returnsPerStage.get(stageId) ?? 0) + 1);
+      }
     }
   }
 
@@ -481,6 +521,7 @@ export async function getStageDurations(f: MetricsFilter): Promise<StageDuration
       minDays: round1(minV),
       maxDays: round1(maxV),
       activeCount: activeByStage.get(s.id) ?? 0,
+      returnCount: returnsPerStage.get(s.id) ?? 0,
       isBottleneck: medianRounded !== null && medianRounded > STALLED_THRESHOLD_DAYS,
     };
   });

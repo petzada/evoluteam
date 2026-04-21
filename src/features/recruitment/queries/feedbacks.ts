@@ -39,6 +39,29 @@ export async function listFeedbacksByCandidate(candidateId: string): Promise<Can
   return (data ?? []) as unknown as CandidateFeedbackRow[];
 }
 
+/**
+ * Lista feedbacks ativos de todas as applications de uma vaga. Usado pelo
+ * CandidateQuickSheet — o consumer filtra por application_id em memória (Map O(1))
+ * para evitar N queries quando o Kanban abre o Sheet de cada candidato.
+ */
+export async function listFeedbacksByJob(jobOpeningId: string): Promise<CandidateFeedbackRow[]> {
+  const supabase = await createServerSupabaseClient();
+  const { data: apps } = await supabase
+    .from('job_applications')
+    .select('id')
+    .eq('job_opening_id', jobOpeningId);
+  const appIds = (apps ?? []).map((a: { id: string }) => a.id);
+  if (appIds.length === 0) return [];
+
+  const { data } = await supabase
+    .from('candidate_feedbacks')
+    .select(FEEDBACK_SELECT)
+    .in('application_id', appIds)
+    .is('deleted_at', null)
+    .order('created_at', { ascending: false });
+  return (data ?? []) as unknown as CandidateFeedbackRow[];
+}
+
 export async function listFeedbacksByApplication(applicationId: string): Promise<CandidateFeedbackRow[]> {
   const supabase = await createServerSupabaseClient();
   const { data } = await supabase

@@ -46,6 +46,28 @@ export async function listScorecardsByCandidate(candidateId: string): Promise<Sc
   return (data ?? []) as unknown as ScorecardRow[];
 }
 
+/**
+ * Lista scorecards ativos de todas as applications de uma vaga. Usado pelo
+ * CandidateQuickSheet — consumer filtra por application_id em memória.
+ */
+export async function listScorecardsByJob(jobOpeningId: string): Promise<ScorecardRow[]> {
+  const supabase = await createServerSupabaseClient();
+  const { data: apps } = await supabase
+    .from('job_applications')
+    .select('id')
+    .eq('job_opening_id', jobOpeningId);
+  const appIds = (apps ?? []).map((a: { id: string }) => a.id);
+  if (appIds.length === 0) return [];
+
+  const { data } = await supabase
+    .from('candidate_scorecards')
+    .select(SCORECARD_SELECT)
+    .in('application_id', appIds)
+    .is('deleted_at', null)
+    .order('created_at', { ascending: false });
+  return (data ?? []) as unknown as ScorecardRow[];
+}
+
 export async function countScorecardsByApplication(
   applicationIds: string[],
 ): Promise<Map<string, number>> {
