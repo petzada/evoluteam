@@ -148,6 +148,75 @@ export async function archiveRecruitmentStage(id: string) {
   return { ok: true };
 }
 
+/**
+ * Reativa uma etapa arquivada (spec 14 §5.11).
+ * Insere a etapa reativada no final da lista ativa (antes de
+ * hired_terminal, se existir), seguindo a mesma lógica de posicionamento
+ * de createRecruitmentStage.
+ */
+export async function reactivateRecruitmentStage(id: string) {
+  const actor = await getActor();
+  if (!actor) return { error: 'Não autenticado.' };
+  if (actor.role !== 'admin_rh') return { error: 'Sem permissão.' };
+
+  const admin = createAdminSupabaseClient();
+  const { data: stage } = await admin
+    .from('recruitment_stages')
+    .select('id, name, kind, archived_at, company_id')
+    .eq('id', id)
+    .maybeSingle();
+  if (!stage || stage.company_id !== actor.companyId) return { error: 'Etapa não encontrada.' };
+  if (!stage.archived_at) return { ok: true };
+
+  // Só intermediárias podem estar arquivadas (entry/hired_terminal não
+  // são arquiváveis pelo archiveRecruitmentStage), mas validamos aqui
+  // por defesa caso o banco tenha dado arquivada "manual".
+  if (stage.kind !== 'intermediate') {
+    return { error: 'Apenas etapas intermediárias podem ser reativadas.' };
+  }
+
+  // Calcula nova posição: penúltima entre as ativas se existe
+  // hired_terminal, senão última.
+  const { data: allStages } = await admin
+    .from('recruitment_stages')
+    .select('id, position, kind, archived_at')
+    .eq('company_id', actor.companyId)
+    .order('position', { ascending: true });
+  const active = (allStages ?? []).filter((s) => !s.archived_at);
+  const hiredTerminal = active.find((s) => s.kind === 'hired_terminal');
+  const newPos = hiredTerminal ? hiredTerminal.position : (active.at(-1)?.position ?? 0) + 1;
+
+  // Empurra hired_terminal +1 se existe, pra abrir vaga imediatamente antes
+  if (hiredTerminal) {
+    await admin
+      .from('recruitment_stages')
+      .update({ position: hiredTerminal.position + 1 })
+      .eq('id', hiredTerminal.id);
+  }
+
+  const { error } = await admin
+    .from('recruitment_stages')
+    .update({
+      archived_at: null,
+      position: newPos,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', id);
+  if (error) return { error: 'Falha ao reativar etapa.' };
+
+  await logActivity({
+    companyId: actor.companyId,
+    actorUserId: actor.userId,
+    action: 'recruitment_stage.updated',
+    entityType: 'recruitment_stage',
+    entityId: id,
+    metadata: { stage_id: id, name: stage.name, reactivated: true },
+  });
+
+  revalidatePath('/recrutamento/etapas');
+  return { ok: true };
+}
+
 export async function reorderRecruitmentStages(orderedIds: string[]) {
   const actor = await getActor();
   if (!actor) return { error: 'Não autenticado.' };

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { Plus, GripVertical, Archive, Pencil, Check, X } from 'lucide-react';
+import { Plus, GripVertical, Archive, Pencil, Check, X, RotateCcw } from 'lucide-react';
 import {
   DndContext, DragEndEvent, PointerSensor, useSensor, useSensors,
   closestCenter,
@@ -23,7 +23,8 @@ import { Label } from '@/components/ui/label';
 import type { StageRow } from '../queries/stages';
 import {
   createRecruitmentStage, updateRecruitmentStage,
-  archiveRecruitmentStage, reorderRecruitmentStages,
+  archiveRecruitmentStage, reactivateRecruitmentStage,
+  reorderRecruitmentStages,
 } from '../actions/stages';
 
 interface Props {
@@ -76,6 +77,13 @@ export function RecruitmentStagesManager({ stages: initialStages }: Props) {
     const result = await archiveRecruitmentStage(id);
     if ('error' in result && result.error) { toast.error(result.error); return; }
     toast.success('Etapa arquivada');
+    router.refresh();
+  }
+
+  async function onReactivate(id: string) {
+    const result = await reactivateRecruitmentStage(id);
+    if ('error' in result && result.error) { toast.error(result.error); return; }
+    toast.success('Etapa reativada');
     router.refresh();
   }
 
@@ -138,9 +146,18 @@ export function RecruitmentStagesManager({ stages: initialStages }: Props) {
           <h3 className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Arquivadas</h3>
           <ul className="rounded-md border bg-card divide-y">
             {archivedStages.map((stage) => (
-              <li key={stage.id} className="flex items-center gap-3 px-4 py-3 opacity-60">
-                <span className="text-sm font-medium">{stage.name}</span>
-                <Badge variant="outline" className="ml-auto text-xs">{KIND_LABELS[stage.kind]}</Badge>
+              <li key={stage.id} className="flex items-center gap-3 px-4 py-3">
+                <span className="text-sm font-medium text-muted-foreground">{stage.name}</span>
+                <Badge variant="outline" className="text-xs">{KIND_LABELS[stage.kind]}</Badge>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="ml-auto"
+                  onClick={() => onReactivate(stage.id)}
+                >
+                  <RotateCcw className="mr-2 h-3.5 w-3.5" />
+                  Reativar
+                </Button>
               </li>
             ))}
           </ul>
