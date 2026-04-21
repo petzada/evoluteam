@@ -98,7 +98,7 @@ export async function getCycleParticipants(cycleId: string) {
         id, full_name, email, status, manager_id,
         position:positions(id, name),
         department:departments(id, name),
-        manager:employees!manager_id(id, full_name)
+        manager:manager_id(id, full_name)
       )
     `)
     .eq('cycle_id', cycleId)
@@ -158,7 +158,7 @@ export async function getAssignment(assignmentId: string) {
     .from('review_assignments')
     .select(`
       id, company_id, cycle_id, form_id, reviewee_id, reviewer_id, type, status, submitted_at, cancelled_at,
-      reviewee:employees!reviewee_id(id, full_name, email, hire_date, position:positions(id, name), department:departments(id, name), manager:employees!manager_id(id, full_name)),
+      reviewee:employees!reviewee_id(id, full_name, email, hire_date, position:positions(id, name), department:departments(id, name), manager:manager_id(id, full_name)),
       reviewer:employees!reviewer_id(id, full_name, user_id),
       cycle:review_cycles!cycle_id(id, name, response_start, response_end, status)
     `)

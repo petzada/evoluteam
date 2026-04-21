@@ -12,7 +12,7 @@ export async function listEmployees(
       id, full_name, email, phone, status, hire_date, user_id, manager_id, created_at,
       position:positions(id, name),
       department:departments(id, name),
-      manager:employees!manager_id(id, full_name),
+      manager:manager_id(id, full_name),
       invite:invites(id, token, role, expires_at, accepted_at, revoked_at, created_at)
     `)
     .eq('company_id', companyId)
@@ -65,7 +65,7 @@ export async function getEmployee(
   const baseCols = `id, full_name, email, phone, status, hire_date, user_id, terminated_at, created_at, updated_at,
       position:positions(id, name),
       department:departments(id, name),
-      manager:employees!manager_id(id, full_name, position:positions(id, name), department:departments(id, name)),
+      manager:manager_id(id, full_name, position:positions(id, name), department:departments(id, name)),
       invite:invites(id, role, expires_at, accepted_at, revoked_at)`;
   const cols = opts.includeInternalNotes ? `${baseCols}, internal_notes` : baseCols;
 

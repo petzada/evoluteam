@@ -193,11 +193,17 @@ export function EmployeesList({
     return map;
   }, [employees]);
 
-  const activeManagers = useMemo(
+  const currentManagers = useMemo(
     () => employees
       .filter((e) => e.status === 'active' && (subordinatesByManager[e.id] ?? 0) > 0)
       .map((e) => ({ id: e.id, full_name: e.full_name })),
     [employees, subordinatesByManager],
+  );
+  const potentialManagers = useMemo(
+    () => employees
+      .filter((e) => e.status === 'active')
+      .map((e) => ({ id: e.id, full_name: e.full_name })),
+    [employees],
   );
 
   const metrics = useMemo(() => {
@@ -310,7 +316,7 @@ export function EmployeesList({
   ];
   const managerOptions = [
     { value: '__none__', label: 'Sem gestor' },
-    ...activeManagers.map((m) => ({ value: m.id, label: m.full_name })),
+    ...currentManagers.map((m) => ({ value: m.id, label: m.full_name })),
   ];
 
   return (
@@ -598,7 +604,7 @@ export function EmployeesList({
         onOpenChange={(o) => { setSheetOpen(o); if (!o) setEditing(null); }}
         positions={positions}
         departments={departments}
-        managers={activeManagers}
+        managers={potentialManagers}
         employee={editing}
         isAdmin={isAdmin}
       />
@@ -607,7 +613,7 @@ export function EmployeesList({
         open={!!statusAction}
         action={statusAction ?? 'deactivate'}
         target={statusTarget}
-        managerCandidates={activeManagers}
+        managerCandidates={potentialManagers}
         onOpenChange={(o) => { if (!o) { setStatusAction(null); setStatusTarget(null); } }}
       />
     </div>
