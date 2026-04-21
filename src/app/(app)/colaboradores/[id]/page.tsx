@@ -18,6 +18,7 @@ import { BreadcrumbLabel } from '@/features/shell/components/BreadcrumbLabel';
 import { listFeedbacksForEmployee } from '@/features/feedbacks/queries';
 import { listPdisForEmployee } from '@/features/pdi/queries';
 import { listReviewCyclesForEmployee } from '@/features/reviews/queries';
+import { getRecruitmentSourceForEmployee } from '@/features/recruitment/queries/employeeSource';
 
 export default async function EmployeeProfilePage({
   params,
@@ -132,6 +133,9 @@ export default async function EmployeeProfilePage({
     targetRole = (targetProfile?.role as 'admin_rh' | 'director' | 'user' | null) ?? null;
   }
 
+  // Origem de recrutamento (Onda 2 FT-7): se employee veio do wizard de contratação
+  const recruitmentSource = await getRecruitmentSourceForEmployee(id);
+
   // Nomes dos atores do activity_log
   const actorIds = Array.from(
     new Set(activityLog.map((l) => l.actor_user_id).filter((x): x is string => !!x)),
@@ -173,6 +177,7 @@ export default async function EmployeeProfilePage({
       pdiCompetencies={pdiCompetencies ?? []}
       pdiCycles={pdiCycles ?? []}
       actorEmployeeId={actorEmployeeId}
+      recruitmentSource={recruitmentSource}
     />
     </>
   );

@@ -27,6 +27,9 @@ import { ArchivedApplicationsTable } from './ArchivedApplicationsTable';
 import { AddCandidateSheet } from './AddCandidateSheet';
 import { changeJobStatus } from '../actions/jobOpenings';
 
+interface TaxonomyItem { id: string; name: string }
+interface ManagerItem { id: string; full_name: string }
+
 interface Props {
   job: JobOpeningRow;
   stages: StageRow[];
@@ -34,11 +37,20 @@ interface Props {
   archivedApplications: ApplicationRow[];
   canManage: boolean;
   canMove: boolean;
+  canGiveFeedback: boolean;
+  canHire: boolean;
+  feedbackCounts: Map<string, number>;
+  positions: TaxonomyItem[];
+  departments: TaxonomyItem[];
+  managers: ManagerItem[];
   searchCandidatesAction: (query: string) => Promise<CandidateRow[]>;
 }
 
 export function JobOpeningDetail({
-  job, stages, activeApplications, archivedApplications, canManage, canMove, searchCandidatesAction,
+  job, stages, activeApplications, archivedApplications,
+  canManage, canMove, canGiveFeedback, canHire,
+  feedbackCounts, positions, departments, managers,
+  searchCandidatesAction,
 }: Props) {
   const router = useRouter();
   const [addOpen, setAddOpen] = useState(false);
@@ -135,7 +147,24 @@ export function JobOpeningDetail({
               Nenhuma etapa ativa. Configure as etapas em Recrutamento → Etapas.
             </div>
           ) : (
-            <Kanban stages={stages} applications={activeApplications} canMove={canMove} />
+            <Kanban
+              stages={stages}
+              applications={activeApplications}
+              canMove={canMove}
+              canGiveFeedback={canGiveFeedback}
+              canHire={canHire}
+              feedbackCounts={feedbackCounts}
+              job={{
+                id: job.id,
+                title: job.title,
+                departmentId: job.department_id,
+                positionId: job.position_id,
+                hiringManagerId: job.hiring_manager_id,
+              }}
+              positions={positions}
+              departments={departments}
+              managers={managers}
+            />
           )}
         </TabsContent>
         <TabsContent value="finalizados" className="mt-4">

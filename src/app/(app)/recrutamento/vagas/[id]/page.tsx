@@ -1,13 +1,18 @@
 import { notFound, redirect } from 'next/navigation';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { getJobOpeningById } from '@/features/recruitment/queries/jobOpenings';
+import { getDepartments, getPositions } from '@/features/employees/queries';
+import {
+  getJobOpeningById, listHiringManagerOptions,
+} from '@/features/recruitment/queries/jobOpenings';
 import {
   listActiveApplicationsByJob,
   listArchivedApplicationsByJob,
 } from '@/features/recruitment/queries/applications';
 import { listActiveStages } from '@/features/recruitment/queries/stages';
+import { countFeedbacksByApplication } from '@/features/recruitment/queries/feedbacks';
 import {
   canManageJobOpenings, canMoveApplication,
+  canGiveFeedback, canHireCandidate,
 } from '@/features/recruitment/permissions';
 import { JobOpeningDetail } from '@/features/recruitment/components/JobOpeningDetail';
 import { BreadcrumbLabel } from '@/features/shell/components/BreadcrumbLabel';
@@ -40,11 +45,16 @@ export default async function VagaDetailPage({ params }: { params: Params }) {
   const job = await getJobOpeningById(id);
   if (!job) notFound();
 
-  const [stages, active, archived] = await Promise.all([
+  const [stages, active, archived, positions, departments, managers] = await Promise.all([
     listActiveStages(profile.company_id),
     listActiveApplicationsByJob(id),
     listArchivedApplicationsByJob(id),
+    getPositions(profile.company_id),
+    getDepartments(profile.company_id),
+    listHiringManagerOptions(profile.company_id),
   ]);
+
+  const feedbackCounts = await countFeedbacksByApplication(active.map((a) => a.id));
 
   return (
     <>
@@ -56,6 +66,12 @@ export default async function VagaDetailPage({ params }: { params: Params }) {
         archivedApplications={archived}
         canManage={canManageJobOpenings(actor)}
         canMove={canMoveApplication(actor)}
+        canGiveFeedback={canGiveFeedback(actor)}
+        canHire={canHireCandidate(actor)}
+        feedbackCounts={feedbackCounts}
+        positions={positions}
+        departments={departments}
+        managers={managers}
         searchCandidatesAction={searchCandidatesAction}
       />
     </>

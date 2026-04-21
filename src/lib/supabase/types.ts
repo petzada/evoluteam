@@ -1048,6 +1048,56 @@ export type Database = {
           },
         ]
       }
+      candidate_feedbacks: {
+        Row: {
+          id: string
+          company_id: string
+          application_id: string
+          stage_id: string
+          author_id: string
+          content: string
+          recommendation: 'advance' | 'doubt' | 'reject' | null
+          created_at: string
+          updated_at: string
+          deleted_at: string | null
+        }
+        Insert: {
+          id?: string
+          company_id: string
+          application_id: string
+          stage_id: string
+          author_id: string
+          content: string
+          recommendation?: 'advance' | 'doubt' | 'reject' | null
+          created_at?: string
+          updated_at?: string
+          deleted_at?: string | null
+        }
+        Update: Partial<Database['public']['Tables']['candidate_feedbacks']['Insert']>
+        Relationships: [
+          {
+            foreignKeyName: "candidate_feedbacks_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "job_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "candidate_feedbacks_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "recruitment_stages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "candidate_feedbacks_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

@@ -157,3 +157,52 @@ export const RecruitmentStageInputSchema = z.object({
   name: z.string().min(2, 'Nome obrigatório').max(60, 'Máximo 60 caracteres'),
 });
 export type RecruitmentStageInput = z.infer<typeof RecruitmentStageInputSchema>;
+
+// ============================================================
+// Onda 2 — Feedback
+// ============================================================
+
+export const FEEDBACK_RECOMMENDATIONS = ['advance', 'doubt', 'reject'] as const;
+export type FeedbackRecommendation = typeof FEEDBACK_RECOMMENDATIONS[number];
+
+export const FEEDBACK_RECOMMENDATION_LABELS: Record<FeedbackRecommendation, string> = {
+  advance: 'Avançar',
+  doubt: 'Dúvida',
+  reject: 'Reprovar',
+};
+
+export const CandidateFeedbackInputSchema = z.object({
+  content: z
+    .string()
+    .min(10, 'Mínimo 10 caracteres')
+    .max(3000, 'Máximo 3.000 caracteres'),
+  recommendation: z.enum(FEEDBACK_RECOMMENDATIONS).nullable().optional(),
+});
+export type CandidateFeedbackInput = z.infer<typeof CandidateFeedbackInputSchema>;
+
+export const FEEDBACK_EDIT_WINDOW_MINUTES = 120; // 2h (decisão P22)
+
+// ============================================================
+// Onda 2 — Wizard de contratação
+// ============================================================
+
+export const HireCandidateInputSchema = z.object({
+  // Dados pessoais (pré-preenchidos do candidato; admin pode editar)
+  name: z.string().min(2, 'Nome obrigatório').max(120),
+  email: z.string().email('E-mail inválido'),
+  phone: z.string().max(30).nullable().optional(),
+
+  // Dados do colaborador (derivados da vaga; admin pode editar)
+  positionId: z.string().uuid('Cargo obrigatório'),
+  departmentId: z.string().uuid().nullable().optional(),
+  managerId: z.string().uuid().nullable().optional(),
+  hiredAt: z.string().min(1, 'Data de admissão obrigatória'),
+  level: z.string().max(100).nullable().optional(),
+
+  // Decisão P19 — default ligado; arquivar outras aplicações ativas
+  archiveOtherApplications: z.boolean(),
+
+  // Email alternativo (resolver bloqueio B em submit)
+  alternativeEmail: z.string().email().nullable().optional(),
+});
+export type HireCandidateInput = z.infer<typeof HireCandidateInputSchema>;

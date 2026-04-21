@@ -96,6 +96,12 @@ interface Props {
   pdiCompetencies: PdiCompetencyOption[];
   pdiCycles: PdiCycleOption[];
   actorEmployeeId: string | null;
+  recruitmentSource?: {
+    candidateId: string;
+    jobOpeningId: string;
+    jobTitle: string;
+    hiredAt: string;
+  } | null;
 }
 
 const ROLE_LABELS: Record<Role, string> = {
@@ -129,6 +135,7 @@ export function EmployeeProfile({
   canSeeInternalNotes, positions, departments, managers, descendantIds,
   subordinatesCount, actors, feedbacks, reviewCycles, canSeeResults, initialTab,
   pdis, canCreatePdi, pdiEmployees, pdiCompetencies, pdiCycles, actorEmployeeId,
+  recruitmentSource,
 }: Props) {
   const resolvedInitialTab = VALID_TABS.includes(initialTab as typeof VALID_TABS[number])
     ? (initialTab as typeof VALID_TABS[number])
@@ -209,6 +216,18 @@ export function EmployeeProfile({
               <>
                 <span>·</span>
                 <span>{ROLE_LABELS[role]}</span>
+              </>
+            )}
+            {recruitmentSource && (
+              <>
+                <span>·</span>
+                <Link
+                  href={`/recrutamento/candidatos/${recruitmentSource.candidateId}`}
+                  className="inline-flex items-center gap-1 rounded-full bg-sky-100 text-sky-900 text-[10.5px] font-medium px-2 py-0.5 hover:bg-sky-200 transition-colors"
+                  title={`Contratado(a) via processo seletivo "${recruitmentSource.jobTitle}"`}
+                >
+                  📥 via recrutamento
+                </Link>
               </>
             )}
           </div>

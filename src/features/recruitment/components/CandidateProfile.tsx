@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Pencil, ExternalLink, UserX } from 'lucide-react';
+import { Pencil, ExternalLink, UserX, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { PageHeader } from '@/components/PageHeader';
@@ -12,18 +12,26 @@ import { Card, CardContent } from '@/components/ui/card';
 import { formatDate } from '@/lib/date';
 import type { CandidateRow } from '../queries/candidates';
 import type { ApplicationRow, StageHistoryRow } from '../queries/applications';
+import type { CandidateFeedbackRow } from '../queries/feedbacks';
 import {
   APPLICATION_STATUS_LABELS, CANDIDATE_SOURCE_LABELS,
   type CandidateSource,
 } from '../schema';
 import { CandidateSheet } from './CandidateSheet';
+import { FeedbacksSection } from './FeedbacksSection';
 import { archiveCandidate } from '../actions/candidates';
 
 interface Props {
   candidate: CandidateRow;
   applications: ApplicationRow[];
   history: StageHistoryRow[];
+  feedbacks: CandidateFeedbackRow[];
+  hiredEmployeeName: string | null;
   canManage: boolean;
+  canGiveFeedback: boolean;
+  currentEmployeeId: string | null;
+  isAdmin: boolean;
+  applicationsOwnedByCurrentGestor: Set<string>;
 }
 
 function statusVariant(status: ApplicationRow['status']): 'default' | 'secondary' | 'outline' | 'destructive' {
@@ -34,13 +42,18 @@ function statusVariant(status: ApplicationRow['status']): 'default' | 'secondary
   return 'outline';
 }
 
-export function CandidateProfile({ candidate, applications, history, canManage }: Props) {
+export function CandidateProfile({
+  candidate, applications, history, feedbacks, hiredEmployeeName,
+  canManage, canGiveFeedback, currentEmployeeId, isAdmin,
+  applicationsOwnedByCurrentGestor,
+}: Props) {
   const router = useRouter();
   const [editOpen, setEditOpen] = useState(false);
   const source = candidate.source as CandidateSource;
   const sourceLabel = source === 'outro' && candidate.source_other
     ? candidate.source_other
     : CANDIDATE_SOURCE_LABELS[source];
+  const isHired = !!candidate.hired_employee_id;
 
   async function onArchive() {
     const result = await archiveCandidate(candidate.id);
@@ -59,7 +72,7 @@ export function CandidateProfile({ candidate, applications, history, canManage }
             <Button variant="outline" onClick={() => setEditOpen(true)}>
               <Pencil className="mr-2 h-4 w-4" /> Editar
             </Button>
-            {!candidate.archived_at && (
+            {!candidate.archived_at && !isHired && (
               <Button variant="outline" onClick={onArchive}>
                 <UserX className="mr-2 h-4 w-4" /> Arquivar
               </Button>
@@ -67,6 +80,26 @@ export function CandidateProfile({ candidate, applications, history, canManage }
           </div>
         )}
       />
+
+      {isHired && (
+        <div className="mb-5 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm flex items-center gap-3">
+          <CheckCircle2 className="h-5 w-5 text-emerald-600 flex-shrink-0" />
+          <div className="flex-1">
+            <p className="font-semibold text-emerald-900">
+              Contratado(a) — agora é o colaborador {hiredEmployeeName ?? candidate.name}
+            </p>
+            <p className="text-xs text-emerald-800">
+              O histórico do processo seletivo fica preservado abaixo.
+            </p>
+          </div>
+          <Link
+            href={`/colaboradores/${candidate.hired_employee_id}`}
+            className="text-sm text-emerald-700 hover:text-emerald-900 inline-flex items-center gap-1 underline"
+          >
+            Abrir perfil do colaborador <ExternalLink className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+      )}
 
       <div className="grid gap-4 md:grid-cols-[2fr_1fr] max-w-6xl">
         <div className="space-y-4">
@@ -135,6 +168,18 @@ export function CandidateProfile({ candidate, applications, history, canManage }
               )}
             </CardContent>
           </Card>
+
+          <FeedbacksSection
+            applications={applications}
+            feedbacks={feedbacks}
+            currentEmployeeId={currentEmployeeId}
+            isAdmin={isAdmin}
+            canGiveFeedbackForApp={(app) => {
+              if (!canGiveFeedback) return false;
+              if (isAdmin) return true;
+              return applicationsOwnedByCurrentGestor.has(app.id);
+            }}
+          />
         </div>
 
         <div>
