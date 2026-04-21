@@ -820,6 +820,234 @@ export type Database = {
           },
         ]
       }
+      recruitment_stages: {
+        Row: {
+          id: string
+          company_id: string
+          name: string
+          position: number
+          kind: 'entry' | 'intermediate' | 'hired_terminal'
+          archived_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          company_id: string
+          name: string
+          position: number
+          kind?: 'entry' | 'intermediate' | 'hired_terminal'
+          archived_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['recruitment_stages']['Insert']>
+        Relationships: []
+      }
+      job_openings: {
+        Row: {
+          id: string
+          company_id: string
+          title: string
+          description: string | null
+          department_id: string | null
+          position_id: string | null
+          hiring_manager_id: string | null
+          employment_type: 'clt' | 'pj' | 'estagio' | 'temporario' | 'freelancer'
+          workplace_type: 'presencial' | 'remoto' | 'hibrido'
+          location: string | null
+          open_positions: number
+          status: 'open' | 'paused' | 'closed' | 'cancelled'
+          closed_at: string | null
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          company_id: string
+          title: string
+          description?: string | null
+          department_id?: string | null
+          position_id?: string | null
+          hiring_manager_id?: string | null
+          employment_type: 'clt' | 'pj' | 'estagio' | 'temporario' | 'freelancer'
+          workplace_type: 'presencial' | 'remoto' | 'hibrido'
+          location?: string | null
+          open_positions?: number
+          status?: 'open' | 'paused' | 'closed' | 'cancelled'
+          closed_at?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['job_openings']['Insert']>
+        Relationships: [
+          {
+            foreignKeyName: "job_openings_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_openings_position_id_fkey"
+            columns: ["position_id"]
+            isOneToOne: false
+            referencedRelation: "positions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_openings_hiring_manager_id_fkey"
+            columns: ["hiring_manager_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      candidates: {
+        Row: {
+          id: string
+          company_id: string
+          name: string
+          email: string
+          phone: string | null
+          linkedin_url: string | null
+          resume_url: string | null
+          source: 'indicacao' | 'linkedin' | 'site_empresa' | 'whatsapp' | 'instagram' | 'indeed' | 'gupy' | 'manual' | 'outro'
+          source_other: string | null
+          notes: string | null
+          hired_employee_id: string | null
+          archived_at: string | null
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          company_id: string
+          name: string
+          email: string
+          phone?: string | null
+          linkedin_url?: string | null
+          resume_url?: string | null
+          source?: 'indicacao' | 'linkedin' | 'site_empresa' | 'whatsapp' | 'instagram' | 'indeed' | 'gupy' | 'manual' | 'outro'
+          source_other?: string | null
+          notes?: string | null
+          hired_employee_id?: string | null
+          archived_at?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['candidates']['Insert']>
+        Relationships: []
+      }
+      job_applications: {
+        Row: {
+          id: string
+          company_id: string
+          job_opening_id: string
+          candidate_id: string
+          current_stage_id: string
+          status: 'in_progress' | 'hired' | 'rejected' | 'withdrawn' | 'frozen'
+          rejection_reason: string | null
+          withdrawal_reason: string | null
+          reason_other: string | null
+          frozen_reason_notes: string | null
+          stage_entered_at: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          company_id: string
+          job_opening_id: string
+          candidate_id: string
+          current_stage_id: string
+          status?: 'in_progress' | 'hired' | 'rejected' | 'withdrawn' | 'frozen'
+          rejection_reason?: string | null
+          withdrawal_reason?: string | null
+          reason_other?: string | null
+          frozen_reason_notes?: string | null
+          stage_entered_at?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['job_applications']['Insert']>
+        Relationships: [
+          {
+            foreignKeyName: "job_applications_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_applications_job_opening_id_fkey"
+            columns: ["job_opening_id"]
+            isOneToOne: false
+            referencedRelation: "job_openings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_applications_current_stage_id_fkey"
+            columns: ["current_stage_id"]
+            isOneToOne: false
+            referencedRelation: "recruitment_stages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      candidate_stage_history: {
+        Row: {
+          id: string
+          application_id: string
+          from_stage_id: string | null
+          to_stage_id: string | null
+          status_change: Json | null
+          reason_code: string | null
+          reason_notes: string | null
+          changed_at: string
+          changed_by: string | null
+        }
+        Insert: {
+          id?: string
+          application_id: string
+          from_stage_id?: string | null
+          to_stage_id?: string | null
+          status_change?: Json | null
+          reason_code?: string | null
+          reason_notes?: string | null
+          changed_at?: string
+          changed_by?: string | null
+        }
+        Update: Partial<Database['public']['Tables']['candidate_stage_history']['Insert']>
+        Relationships: [
+          {
+            foreignKeyName: "candidate_stage_history_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "job_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "candidate_stage_history_from_stage_id_fkey"
+            columns: ["from_stage_id"]
+            isOneToOne: false
+            referencedRelation: "recruitment_stages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "candidate_stage_history_to_stage_id_fkey"
+            columns: ["to_stage_id"]
+            isOneToOne: false
+            referencedRelation: "recruitment_stages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -835,6 +1063,10 @@ export type Database = {
       get_employee_ancestors: {
         Args: { emp_id: string }
         Returns: { id: string }[]
+      }
+      is_gestor_of_opening: {
+        Args: { p_employee_id: string; p_opening_id: string }
+        Returns: boolean
       }
     }
     Enums: {

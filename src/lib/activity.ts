@@ -266,6 +266,78 @@ export function humanizeActivityMetadata(
       push('Competência', pickString(meta, 'competency_name', 'name'));
       break;
     }
+    // FT-7 Recrutamento
+    case 'job_opening.created':
+    case 'job_opening.updated':
+    case 'job_opening.archived': {
+      push('Vaga', pickString(meta, 'title'));
+      break;
+    }
+    case 'job_opening.status_changed': {
+      push('Vaga', pickString(meta, 'title'));
+      push('De', pickString(meta, 'from_status_label', 'from_status'));
+      push('Para', pickString(meta, 'to_status_label', 'to_status'));
+      break;
+    }
+    case 'candidate.created':
+    case 'candidate.updated':
+    case 'candidate.archived': {
+      push('Candidato', pickString(meta, 'name'));
+      break;
+    }
+    case 'application.created': {
+      push('Candidato', pickString(meta, 'candidate_name'));
+      push('Vaga', pickString(meta, 'job_title'));
+      break;
+    }
+    case 'application.stage_moved': {
+      push('Candidato', pickString(meta, 'candidate_name'));
+      push('Vaga', pickString(meta, 'job_title'));
+      push('De', pickString(meta, 'from_stage'));
+      push('Para', pickString(meta, 'to_stage'));
+      break;
+    }
+    case 'application.withdrawn':
+    case 'application.rejected':
+    case 'application.frozen':
+    case 'application.hired': {
+      push('Candidato', pickString(meta, 'candidate_name'));
+      push('Vaga', pickString(meta, 'job_title'));
+      push('Motivo', pickString(meta, 'reason_label', 'reason'));
+      push('Notas', pickString(meta, 'notes'));
+      break;
+    }
+    case 'recruitment_stage.created':
+    case 'recruitment_stage.updated':
+    case 'recruitment_stage.archived': {
+      push('Etapa', pickString(meta, 'name'));
+      break;
+    }
+    case 'recruitment_stage.reordered': {
+      break;
+    }
+    case 'candidate_feedback.created':
+    case 'candidate_feedback.deleted': {
+      push('Candidato', pickString(meta, 'candidate_name'));
+      push('Vaga', pickString(meta, 'job_title'));
+      break;
+    }
+    case 'candidate_scorecard.submitted':
+    case 'candidate_scorecard.updated':
+    case 'candidate_scorecard.deleted': {
+      push('Candidato', pickString(meta, 'candidate_name'));
+      push('Vaga', pickString(meta, 'job_title'));
+      break;
+    }
+    case 'candidate_task.created':
+    case 'candidate_task.updated':
+    case 'candidate_task.completed':
+    case 'candidate_task.reopened':
+    case 'candidate_task.deleted': {
+      push('Tarefa', pickString(meta, 'title'));
+      push('Candidato', pickString(meta, 'candidate_name'));
+      break;
+    }
     default:
       break;
   }

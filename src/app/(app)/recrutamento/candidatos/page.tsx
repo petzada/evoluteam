@@ -1,15 +1,31 @@
-import { PageHeader } from '@/components/PageHeader';
+import { redirect } from 'next/navigation';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { listCandidates } from '@/features/recruitment/queries/candidates';
+import { canManageCandidates } from '@/features/recruitment/permissions';
+import { CandidatesTable } from '@/features/recruitment/components/CandidatesTable';
 
-export default function CandidatosPage() {
-  return (
-    <div>
-      <PageHeader
-        title="Candidatos"
-        description="Banco global de candidatos da empresa."
-      />
-      <div className="rounded-md border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
-        Em breve — Onda 1 do FT-7.
-      </div>
-    </div>
-  );
+export default async function CandidatosPage() {
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('company_id, role')
+    .eq('id', user.id)
+    .single();
+  if (!profile?.company_id) redirect('/onboarding/criar-empresa');
+
+  const { data: employeeRow } = await supabase
+    .from('employees')
+    .select('id')
+    .eq('user_id', user.id)
+    .eq('company_id', profile.company_id)
+    .maybeSingle();
+
+  const actor = { role: profile.role, employeeId: employeeRow?.id ?? null };
+
+  const candidates = await listCandidates(profile.company_id);
+
+  return <CandidatesTable candidates={candidates} canCreate={canManageCandidates(actor)} />;
 }

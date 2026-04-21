@@ -1,12 +1,12 @@
 import { redirect } from 'next/navigation';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { PageHeader } from '@/components/PageHeader';
+import { listAllStages } from '@/features/recruitment/queries/stages';
+import { RecruitmentStagesManager } from '@/features/recruitment/components/RecruitmentStagesManager';
 
-export default async function EtapasRecrutamentoPage() {
+export default async function EtapasPage() {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
-
   const { data: profile } = await supabase
     .from('profiles')
     .select('company_id, role')
@@ -15,15 +15,7 @@ export default async function EtapasRecrutamentoPage() {
   if (!profile?.company_id) redirect('/onboarding/criar-empresa');
   if (profile.role !== 'admin_rh') redirect('/dashboard');
 
-  return (
-    <div>
-      <PageHeader
-        title="Etapas de recrutamento"
-        description="Personalize as etapas do funil usado em todas as vagas."
-      />
-      <div className="rounded-md border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
-        Em breve — Onda 1 do FT-7.
-      </div>
-    </div>
-  );
+  const stages = await listAllStages(profile.company_id);
+
+  return <RecruitmentStagesManager stages={stages} />;
 }

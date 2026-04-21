@@ -5,7 +5,11 @@ type NotificationType =
   | 'review.assignment_new' | 'review.result_released'
   | 'review_assigned' | 'review_published' | 'review_reminder' | 'review_result_released'
   | 'feedback_received'
-  | 'pdi_created' | 'pdi_due_soon' | 'pdi_concluded' | 'pdi_action_due';
+  | 'pdi_created' | 'pdi_due_soon' | 'pdi_concluded' | 'pdi_action_due'
+  // FT-7 Recrutamento
+  | 'recruitment.candidate_in_manager_stage'
+  | 'recruitment.feedback_requested'
+  | 'recruitment.task_assigned';
 
 export async function notify({
   companyId,
