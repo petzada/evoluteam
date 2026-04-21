@@ -3,8 +3,8 @@ import type {
 } from './schema';
 
 function isPastDate(dateStr: string): boolean {
-  const d = new Date(dateStr + 'T23:59:59');
-  return d.getTime() < Date.now();
+  const today = new Date().toISOString().slice(0, 10);
+  return dateStr < today;
 }
 
 export function computePdiStatus(plan: { status: PdiStatus | string; due_date: string }): PdiComputedStatus {

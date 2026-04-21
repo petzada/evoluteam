@@ -6,6 +6,7 @@ import { TopBar } from '@/features/shell/components/TopBar';
 import { UserCard } from '@/features/shell/components/UserCard';
 import { SidebarProvider } from '@/features/shell/SidebarContext';
 import { BreadcrumbProvider } from '@/features/shell/BreadcrumbContext';
+import { canAccessDashboard } from '@/features/dashboard/permissions';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createServerSupabaseClient();
@@ -22,6 +23,27 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const company = profile.company as { name: string } | null;
 
+  const { data: actorEmployee } = await supabase
+    .from('employees')
+    .select('id')
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  let isManager = false;
+  if (actorEmployee?.id) {
+    const { count } = await supabase
+      .from('employees')
+      .select('*', { count: 'exact', head: true })
+      .eq('manager_id', actorEmployee.id);
+    isManager = (count ?? 0) > 0;
+  }
+
+  const isOperationalOnly = !canAccessDashboard({
+    role: profile.role,
+    employeeId: actorEmployee?.id ?? null,
+    isManager,
+  });
+
   const cookieStore = await cookies();
   const initialCollapsed = cookieStore.get('sidebar-collapsed')?.value === '1';
 
@@ -31,6 +53,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <div className="flex h-full">
           <Sidebar
             role={profile.role}
+            isOperationalOnly={isOperationalOnly}
             footer={
               <UserCard
                 fullName={profile.full_name}

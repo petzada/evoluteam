@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import {
-  LayoutDashboard, Users, ClipboardList, MessageSquare, TrendingUp,
+  LayoutDashboard, Home, Users, ClipboardList, MessageSquare, TrendingUp,
   Settings, Building2, Layers, Briefcase, Star, ScrollText,
   ChevronDown,
 } from 'lucide-react';
@@ -20,7 +20,6 @@ interface NavItem {
 }
 
 const MAIN_NAV: NavItem[] = [
-  { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { label: 'Colaboradores', href: '/colaboradores', icon: Users },
   { label: 'Avaliações', href: '/avaliacoes', icon: ClipboardList },
   { label: 'Feedbacks', href: '/feedbacks', icon: MessageSquare },
@@ -37,13 +36,18 @@ const CONFIG_NAV: NavItem[] = [
 
 interface SidebarProps {
   role: string;
+  isOperationalOnly: boolean;
   footer?: React.ReactNode;
 }
 
-export function Sidebar({ role, footer }: SidebarProps) {
+export function Sidebar({ role, isOperationalOnly, footer }: SidebarProps) {
   const pathname = usePathname();
   const { collapsed } = useSidebar();
   const isAdmin = role === 'admin_rh';
+
+  const homeItem: NavItem = isOperationalOnly
+    ? { label: 'Início', href: '/dashboard', icon: Home }
+    : { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard };
 
   const isInConfig = pathname.startsWith('/configuracoes');
   const [manualOpen, setManualOpen] = useState(false);
@@ -167,6 +171,8 @@ export function Sidebar({ role, footer }: SidebarProps) {
       </div>
 
       <nav className={cn('flex-1 overflow-y-auto py-4 space-y-6', collapsed ? 'px-2' : 'px-3')}>
+        <ul className="space-y-0.5">{renderItem(homeItem)}</ul>
+
         <div>
           {!collapsed && (
             <p className="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/30">

@@ -35,7 +35,7 @@ Decisões que valem para **todas** as fases/features do produto. Toda escolha qu
 - **Banco/Auth/Storage:** Supabase (Postgres 15, Supabase Auth, Supabase Storage, RLS ativa em todas as tabelas operacionais).
 - **E-mail transacional:** Resend (3k e-mails/mês no free, domínio `marct.co` verificado com SPF/DKIM).
 - **Observabilidade:** Sentry (free tier).
-- **Sem:** Vercel, Clerk, Drizzle, tRPC, Docker local (opção C de ambientes).
+- **Sem:** Clerk, Drizzle, tRPC, Docker local (opção C de ambientes).
 
 ### Por quê
 Supabase dá RLS multi-tenant nativo, Auth completo, Storage S3-compatível e Realtime futuro — tudo sob uma conta. Railway hospeda Next.js em Node sem complicação. Resend tem DX melhor que SendGrid para o volume do MVP.
@@ -293,6 +293,59 @@ Quando houver 2–3 clientes pagantes, avaliar:
 
 ---
 
+## 18. Auth & Onboarding — ritual de operação
+
+Operação de criar novas empresas e colaboradores. Spec detalhada em `docs/dev/11-auth-isolation-spec.md`.
+
+### Princípios
+- **Sem self-signup.** `Auth → Enable email signups` = OFF no painel Supabase. `POST /auth/v1/signup` retorna 422.
+- **Admin de plataforma nasce no Supabase Dashboard**, com `Email confirmed = true` e senha temporária qualquer.
+- **Colaboradores entram apenas por convite** emitido pelo `admin_rh` na UI `/colaboradores`.
+- **Convidado não faz onboarding** — `acceptInvite` cria profile já com `company_id`.
+- **Onboarding é exclusivo de quem não tem `company_id`** — ou seja, do admin recém-criado no Dashboard.
+
+### Fluxo de nascimento do admin_rh de nova empresa
+
+1. Dono da plataforma abre Supabase → Authentication → Users → Add user → Create new user
+2. Informa e-mail do admin cliente, senha qualquer, **Email confirmed = true**, Create
+3. Trigger Postgres `on_auth_user_created` dispara POST para `/api/webhooks/auth-user-created`
+4. Handler detecta que `app_metadata.source` é ausente (não é convite) → envia e-mail via Resend com link para `/forgot-password`
+5. Admin recebe e-mail → define senha → faz login → proxy leva para `/onboarding/criar-empresa` (porque `profile.company_id` é null)
+6. Admin completa wizard → empresa ativa, admin vira `admin_rh`
+
+### Fluxo de nascimento do colaborador
+
+1. Admin_rh logado entra em `/colaboradores` → "Novo colaborador" → preenche + marca "Enviar convite"
+2. Server action `inviteEmployee` cria registro em `invites` e envia e-mail via Resend (template `employee-invite`)
+3. Colaborador clica no link `/convite/[token]` → define nome/senha → `acceptInvite` cria user com `app_metadata: { source: 'invite' }`, profile já com `company_id` e role, vincula `employees.user_id`
+4. Trigger Postgres dispara o webhook → handler detecta `source === 'invite'` → **ignora** (não envia boas-vindas duplicada)
+5. Colaborador já logado cai direto no `/dashboard` (ou `/colaboradores` conforme a role)
+
+### Ativação pós-deploy (uma vez por ambiente)
+
+Passo-a-passo completo em `docs/dev/11-auth-isolation-spec.md` § 5. Resumo:
+
+1. `openssl rand -hex 32` — gerar secret
+2. Railway → Project → Variables → `SUPABASE_WEBHOOK_SECRET` = `<secret>`
+3. Supabase SQL Editor:
+   ```sql
+   alter database postgres set app.webhook_secret = '<secret>';
+   alter database postgres set app.webhook_auth_user_created_url = 'https://<domínio>/api/webhooks/auth-user-created';
+   ```
+4. Smoke: criar user de teste no Dashboard → esperar e-mail → apagar user
+
+### Checklist de sanidade do painel Supabase
+
+Revisar antes de cada deploy:
+
+- [ ] Authentication → Providers → Email → **Enable email signups** desmarcado
+- [ ] Database → Extensions → `pg_net` habilitado
+- [ ] SQL: `select count(*) from pg_trigger where tgname = 'on_auth_user_created'` retorna 1
+- [ ] SQL: `select setting from pg_settings where name = 'app.webhook_auth_user_created_url'` retorna URL correta
+- [ ] `SUPABASE_WEBHOOK_SECRET` do host = `app.webhook_secret` do DB (caractere a caractere)
+
+---
+
 ## Referências cruzadas
 
 - `docs/PRD-GERAL.md` — visão do produto
@@ -301,3 +354,5 @@ Quando houver 2–3 clientes pagantes, avaliar:
 - `docs/USERS-ABLE.md` — user stories por papel
 - `features/FT-1.md` a `features/FT-5.md` — specs por feature
 - `docs/dev/01-fase-0-fundacao.md` — spec da Fundação (Fase 0)
+- `docs/dev/11-auth-isolation-spec.md` — spec operacional completa de auth + webhook
+- `docs/dev/12-sidebar-inicio-spec.md` — spec da sidebar (Início vs Dashboard por role)

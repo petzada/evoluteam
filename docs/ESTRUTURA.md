@@ -302,8 +302,7 @@ Zod
 React Hook Form
 TanStack Table
 Recharts
-Vercel
-Vercel AI SDK, futuramente
+Railway
 Estrutura recomendada
 /src
   /app

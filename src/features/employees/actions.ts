@@ -5,13 +5,12 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 import { logActivity } from '@/lib/activity';
 import { notify } from '@/lib/notifications';
-import { Resend } from 'resend';
+import { sendEmail } from '@/lib/email';
+import { employeeInviteEmail } from '@/lib/emails/employee-invite';
 import type { EmployeeInput, TransferOption } from './schema';
 import { TransferOptionSchema } from './schema';
 import { validateManagerAssignment } from './validators';
 import type { TablesInsert, TablesUpdate } from '@/lib/supabase/types';
-
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 async function getActorContext() {
   const supabase = await createServerSupabaseClient();
@@ -209,22 +208,11 @@ async function sendInviteForEmployee(
   });
 
   const origin = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
-  try {
-    await resend.emails.send({
-      from: 'Evoluteam <marcio@marct.co>',
-      to: email,
-      subject: 'Você foi convidado para o Evoluteam',
-      html: `
-        <p>Olá,</p>
-        <p>Você foi convidado para acessar o Evoluteam.</p>
-        <p><a href="${origin}/convite/${token}">Clique aqui para aceitar o convite</a></p>
-        <p>O link expira em 7 dias.</p>
-      `,
-    });
-    return { emailSent: true };
-  } catch {
-    return { emailSent: false };
-  }
+  const result = await sendEmail({
+    to: email,
+    ...employeeInviteEmail({ inviteUrl: `${origin}/convite/${token}` }),
+  });
+  return { emailSent: result.ok };
 }
 
 export async function resendInvite(employeeId: string) {
@@ -522,6 +510,7 @@ export async function acceptInvite(token: string, data: { fullName: string; pass
     email: invite.email,
     password: data.password,
     email_confirm: true,
+    app_metadata: { source: 'invite' },
   });
   if (authErr || !newUser.user) return { error: 'Erro ao criar usuário.' };
 
