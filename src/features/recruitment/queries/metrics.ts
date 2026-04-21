@@ -6,65 +6,45 @@ import {
 } from '../schema';
 import type { PipelineSnapshotStage } from '../pipeline-snapshot';
 
-type CanonicalStage = { id: string; name: string; position: number };
+type ReportStage = { id: string; name: string; position: number };
 
 /**
- * Monta o "super-funil canônico" do escopo de vagas:
- * união das etapas presentes nos pipeline_snapshot das vagas, ordenadas
- * pela posição global atual em recruitment_stages. Etapas que só
- * existem em snapshots (foram arquivadas/removidas globalmente) vão
- * pro fim, na ordem da posição original do snapshot.
+ * Resolve as etapas usadas como eixo do funil/duração no relatório:
  *
- * Se o filtro restringe a uma única vaga, retorna o funil dela tal qual
- * — sem mistura. O dashboard R3 usa isso pra agregar conversão entre
- * vagas com funis diferentes sem distorcer.
+ * - Filtro por uma única vaga → usa o snapshot daquela vaga, na ordem
+ *   original (entry → intermediárias → hired_terminal por position).
+ * - Sem filtro de vaga, ou várias selecionadas → usa o funil global
+ *   atual da empresa (recruitment_stages ativas).
+ *
+ * Decisão consciente: no agregado não tentamos compor "super-funil"
+ * com etapas legadas só-em-snapshot — isso virava buracos e conversão
+ * enganosa. Candidatos em etapas arquivadas globalmente ficam fora do
+ * agregado, mas reaparecem ao filtrar a vaga deles.
  */
-async function resolveCanonicalStages(
+async function resolveStagesForReport(
   supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
   companyId: string,
   jobIds: string[] | null,
-): Promise<CanonicalStage[]> {
-  let q = supabase
-    .from('job_openings')
-    .select('id, pipeline_snapshot')
-    .eq('company_id', companyId);
-  if (jobIds) q = q.in('id', jobIds);
-  const { data: jobs } = await q;
-
-  const fromSnapshots = new Map<string, { name: string; position: number }>();
-  for (const j of jobs ?? []) {
-    const snap = (j.pipeline_snapshot ?? []) as PipelineSnapshotStage[];
-    for (const s of snap) {
-      if (!fromSnapshots.has(s.id)) {
-        fromSnapshots.set(s.id, { name: s.name, position: s.position });
-      }
-    }
+): Promise<ReportStage[]> {
+  if (jobIds && jobIds.length === 1) {
+    const { data: job } = await supabase
+      .from('job_openings')
+      .select('pipeline_snapshot')
+      .eq('id', jobIds[0])
+      .maybeSingle();
+    const snap = ((job?.pipeline_snapshot ?? []) as PipelineSnapshotStage[])
+      .slice()
+      .sort((a, b) => a.position - b.position);
+    return snap.map((s) => ({ id: s.id, name: s.name, position: s.position }));
   }
-  if (fromSnapshots.size === 0) return [];
 
-  const { data: globalStages } = await supabase
+  const { data } = await supabase
     .from('recruitment_stages')
-    .select('id, position')
+    .select('id, name, position')
     .eq('company_id', companyId)
     .is('archived_at', null)
     .order('position', { ascending: true });
-
-  const result: CanonicalStage[] = [];
-  const seen = new Set<string>();
-  for (const g of globalStages ?? []) {
-    const info = fromSnapshots.get(g.id);
-    if (info) {
-      result.push({ id: g.id, name: info.name, position: result.length });
-      seen.add(g.id);
-    }
-  }
-  const onlyInSnapshots = [...fromSnapshots.entries()]
-    .filter(([id]) => !seen.has(id))
-    .sort((a, b) => a[1].position - b[1].position);
-  for (const [id, info] of onlyInSnapshots) {
-    result.push({ id, name: info.name, position: result.length });
-  }
-  return result;
+  return data ?? [];
 }
 
 export type ViewerRole = 'admin_rh' | 'director' | 'gestor';
@@ -244,7 +224,7 @@ export async function getFunnel(f: MetricsFilter): Promise<FunnelStageRow[]> {
   if (jobIds !== null && jobIds.length === 0) return [];
   if (candidateIds !== null && candidateIds.length === 0) return [];
 
-  const stages = await resolveCanonicalStages(supabase, f.companyId, jobIds);
+  const stages = await resolveStagesForReport(supabase, f.companyId, jobIds);
   if (!stages.length) return [];
 
   // Contagem de visitas (histórico) — quantas applications já passaram por cada etapa
@@ -483,7 +463,7 @@ export async function getStageDurations(f: MetricsFilter): Promise<StageDuration
   if (jobIds !== null && jobIds.length === 0) return [];
   if (candidateIds !== null && candidateIds.length === 0) return [];
 
-  const stages = await resolveCanonicalStages(supabase, f.companyId, jobIds);
+  const stages = await resolveStagesForReport(supabase, f.companyId, jobIds);
   if (!stages.length) return [];
 
   // Restringe applications pelo escopo atual; traz também current_stage_id
