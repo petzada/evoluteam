@@ -14,7 +14,20 @@ type ActivityAction =
   | 'pdi_action.created' | 'pdi_action.updated'
   | 'department.created' | 'department.updated' | 'department.archived' | 'department.deleted'
   | 'role.created' | 'role.updated' | 'role.archived' | 'role.deleted'
-  | 'competency.created' | 'competency.updated' | 'competency.archived' | 'competency.deleted';
+  | 'competency.created' | 'competency.updated' | 'competency.archived' | 'competency.deleted'
+  // FT-7 Recrutamento — declarados na Fundação; disparos nas ondas.
+  | 'job_opening.created' | 'job_opening.updated'
+  | 'job_opening.status_changed' | 'job_opening.archived'
+  | 'candidate.created' | 'candidate.updated' | 'candidate.archived'
+  | 'application.created' | 'application.stage_moved'
+  | 'application.withdrawn' | 'application.rejected'
+  | 'application.frozen' | 'application.hired'
+  | 'recruitment_stage.created' | 'recruitment_stage.updated'
+  | 'recruitment_stage.archived' | 'recruitment_stage.reordered'
+  | 'candidate_feedback.created' | 'candidate_feedback.deleted'
+  | 'candidate_scorecard.submitted' | 'candidate_scorecard.updated' | 'candidate_scorecard.deleted'
+  | 'candidate_task.created' | 'candidate_task.updated'
+  | 'candidate_task.completed' | 'candidate_task.reopened' | 'candidate_task.deleted';
 
 export async function logActivity({
   companyId,
@@ -88,6 +101,34 @@ export const ACTIVITY_LABELS: Record<string, string> = {
   'competency.updated': 'Competência atualizada',
   'competency.archived': 'Competência arquivada',
   'competency.deleted': 'Competência removida',
+  // FT-7 Recrutamento
+  'job_opening.created': 'Vaga criada',
+  'job_opening.updated': 'Vaga atualizada',
+  'job_opening.status_changed': 'Status da vaga alterado',
+  'job_opening.archived': 'Vaga arquivada',
+  'candidate.created': 'Candidato cadastrado',
+  'candidate.updated': 'Candidato atualizado',
+  'candidate.archived': 'Candidato arquivado',
+  'application.created': 'Candidato vinculado à vaga',
+  'application.stage_moved': 'Candidato movido de etapa',
+  'application.withdrawn': 'Candidato marcado como desistente',
+  'application.rejected': 'Candidato reprovado',
+  'application.frozen': 'Candidato congelado',
+  'application.hired': 'Candidato contratado',
+  'recruitment_stage.created': 'Etapa de recrutamento criada',
+  'recruitment_stage.updated': 'Etapa de recrutamento atualizada',
+  'recruitment_stage.archived': 'Etapa de recrutamento arquivada',
+  'recruitment_stage.reordered': 'Etapas de recrutamento reordenadas',
+  'candidate_feedback.created': 'Feedback registrado',
+  'candidate_feedback.deleted': 'Feedback removido',
+  'candidate_scorecard.submitted': 'Scorecard registrado',
+  'candidate_scorecard.updated': 'Scorecard atualizado',
+  'candidate_scorecard.deleted': 'Scorecard removido',
+  'candidate_task.created': 'Tarefa criada',
+  'candidate_task.updated': 'Tarefa atualizada',
+  'candidate_task.completed': 'Tarefa concluída',
+  'candidate_task.reopened': 'Tarefa reaberta',
+  'candidate_task.deleted': 'Tarefa removida',
 };
 
 const ROLE_DISPLAY: Record<string, string> = {

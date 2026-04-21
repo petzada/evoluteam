@@ -6,7 +6,7 @@ import { useState } from 'react';
 import {
   LayoutDashboard, Home, Users, ClipboardList, MessageSquare, TrendingUp,
   Settings, Building2, Layers, Briefcase, Star, ScrollText,
-  ChevronDown,
+  ChevronDown, UserPlus, KanbanSquare,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -26,11 +26,18 @@ const MAIN_NAV: NavItem[] = [
   { label: 'PDI', href: '/pdi', icon: TrendingUp },
 ];
 
+// FT-7 — Recrutamento (sempre expandido, igual Principal)
+const RECRUITMENT_NAV: NavItem[] = [
+  { label: 'Vagas', href: '/recrutamento/vagas', icon: Briefcase },
+  { label: 'Candidatos', href: '/recrutamento/candidatos', icon: UserPlus },
+];
+
 const CONFIG_NAV: NavItem[] = [
   { label: 'Empresa', href: '/configuracoes/empresa', icon: Building2 },
   { label: 'Departamentos', href: '/configuracoes/departamentos', icon: Layers },
   { label: 'Cargos', href: '/configuracoes/cargos', icon: Briefcase },
   { label: 'Competências', href: '/configuracoes/competencias', icon: Star },
+  { label: 'Etapas de recrutamento', href: '/configuracoes/etapas-recrutamento', icon: KanbanSquare },
   { label: 'Auditoria', href: '/configuracoes/auditoria', icon: ScrollText },
 ];
 
@@ -181,6 +188,17 @@ export function Sidebar({ role, isOperationalOnly, footer }: SidebarProps) {
           )}
           <ul className="space-y-0.5">{MAIN_NAV.map(renderItem)}</ul>
         </div>
+
+        {!isOperationalOnly && (
+          <div>
+            {!collapsed && (
+              <p className="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/30">
+                Recrutamento
+              </p>
+            )}
+            <ul className="space-y-0.5">{RECRUITMENT_NAV.map(renderItem)}</ul>
+          </div>
+        )}
 
         {isAdmin && (
           <div>
