@@ -2,7 +2,7 @@ import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 
 type NotificationType =
   | 'invite_accepted'
-  | 'review.assignment_new' | 'review.result_released'
+  | 'review.assignment_new' | 'review.result_released' | 'review.result_comment'
   | 'review_assigned' | 'review_published' | 'review_reminder' | 'review_result_released'
   | 'feedback_received'
   | 'pdi_created' | 'pdi_due_soon' | 'pdi_concluded' | 'pdi_action_due'

@@ -11,7 +11,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { cn } from '@/lib/utils';
 import { formatDate } from '@/lib/date';
 import { releaseResult, hideResult } from '../actions';
-import type { ResultOverview, CycleComment } from '../queries';
+import type { ResultOverview, CycleComment, ResultLeadershipComment } from '../queries';
+import { ResultCommentsSection } from './ResultCommentsSection';
 import type { PlanRow } from '@/features/pdi/queries';
 import {
   PdiSheet, type EmployeeOption as PdiEmployeeOption, type CompetencyOption as PdiCompetencyOption,
@@ -38,11 +39,15 @@ interface Props {
   pdiCompetencies: PdiCompetencyOption[];
   pdiCycles: PdiCycleOption[];
   actorEmployeeId: string | null;
+  // FT-8 P10 — Comentários da liderança
+  leadershipComments: ResultLeadershipComment[];
+  canLeaveLeadershipComment: boolean;
 }
 
 export function ResultDetail({
   cycleId, cycleName, employee, overview, comments, isAdmin,
   existingPdi, canCreatePdi, pdiEmployees, pdiCompetencies, pdiCycles, actorEmployeeId,
+  leadershipComments, canLeaveLeadershipComment,
 }: Props) {
   const router = useRouter();
   const [pdiSheetOpen, setPdiSheetOpen] = useState(false);
@@ -157,15 +162,9 @@ export function ResultDetail({
             )}
           </section>
 
-          {existingPdi ? (
-            <Link href={`/pdi/${existingPdi.id}`}>
-              <Button variant="outline" className="w-full">Ver PDI deste ciclo</Button>
-            </Link>
-          ) : canCreatePdi ? (
-            <Button variant="outline" className="w-full" onClick={() => setPdiSheetOpen(true)}>
-              Criar PDI com este resultado
-            </Button>
-          ) : null}
+          {/* FT-8: botao "Criar PDI com este resultado" removido daqui.
+              O CTA unico agora fica na secao "PDI gerado" na main,
+              com placeholder descritivo. */}
         </aside>
 
         <main className="space-y-6">
@@ -268,9 +267,9 @@ export function ResultDetail({
           </section>
 
           <section>
-            <h2 className="text-base font-semibold mb-3">Comentários</h2>
+            <h2 className="text-base font-semibold mb-3">Observações dos avaliadores</h2>
             {comments.length === 0 ? (
-              <p className="text-sm text-muted-foreground italic">Sem comentários.</p>
+              <p className="text-sm text-muted-foreground italic">Sem observações.</p>
             ) : (
               <div className="space-y-4">
                 {groupByQuestion(comments).map(([qText, group]) => (
@@ -291,6 +290,18 @@ export function ResultDetail({
               </div>
             )}
           </section>
+
+          {/* FT-8 P10 — Comentários da liderança (pós-release) */}
+          {overview.isReleased && (
+            <ResultCommentsSection
+              cycleId={cycleId}
+              revieweeEmployeeId={employee.id}
+              comments={leadershipComments}
+              canComment={canLeaveLeadershipComment}
+              canDeleteAny={isAdmin}
+              currentEmployeeId={actorEmployeeId}
+            />
+          )}
         </main>
       </div>
 

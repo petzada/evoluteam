@@ -141,6 +141,12 @@ export async function getEmployeeDescendants(employeeId: string) {
   return (data ?? []).map((x) => x.id);
 }
 
+export async function getEmployeeAncestors(employeeId: string) {
+  const supabase = await createServerSupabaseClient();
+  const { data } = await supabase.rpc('get_employee_ancestors', { emp_id: employeeId });
+  return (data ?? []).map((x) => x.id);
+}
+
 export async function getManagerCandidates(companyId: string, excludeEmployeeId?: string) {
   const supabase = await createServerSupabaseClient();
   const { data } = await supabase

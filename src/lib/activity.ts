@@ -9,6 +9,7 @@ type ActivityAction =
   | 'review_cycle.closed' | 'review_cycle.archived' | 'review_cycle.reminded'
   | 'review_assignment.submitted' | 'review_assignment.cancelled'
   | 'review_result.released' | 'review_result.hidden'
+  | 'review_result_comment.created' | 'review_result_comment.updated' | 'review_result_comment.deleted'
   | 'feedback.created' | 'feedback.deleted'
   | 'pdi.created' | 'pdi.updated' | 'pdi.concluded' | 'pdi.cancelled' | 'pdi.deleted'
   | 'pdi_action.created' | 'pdi_action.updated'
@@ -81,6 +82,9 @@ export const ACTIVITY_LABELS: Record<string, string> = {
   'review_assignment.cancelled': 'Avaliação cancelada',
   'review_result.released': 'Resultado liberado',
   'review_result.hidden': 'Resultado ocultado',
+  'review_result_comment.created': 'Comentário em resultado criado',
+  'review_result_comment.updated': 'Comentário em resultado editado',
+  'review_result_comment.deleted': 'Comentário em resultado removido',
   'feedback.created': 'Feedback enviado',
   'feedback.deleted': 'Feedback removido',
   'pdi.created': 'PDI criado',

@@ -3,7 +3,9 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 import {
   getCycle, getResultOverview, getCycleComments,
   getActorEmployeeId, getActorDescendants,
+  listResultLeadershipComments,
 } from '@/features/reviews/queries';
+import { getEmployeeAncestors } from '@/features/employees/queries';
 import { ResultDetail } from '@/features/reviews/components/ResultDetail';
 import { getPdiForCycleAndEmployee } from '@/features/pdi/queries';
 
@@ -58,7 +60,7 @@ export default async function ResultadoIndividualPage({
     }
   }
 
-  const [comments, existingPdi, employeeRow, { data: pdiEmployees }, { data: pdiCompetencies }, { data: pdiCycles }] = await Promise.all([
+  const [comments, existingPdi, employeeRow, leadershipComments, ancestorsOfReviewee, { data: pdiEmployees }, { data: pdiCompetencies }, { data: pdiCycles }] = await Promise.all([
     getCycleComments(cycleId, employeeId),
     getPdiForCycleAndEmployee(cycleId, employeeId),
     supabase
@@ -66,6 +68,8 @@ export default async function ResultadoIndividualPage({
       .select('manager_id')
       .eq('id', employeeId)
       .maybeSingle(),
+    listResultLeadershipComments(cycleId, employeeId),
+    getEmployeeAncestors(employeeId),
     supabase
       .from('employees')
       .select('id, full_name, email, status, manager_id, position:positions(id, name)')
@@ -90,6 +94,13 @@ export default async function ResultadoIndividualPage({
     isAdmin
     || (actorEmployeeId !== null && employeeRow.data?.manager_id === actorEmployeeId);
 
+  // FT-8 P10: quem pode comentar = admin_rh, director ou ancestor do avaliado
+  // (e ciclo liberado, validado no componente via overview.isReleased).
+  const canLeaveLeadershipComment =
+    isAdmin
+    || isDirector
+    || (actorEmployeeId !== null && ancestorsOfReviewee.includes(actorEmployeeId));
+
   return (
     <ResultDetail
       cycleId={cycleId}
@@ -104,6 +115,8 @@ export default async function ResultadoIndividualPage({
       pdiCompetencies={pdiCompetencies ?? []}
       pdiCycles={pdiCycles ?? []}
       actorEmployeeId={actorEmployeeId}
+      leadershipComments={leadershipComments}
+      canLeaveLeadershipComment={canLeaveLeadershipComment}
     />
   );
 }

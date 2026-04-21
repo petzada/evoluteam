@@ -373,6 +373,68 @@ export async function getCycleComments(cycleId: string, employeeId: string): Pro
   return comments;
 }
 
+// Comentários da liderança (FT-8 P10) — pós-release.
+export type ResultLeadershipComment = {
+  id: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+  authorEmployeeId: string;
+  authorFullName: string;
+  authorRole: 'admin_rh' | 'director' | 'user' | 'rh' | null;
+  authorIsManagerOfReviewee: boolean;
+};
+
+export async function listResultLeadershipComments(
+  cycleId: string,
+  revieweeEmployeeId: string,
+): Promise<ResultLeadershipComment[]> {
+  const supabase = await createServerSupabaseClient();
+  const { data: rows } = await supabase
+    .from('review_result_comments')
+    .select('id, content, created_at, updated_at, author_employee_id')
+    .eq('cycle_id', cycleId)
+    .eq('reviewee_employee_id', revieweeEmployeeId)
+    .is('deleted_at', null)
+    .order('created_at', { ascending: true });
+  if (!rows?.length) return [];
+
+  const authorIds = Array.from(new Set(rows.map((r) => r.author_employee_id)));
+  const { data: authors } = await supabase
+    .from('employees')
+    .select('id, full_name, user_id, manager_id')
+    .in('id', authorIds);
+
+  const { data: reviewee } = await supabase
+    .from('employees')
+    .select('manager_id')
+    .eq('id', revieweeEmployeeId)
+    .maybeSingle();
+
+  const userIds = (authors ?? []).map((a) => a.user_id).filter((x): x is string => !!x);
+  const { data: profiles } = userIds.length
+    ? await supabase.from('profiles').select('id, role').in('id', userIds)
+    : { data: [] };
+
+  const authorById = new Map((authors ?? []).map((a) => [a.id, a]));
+  const roleByUserId = new Map((profiles ?? []).map((p) => [p.id, p.role]));
+
+  return rows.map((r) => {
+    const a = authorById.get(r.author_employee_id);
+    const role = a?.user_id ? (roleByUserId.get(a.user_id) as ResultLeadershipComment['authorRole']) : null;
+    return {
+      id: r.id,
+      content: r.content,
+      createdAt: r.created_at,
+      updatedAt: r.updated_at,
+      authorEmployeeId: r.author_employee_id,
+      authorFullName: a?.full_name ?? 'Pessoa',
+      authorRole: role ?? null,
+      authorIsManagerOfReviewee: !!reviewee?.manager_id && reviewee.manager_id === r.author_employee_id,
+    };
+  });
+}
+
 export type CycleResultRow = {
   employeeId: string;
   fullName: string;

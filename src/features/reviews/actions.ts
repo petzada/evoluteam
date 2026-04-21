@@ -840,3 +840,180 @@ async function syncDraftParticipants(
     }
   }
 }
+
+// ============================================================
+// FT-8 P10 — Comentarios da lideranca em resultado de ciclo
+// ============================================================
+
+async function getCommenterContext(): Promise<{
+  userId: string;
+  companyId: string;
+  role: 'admin_rh' | 'director' | 'user' | 'rh';
+  employeeId: string | null;
+} | null> {
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('company_id, role')
+    .eq('id', user.id)
+    .single();
+  if (!profile?.company_id) return null;
+  const { data: emp } = await supabase
+    .from('employees')
+    .select('id')
+    .eq('user_id', user.id)
+    .eq('company_id', profile.company_id)
+    .maybeSingle();
+  return {
+    userId: user.id,
+    companyId: profile.company_id,
+    role: profile.role as 'admin_rh' | 'director' | 'user' | 'rh',
+    employeeId: emp?.id ?? null,
+  };
+}
+
+async function isResultReleasedFor(
+  cycleId: string,
+  revieweeEmployeeId: string,
+): Promise<boolean> {
+  const admin = createAdminSupabaseClient();
+  const { data } = await admin
+    .from('review_cycle_participants')
+    .select('result_released_at')
+    .eq('cycle_id', cycleId)
+    .eq('employee_id', revieweeEmployeeId)
+    .maybeSingle();
+  return !!data?.result_released_at;
+}
+
+export async function createResultComment(input: {
+  cycleId: string;
+  revieweeEmployeeId: string;
+  content: string;
+}) {
+  const ctx = await getCommenterContext();
+  if (!ctx) return { error: 'Nao autenticado.' };
+  if (!ctx.employeeId) return { error: 'Perfil de colaborador nao encontrado.' };
+
+  const content = input.content.trim();
+  if (!content) return { error: 'Comentario vazio.' };
+  if (content.length > 4000) return { error: 'Comentario muito longo (maximo 4000 caracteres).' };
+
+  const released = await isResultReleasedFor(input.cycleId, input.revieweeEmployeeId);
+  if (!released) {
+    return { error: 'Resultado ainda nao foi liberado para esta pessoa.', code: 'NOT_RELEASED' };
+  }
+
+  // Insere via RLS (policy rrc_insert valida author + role + ancestors).
+  const supabase = await createServerSupabaseClient();
+  const { data: inserted, error: iErr } = await supabase
+    .from('review_result_comments')
+    .insert({
+      company_id: ctx.companyId,
+      cycle_id: input.cycleId,
+      reviewee_employee_id: input.revieweeEmployeeId,
+      author_employee_id: ctx.employeeId,
+      content,
+    })
+    .select('id')
+    .single();
+  if (iErr || !inserted) {
+    return { error: 'Sem permissao para comentar neste resultado.', code: 'FORBIDDEN' };
+  }
+
+  await logActivity({
+    companyId: ctx.companyId,
+    actorUserId: ctx.userId,
+    action: 'review_result_comment.created',
+    entityType: 'review_cycle',
+    entityId: input.cycleId,
+    metadata: { commentId: inserted.id, revieweeEmployeeId: input.revieweeEmployeeId },
+  });
+
+  // Notifica o avaliado.
+  const admin = createAdminSupabaseClient();
+  const [{ data: reviewee }, { data: cyc }, { data: author }] = await Promise.all([
+    admin.from('employees').select('user_id, full_name').eq('id', input.revieweeEmployeeId).maybeSingle(),
+    admin.from('review_cycles').select('name').eq('id', input.cycleId).maybeSingle(),
+    admin.from('employees').select('full_name').eq('id', ctx.employeeId).maybeSingle(),
+  ]);
+  if (reviewee?.user_id) {
+    await notify({
+      companyId: ctx.companyId,
+      userId: reviewee.user_id,
+      type: 'review.result_comment',
+      title: 'Novo comentario no seu resultado',
+      body: `${author?.full_name ?? 'Alguem'} comentou no ciclo "${cyc?.name ?? ''}".`,
+      linkUrl: `/avaliacoes/${input.cycleId}/resultados/${input.revieweeEmployeeId}`,
+      entityType: 'review_cycle',
+      entityId: input.cycleId,
+    });
+  }
+
+  revalidatePath(`/avaliacoes/${input.cycleId}/resultados/${input.revieweeEmployeeId}`);
+  return { ok: true, id: inserted.id };
+}
+
+export async function updateResultComment(input: {
+  commentId: string;
+  content: string;
+}) {
+  const ctx = await getCommenterContext();
+  if (!ctx) return { error: 'Nao autenticado.' };
+
+  const content = input.content.trim();
+  if (!content) return { error: 'Comentario vazio.' };
+  if (content.length > 4000) return { error: 'Comentario muito longo (maximo 4000 caracteres).' };
+
+  // Policy rrc_update permite autor ate 2h; admin_rh pode sempre.
+  const supabase = await createServerSupabaseClient();
+  const { data: updated, error: uErr } = await supabase
+    .from('review_result_comments')
+    .update({ content, updated_at: new Date().toISOString() })
+    .eq('id', input.commentId)
+    .select('id, cycle_id, reviewee_employee_id')
+    .maybeSingle();
+  if (uErr || !updated) {
+    return { error: 'Nao foi possivel editar (fora da janela de 2h ou sem permissao).', code: 'FORBIDDEN' };
+  }
+
+  await logActivity({
+    companyId: ctx.companyId,
+    actorUserId: ctx.userId,
+    action: 'review_result_comment.updated',
+    entityType: 'review_cycle',
+    entityId: updated.cycle_id,
+    metadata: { commentId: updated.id, revieweeEmployeeId: updated.reviewee_employee_id },
+  });
+  revalidatePath(`/avaliacoes/${updated.cycle_id}/resultados/${updated.reviewee_employee_id}`);
+  return { ok: true };
+}
+
+export async function deleteResultComment(input: { commentId: string }) {
+  const ctx = await getCommenterContext();
+  if (!ctx) return { error: 'Nao autenticado.' };
+
+  const supabase = await createServerSupabaseClient();
+  const { data: updated, error: uErr } = await supabase
+    .from('review_result_comments')
+    .update({ deleted_at: new Date().toISOString(), deleted_by: ctx.userId })
+    .eq('id', input.commentId)
+    .select('id, cycle_id, reviewee_employee_id')
+    .maybeSingle();
+  if (uErr || !updated) {
+    return { error: 'Nao foi possivel remover.', code: 'FORBIDDEN' };
+  }
+
+  await logActivity({
+    companyId: ctx.companyId,
+    actorUserId: ctx.userId,
+    action: 'review_result_comment.deleted',
+    entityType: 'review_cycle',
+    entityId: updated.cycle_id,
+    metadata: { commentId: updated.id, revieweeEmployeeId: updated.reviewee_employee_id },
+  });
+  revalidatePath(`/avaliacoes/${updated.cycle_id}/resultados/${updated.reviewee_employee_id}`);
+  return { ok: true };
+}

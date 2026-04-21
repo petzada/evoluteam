@@ -45,12 +45,12 @@ export const RH_PERMISSION_MODULES: {
     key: 'can_employees',
     label: 'Colaboradores e estrutura',
     description:
-      'CRUD de colaboradores, departamentos, cargos e competências. Ver notas internas.',
+      'Gerenciar colaboradores, departamentos, cargos e competências.',
   },
   {
     key: 'can_reviews',
     label: 'Avaliações',
-    description: 'Criar e publicar ciclos, liberar resultados, acompanhar consolidados.',
+    description: 'Criar e publicar ciclos, liberar resultados e acompanhar consolidados.',
   },
   {
     key: 'can_recruitment',
@@ -67,12 +67,12 @@ export const RH_PERMISSION_MODULES: {
     key: 'can_invites',
     label: 'Convites e acessos',
     description:
-      'Enviar convites (apenas como Colaborador). Não pode escalar roles.',
+      'Enviar convites para novos colaboradores.',
   },
   {
     key: 'can_audit',
     label: 'Auditoria',
-    description: 'Ver activity_logs e dados da empresa (CNPJ, logo) — sem editar.',
+    description: 'Ver histórico de ações no sistema e dados da empresa.',
   },
 ];
 
