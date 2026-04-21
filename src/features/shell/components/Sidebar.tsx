@@ -2,11 +2,10 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
 import {
   LayoutDashboard, Home, Users, ClipboardList, MessageSquare, TrendingUp,
-  Settings, Building2, Layers, Briefcase, Star, ScrollText,
-  ChevronDown, UserPlus, KanbanSquare,
+  Building2, Layers, Briefcase, Star, ScrollText,
+  UserPlus, KanbanSquare,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -27,10 +26,9 @@ const MAIN_NAV: NavItem[] = [
   { label: 'PDI', href: '/pdi', icon: TrendingUp },
 ];
 
-// FT-7 — Recrutamento (sempre expandido, igual Principal)
 const RECRUITMENT_NAV: NavItem[] = [
-  { label: 'Vagas', href: '/recrutamento/vagas', icon: Briefcase },
   { label: 'Candidatos', href: '/recrutamento/candidatos', icon: UserPlus },
+  { label: 'Vagas', href: '/recrutamento/vagas', icon: Briefcase },
   { label: 'Etapas', href: '/recrutamento/etapas', icon: KanbanSquare, adminOnly: true },
 ];
 
@@ -56,10 +54,6 @@ export function Sidebar({ role, isOperationalOnly, footer }: SidebarProps) {
   const homeItem: NavItem = isOperationalOnly
     ? { label: 'Início', href: '/dashboard', icon: Home }
     : { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard };
-
-  const isInConfig = pathname.startsWith('/configuracoes');
-  const [manualOpen, setManualOpen] = useState(false);
-  const configOpen = isInConfig || manualOpen;
 
   const renderItem = (item: NavItem) => {
     const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
@@ -116,53 +110,6 @@ export function Sidebar({ role, isOperationalOnly, footer }: SidebarProps) {
     );
   };
 
-  const renderConfigSubItem = (item: NavItem) => {
-    const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
-    const Icon = item.icon;
-    return (
-      <li key={item.href}>
-        <Link
-          href={item.href}
-          className={cn(
-            'flex items-center gap-3 rounded-md py-1.5 pl-9 pr-3 text-sm transition-colors',
-            isActive
-              ? 'bg-sidebar-accent text-sidebar-foreground font-medium'
-              : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground',
-          )}
-        >
-          <Icon className="h-3.5 w-3.5 shrink-0" />
-          {item.label}
-        </Link>
-      </li>
-    );
-  };
-
-  const renderConfigCollapsed = () => {
-    const firstHref = CONFIG_NAV[0]?.href ?? '/configuracoes';
-    const isActive = isInConfig;
-    const link = (
-      <Link
-        href={firstHref}
-        className={cn(
-          'flex h-9 w-9 mx-auto items-center justify-center rounded-md transition-colors',
-          isActive
-            ? 'bg-sidebar-accent text-sidebar-primary'
-            : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground',
-        )}
-      >
-        <Settings className="h-4 w-4" />
-      </Link>
-    );
-    return (
-      <li>
-        <Tooltip>
-          <TooltipTrigger render={link} />
-          <TooltipContent side="right">Configurações</TooltipContent>
-        </Tooltip>
-      </li>
-    );
-  };
-
   return (
     <aside
       className={cn(
@@ -184,7 +131,7 @@ export function Sidebar({ role, isOperationalOnly, footer }: SidebarProps) {
         <div>
           {!collapsed && (
             <p className="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/30">
-              Principal
+              Acompanhamento
             </p>
           )}
           <ul className="space-y-0.5">{MAIN_NAV.map(renderItem)}</ul>
@@ -207,43 +154,12 @@ export function Sidebar({ role, isOperationalOnly, footer }: SidebarProps) {
 
         {isAdmin && (
           <div>
-            {collapsed ? (
-              <ul className="space-y-0.5">{renderConfigCollapsed()}</ul>
-            ) : (
-              <ul className="space-y-0.5">
-                <li>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (isInConfig) return;
-                      setManualOpen((v) => !v);
-                    }}
-                    aria-expanded={configOpen}
-                    aria-controls="config-submenu"
-                    className={cn(
-                      'flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors',
-                      isInConfig
-                        ? 'bg-sidebar-accent text-sidebar-primary font-medium'
-                        : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground',
-                    )}
-                  >
-                    <Settings className="h-4 w-4 shrink-0" />
-                    <span className="flex-1 text-left">Configurações</span>
-                    <ChevronDown
-                      className={cn(
-                        'h-3.5 w-3.5 shrink-0 transition-transform',
-                        configOpen ? '' : '-rotate-90',
-                      )}
-                    />
-                  </button>
-                </li>
-                {configOpen && (
-                  <ul id="config-submenu" className="space-y-0.5 mt-0.5">
-                    {CONFIG_NAV.map(renderConfigSubItem)}
-                  </ul>
-                )}
-              </ul>
+            {!collapsed && (
+              <p className="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/30">
+                Configurações
+              </p>
             )}
+            <ul className="space-y-0.5">{CONFIG_NAV.map(renderItem)}</ul>
           </div>
         )}
       </nav>
