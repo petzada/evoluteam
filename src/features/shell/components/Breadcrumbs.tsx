@@ -9,6 +9,7 @@ const SEGMENT_LABELS: Record<string, string> = {
   dashboard: 'Dashboard',
   colaboradores: 'Colaboradores',
   novo: 'Novo',
+  nova: 'Nova',
   configuracoes: 'Configurações',
   empresa: 'Empresa',
   departamentos: 'Departamentos',
@@ -23,6 +24,13 @@ const SEGMENT_LABELS: Record<string, string> = {
   responder: 'Responder',
   resultados: 'Resultados',
   convite: 'Convite',
+  // FT-7 Recrutamento
+  recrutamento: 'Recrutamento',
+  vagas: 'Vagas',
+  candidatos: 'Candidatos',
+  relatorios: 'Relatórios',
+  etapas: 'Etapas',
+  contratar: 'Contratar',
 };
 
 const OPAQUE_SEGMENT = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

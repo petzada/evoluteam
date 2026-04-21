@@ -17,6 +17,7 @@ interface NavItem {
   href: string;
   icon: React.ElementType;
   disabled?: boolean;
+  adminOnly?: boolean;
 }
 
 const MAIN_NAV: NavItem[] = [
@@ -30,6 +31,7 @@ const MAIN_NAV: NavItem[] = [
 const RECRUITMENT_NAV: NavItem[] = [
   { label: 'Vagas', href: '/recrutamento/vagas', icon: Briefcase },
   { label: 'Candidatos', href: '/recrutamento/candidatos', icon: UserPlus },
+  { label: 'Etapas', href: '/recrutamento/etapas', icon: KanbanSquare, adminOnly: true },
 ];
 
 const CONFIG_NAV: NavItem[] = [
@@ -37,7 +39,6 @@ const CONFIG_NAV: NavItem[] = [
   { label: 'Departamentos', href: '/configuracoes/departamentos', icon: Layers },
   { label: 'Cargos', href: '/configuracoes/cargos', icon: Briefcase },
   { label: 'Competências', href: '/configuracoes/competencias', icon: Star },
-  { label: 'Etapas de recrutamento', href: '/configuracoes/etapas-recrutamento', icon: KanbanSquare },
   { label: 'Auditoria', href: '/configuracoes/auditoria', icon: ScrollText },
 ];
 
@@ -196,7 +197,11 @@ export function Sidebar({ role, isOperationalOnly, footer }: SidebarProps) {
                 Recrutamento
               </p>
             )}
-            <ul className="space-y-0.5">{RECRUITMENT_NAV.map(renderItem)}</ul>
+            <ul className="space-y-0.5">
+              {RECRUITMENT_NAV
+                .filter((item) => !item.adminOnly || isAdmin)
+                .map(renderItem)}
+            </ul>
           </div>
         )}
 
