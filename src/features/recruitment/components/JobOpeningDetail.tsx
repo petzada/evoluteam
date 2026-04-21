@@ -18,7 +18,7 @@ import { cn } from '@/lib/utils';
 import { formatDate } from '@/lib/date';
 import type { JobOpeningRow } from '../queries/jobOpenings';
 import type { ApplicationRow } from '../queries/applications';
-import type { StageRow } from '../queries/stages';
+import type { PipelineSnapshotStage } from '../pipeline-snapshot';
 import type { CandidateRow } from '../queries/candidates';
 import type { TaskKanbanState, TaskRow } from '../queries/tasks';
 import type { CandidateFeedbackRow } from '../queries/feedbacks';
@@ -41,7 +41,7 @@ interface ManagerItem { id: string; full_name: string }
 
 interface Props {
   job: JobOpeningRow;
-  stages: StageRow[];
+  stages: PipelineSnapshotStage[];
   activeApplications: ApplicationRow[];
   archivedApplications: ApplicationRow[];
   canManage: boolean;

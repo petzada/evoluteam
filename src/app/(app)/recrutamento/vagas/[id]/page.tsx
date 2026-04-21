@@ -8,7 +8,6 @@ import {
   listActiveApplicationsByJob,
   listArchivedApplicationsByJob,
 } from '@/features/recruitment/queries/applications';
-import { listActiveStages } from '@/features/recruitment/queries/stages';
 import { countFeedbacksByApplication, listFeedbacksByJob } from '@/features/recruitment/queries/feedbacks';
 import { countScorecardsByApplication, listScorecardsByJob } from '@/features/recruitment/queries/scorecards';
 import { getTaskStatesByApplication, listTasksByJob } from '@/features/recruitment/queries/tasks';
@@ -47,14 +46,14 @@ export default async function VagaDetailPage({ params }: { params: Params }) {
   const job = await getJobOpeningById(id);
   if (!job) notFound();
 
-  const [stages, active, archived, positions, departments, managers] = await Promise.all([
-    listActiveStages(profile.company_id),
+  const [active, archived, positions, departments, managers] = await Promise.all([
     listActiveApplicationsByJob(id),
     listArchivedApplicationsByJob(id),
     getPositions(profile.company_id),
     getDepartments(profile.company_id),
     listHiringManagerOptions(profile.company_id),
   ]);
+  const stages = job.pipeline_snapshot;
 
   const appIds = active.map((a) => a.id);
   const [feedbackCounts, scorecardCounts, taskStates, feedbacks, scorecards, tasks] = await Promise.all([

@@ -11,6 +11,7 @@ import {
   REJECTION_REASON_LABELS, WITHDRAWAL_REASON_LABELS,
   type RejectionReason, type WithdrawalReason,
 } from '../schema';
+import type { PipelineSnapshotStage } from '../pipeline-snapshot';
 
 type Actor = {
   userId: string;
@@ -68,7 +69,7 @@ export async function linkCandidateToJob(candidateId: string, jobOpeningId: stri
 
   const { data: job } = await admin
     .from('job_openings')
-    .select('id, title, company_id, hiring_manager_id')
+    .select('id, title, company_id, hiring_manager_id, pipeline_snapshot')
     .eq('id', jobOpeningId)
     .maybeSingle();
   if (!job || job.company_id !== actor.companyId) return { error: 'Vaga não encontrada.' };
@@ -89,15 +90,10 @@ export async function linkCandidateToJob(candidateId: string, jobOpeningId: stri
     .maybeSingle();
   if (existing) return { error: 'Este candidato já está vinculado a esta vaga.' };
 
-  // Entry stage
-  const { data: entryStage } = await admin
-    .from('recruitment_stages')
-    .select('id')
-    .eq('company_id', actor.companyId)
-    .eq('kind', 'entry')
-    .is('archived_at', null)
-    .maybeSingle();
-  if (!entryStage) return { error: 'Etapa de entrada não configurada.' };
+  // Entry stage (do snapshot da vaga, não do funil global)
+  const snapshot = (job.pipeline_snapshot ?? []) as PipelineSnapshotStage[];
+  const entryStage = snapshot.find((s) => s.kind === 'entry');
+  if (!entryStage) return { error: 'Funil da vaga sem etapa de entrada.' };
 
   const { data: app, error: appErr } = await admin
     .from('job_applications')
@@ -158,7 +154,7 @@ export async function createAndLinkCandidate(input: CandidateInput, jobOpeningId
   // Valida vaga
   const { data: job } = await admin
     .from('job_openings')
-    .select('id, title, company_id')
+    .select('id, title, company_id, pipeline_snapshot')
     .eq('id', jobOpeningId)
     .maybeSingle();
   if (!job || job.company_id !== actor.companyId) return { error: 'Vaga não encontrada.' };
@@ -174,15 +170,10 @@ export async function createAndLinkCandidate(input: CandidateInput, jobOpeningId
     return { error: 'Já existe um candidato com este e-mail. Use "Vincular existente" no sheet.', existingId: existingCand.id };
   }
 
-  // Entry stage
-  const { data: entryStage } = await admin
-    .from('recruitment_stages')
-    .select('id')
-    .eq('company_id', actor.companyId)
-    .eq('kind', 'entry')
-    .is('archived_at', null)
-    .maybeSingle();
-  if (!entryStage) return { error: 'Etapa de entrada não configurada.' };
+  // Entry stage (do snapshot da vaga, não do funil global)
+  const snapshot = (job.pipeline_snapshot ?? []) as PipelineSnapshotStage[];
+  const entryStage = snapshot.find((s) => s.kind === 'entry');
+  if (!entryStage) return { error: 'Funil da vaga sem etapa de entrada.' };
 
   // Cria candidato
   const { data: candidate, error: candErr } = await admin
@@ -275,7 +266,7 @@ export async function moveApplicationStage(applicationId: string, targetStageId:
     .select(`
       id, job_opening_id, candidate_id, current_stage_id, status, company_id,
       candidate:candidates(name),
-      job_opening:job_openings(title, hiring_manager_id)
+      job_opening:job_openings(title, hiring_manager_id, pipeline_snapshot)
     `)
     .eq('id', applicationId)
     .maybeSingle();
@@ -289,15 +280,16 @@ export async function moveApplicationStage(applicationId: string, targetStageId:
   if (app.status !== 'in_progress') return { error: 'Aplicação não está ativa.' };
   if (app.current_stage_id === targetStageId) return { ok: true };
 
-  // Valida target stage
-  const { data: target } = await admin
-    .from('recruitment_stages')
-    .select('id, kind, name, notifies_hiring_manager, archived_at, company_id')
-    .eq('id', targetStageId)
-    .maybeSingle();
-  if (!target || target.company_id !== actor.companyId || target.archived_at) {
-    return { error: 'Etapa inválida.' };
-  }
+  // Funil congelado da vaga: snapshot é a única fonte de verdade pra
+  // validação e ordenação de etapas dessa aplicação.
+  const jobObj = app.job_opening as unknown as {
+    title: string;
+    hiring_manager_id: string | null;
+    pipeline_snapshot: PipelineSnapshotStage[] | null;
+  } | null;
+  const snapshot = (jobObj?.pipeline_snapshot ?? []) as PipelineSnapshotStage[];
+  const target = snapshot.find((s) => s.id === targetStageId);
+  if (!target) return { error: 'Etapa não pertence ao funil desta vaga.' };
   if (target.kind === 'hired_terminal') {
     return {
       error: 'Para contratar use o assistente (drop em "Contratado" abre o wizard).',
@@ -305,20 +297,7 @@ export async function moveApplicationStage(applicationId: string, targetStageId:
     };
   }
 
-  // Pega etapa anterior (com position) e lista todas ativas da company
-  // pra detectar eventual pulo de etapas.
-  const { data: fromStage } = await admin
-    .from('recruitment_stages')
-    .select('id, name, position')
-    .eq('id', app.current_stage_id)
-    .maybeSingle();
-
-  // Busca target com position pra calcular pulo
-  const { data: targetWithPos } = await admin
-    .from('recruitment_stages')
-    .select('id, position')
-    .eq('id', targetStageId)
-    .maybeSingle();
+  const fromStage = snapshot.find((s) => s.id === app.current_stage_id) ?? null;
 
   const { error: updErr } = await admin
     .from('job_applications')
@@ -330,21 +309,17 @@ export async function moveApplicationStage(applicationId: string, targetStageId:
     .eq('id', applicationId);
   if (updErr) return { error: 'Falha ao mover candidato.' };
 
-  // Se o usuário pulou etapas (diff de position > 1), preencher o histórico
-  // com entries sintéticas pra cada etapa intermediária, mantendo o funil de
-  // relatórios consistente. Entries sintéticas ficam fora do timeline do
-  // candidato e do cálculo de tempo mediano.
+  // Se o usuário pulou etapas (diff de position > 1) no funil da vaga,
+  // preencher o histórico com entries sintéticas pra cada etapa
+  // intermediária, mantendo o funil de relatórios consistente. Entries
+  // sintéticas ficam fora do timeline do candidato e do cálculo de
+  // tempo mediano.
   const fromPos = fromStage?.position ?? null;
-  const toPos = targetWithPos?.position ?? null;
-  if (fromPos !== null && toPos !== null && toPos - fromPos > 1) {
-    const { data: intermediate } = await admin
-      .from('recruitment_stages')
-      .select('id, position')
-      .eq('company_id', actor.companyId)
-      .is('archived_at', null)
-      .gt('position', fromPos)
-      .lt('position', toPos)
-      .order('position', { ascending: true });
+  const toPos = target.position;
+  if (fromPos !== null && toPos - fromPos > 1) {
+    const intermediate = snapshot
+      .filter((s) => s.position > fromPos && s.position < toPos)
+      .sort((a, b) => a.position - b.position);
 
     const baseMs = Date.now();
     let prevStageId = app.current_stage_id;
@@ -356,7 +331,7 @@ export async function moveApplicationStage(applicationId: string, targetStageId:
       changed_at: string;
       synthetic: boolean;
     }> = [];
-    (intermediate ?? []).forEach((s, i) => {
+    intermediate.forEach((s, i) => {
       inserts.push({
         application_id: applicationId,
         from_stage_id: prevStageId,
@@ -374,7 +349,7 @@ export async function moveApplicationStage(applicationId: string, targetStageId:
       from_stage_id: prevStageId,
       to_stage_id: targetStageId,
       changed_by: actor.userId,
-      changed_at: new Date(baseMs + (intermediate?.length ?? 0)).toISOString(),
+      changed_at: new Date(baseMs + intermediate.length).toISOString(),
       synthetic: false,
     });
     await admin.from('candidate_stage_history').insert(inserts);
@@ -389,8 +364,8 @@ export async function moveApplicationStage(applicationId: string, targetStageId:
   }
 
   const candName = (app.candidate as unknown as { name: string } | null)?.name ?? 'Candidato';
-  const jobTitle = (app.job_opening as unknown as { title: string; hiring_manager_id: string | null } | null)?.title ?? '';
-  const hiringManagerId = (app.job_opening as unknown as { hiring_manager_id: string | null } | null)?.hiring_manager_id;
+  const jobTitle = jobObj?.title ?? '';
+  const hiringManagerId = jobObj?.hiring_manager_id ?? null;
 
   await logActivity({
     companyId: actor.companyId,

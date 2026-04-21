@@ -26,7 +26,7 @@ import {
   type CandidateSource,
 } from '../schema';
 import type { ApplicationRow } from '../queries/applications';
-import type { StageRow } from '../queries/stages';
+import type { PipelineSnapshotStage } from '../pipeline-snapshot';
 import type { TaskKanbanState, TaskRow } from '../queries/tasks';
 import type { CandidateFeedbackRow } from '../queries/feedbacks';
 import type { ScorecardRow } from '../queries/scorecards';
@@ -50,7 +50,7 @@ interface JobContext {
 }
 
 interface Props {
-  stages: StageRow[];
+  stages: PipelineSnapshotStage[];
   applications: ApplicationRow[];
   canMove: boolean;
   canGiveFeedback: boolean;
@@ -311,7 +311,7 @@ export function Kanban({
 }
 
 interface ColumnProps {
-  stage: StageRow;
+  stage: PipelineSnapshotStage;
   applications: ApplicationRow[];
   canMove: boolean;
   canGiveFeedback: boolean;
@@ -324,7 +324,7 @@ interface ColumnProps {
   onHireAction: (app: ApplicationRow) => void;
   onViewProfile: (app: ApplicationRow) => void;
   onMoveTo: (appId: string, targetStageId: string) => void | Promise<void>;
-  stages: StageRow[];
+  stages: PipelineSnapshotStage[];
 }
 
 function KanbanColumn({
@@ -382,8 +382,8 @@ function KanbanColumn({
 
 interface DraggableCardProps {
   app: ApplicationRow;
-  stage: StageRow;
-  stages: StageRow[];
+  stage: PipelineSnapshotStage;
+  stages: PipelineSnapshotStage[];
   canMove: boolean;
   canGiveFeedback: boolean;
   canHire: boolean;

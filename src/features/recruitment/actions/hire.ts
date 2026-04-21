@@ -5,6 +5,7 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 import { logActivity } from '@/lib/activity';
 import { HireCandidateInputSchema, type HireCandidateInput } from '../schema';
+import type { PipelineSnapshotStage } from '../pipeline-snapshot';
 
 type Actor = {
   userId: string;
@@ -137,7 +138,7 @@ export async function hireCandidate(
     .select(`
       id, company_id, candidate_id, job_opening_id, current_stage_id, status,
       candidate:candidates(id, hired_employee_id, name, email),
-      job_opening:job_openings(id, title)
+      job_opening:job_openings(id, title, pipeline_snapshot)
     `)
     .eq('id', applicationId)
     .maybeSingle();
@@ -181,16 +182,14 @@ export async function hireCandidate(
     };
   }
 
-  // Etapa "Contratado" (hired_terminal)
-  const { data: hiredStage } = await admin
-    .from('recruitment_stages')
-    .select('id')
-    .eq('company_id', actor.companyId)
-    .eq('kind', 'hired_terminal')
-    .is('archived_at', null)
-    .maybeSingle();
+  // Etapa "Contratado" (hired_terminal) — vem do snapshot da vaga
+  const jobObj = app.job_opening as unknown as {
+    id: string; title: string; pipeline_snapshot: PipelineSnapshotStage[] | null;
+  } | null;
+  const snapshot = (jobObj?.pipeline_snapshot ?? []) as PipelineSnapshotStage[];
+  const hiredStage = snapshot.find((s) => s.kind === 'hired_terminal');
   if (!hiredStage) {
-    return { ok: false, reason: 'OTHER', message: 'Etapa de contratação não configurada.' };
+    return { ok: false, reason: 'OTHER', message: 'Funil da vaga sem etapa de contratação.' };
   }
 
   // 1) Cria employee (user_id=null; convite é manual em Colaboradores)

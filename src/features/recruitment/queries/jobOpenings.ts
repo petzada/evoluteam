@@ -1,5 +1,6 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import type { JobOpeningStatus, JobOpeningEmploymentType, JobOpeningWorkplaceType } from '../schema';
+import type { PipelineSnapshotStage } from '../pipeline-snapshot';
 
 export type JobOpeningRow = {
   id: string;
@@ -16,6 +17,7 @@ export type JobOpeningRow = {
   closed_at: string | null;
   created_at: string;
   updated_at: string;
+  pipeline_snapshot: PipelineSnapshotStage[];
   department: { id: string; name: string } | null;
   position: { id: string; name: string } | null;
   hiring_manager: { id: string; full_name: string } | null;
@@ -25,7 +27,7 @@ export type JobOpeningRow = {
 const JOB_OPENING_SELECT = `
   id, title, description, department_id, position_id, hiring_manager_id,
   employment_type, workplace_type, location, open_positions, status,
-  closed_at, created_at, updated_at,
+  closed_at, created_at, updated_at, pipeline_snapshot,
   department:departments(id, name),
   position:positions(id, name),
   hiring_manager:employees!hiring_manager_id(id, full_name)

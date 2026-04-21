@@ -5,6 +5,7 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 import { logActivity } from '@/lib/activity';
 import { JobOpeningInputSchema, type JobOpeningInput, type JobOpeningStatus, JOB_OPENING_STATUS_LABELS } from '../schema';
+import { buildPipelineSnapshot } from '../pipeline-snapshot';
 
 type Actor = { userId: string; companyId: string; role: 'admin_rh' | 'director' | 'user' };
 
@@ -31,6 +32,11 @@ export async function createJobOpening(input: JobOpeningInput) {
   const v = parsed.data;
 
   const admin = createAdminSupabaseClient();
+  const pipelineSnapshot = await buildPipelineSnapshot(admin, actor.companyId);
+  if (pipelineSnapshot.length === 0) {
+    return { error: 'Configure ao menos uma etapa de recrutamento antes de criar vagas.' };
+  }
+
   const { data, error } = await admin
     .from('job_openings')
     .insert({
@@ -46,6 +52,7 @@ export async function createJobOpening(input: JobOpeningInput) {
       open_positions: v.openPositions,
       status: 'open',
       created_by: actor.userId,
+      pipeline_snapshot: pipelineSnapshot,
     })
     .select('id, title, status')
     .single();

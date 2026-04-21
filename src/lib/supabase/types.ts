@@ -6,6 +6,14 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
+export type PipelineSnapshotStage = {
+  id: string
+  name: string
+  position: number
+  kind: 'entry' | 'intermediate' | 'hired_terminal'
+  notifies_hiring_manager: boolean
+}
+
 export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
@@ -864,6 +872,7 @@ export type Database = {
           created_by: string | null
           created_at: string
           updated_at: string
+          pipeline_snapshot: PipelineSnapshotStage[]
         }
         Insert: {
           id?: string
@@ -882,6 +891,7 @@ export type Database = {
           created_by?: string | null
           created_at?: string
           updated_at?: string
+          pipeline_snapshot?: PipelineSnapshotStage[]
         }
         Update: Partial<Database['public']['Tables']['job_openings']['Insert']>
         Relationships: [
