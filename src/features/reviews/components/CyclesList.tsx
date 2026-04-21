@@ -84,15 +84,23 @@ export function CyclesList({ cycles, pending, isAdmin }: Props) {
   })();
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<StatusFilterValue>(initialStatus);
+  const [showArchived, setShowArchived] = useState(false);
 
   const filtered = useMemo(() => {
     const lower = search.trim().toLowerCase();
     return cycles.filter((c) => {
       const matchSearch = !lower || c.name.toLowerCase().includes(lower);
-      const matchStatus = status === 'all' || deriveStatus(c) === status;
+      const derived = deriveStatus(c);
+      const matchStatus = status === 'all' || derived === status;
+      if (derived === 'archived' && status !== 'archived' && !showArchived) return false;
       return matchSearch && matchStatus;
     });
-  }, [cycles, search, status]);
+  }, [cycles, search, status, showArchived]);
+
+  const archivedHiddenCount = useMemo(() => {
+    if (showArchived || status === 'archived') return 0;
+    return cycles.filter((c) => deriveStatus(c) === 'archived').length;
+  }, [cycles, showArchived, status]);
 
   return (
     <div>
@@ -152,6 +160,25 @@ export function CyclesList({ cycles, pending, isAdmin }: Props) {
             ))}
           </SelectContent>
         </Select>
+      </div>
+
+      <div className="flex items-center justify-between rounded-md border bg-muted/30 px-4 py-2.5 mb-4 text-sm">
+        <p className="text-muted-foreground">
+          {archivedHiddenCount > 0 ? (
+            <><span className="font-medium text-foreground">{archivedHiddenCount}</span> arquivado{archivedHiddenCount === 1 ? '' : 's'} oculto{archivedHiddenCount === 1 ? '' : 's'}</>
+          ) : (
+            <>Mostrando ciclos ativos.</>
+          )}
+        </p>
+        <label className="flex items-center gap-2 text-muted-foreground cursor-pointer">
+          <input
+            type="checkbox"
+            checked={showArchived}
+            onChange={(e) => setShowArchived(e.target.checked)}
+            className="h-3.5 w-3.5 accent-primary"
+          />
+          Mostrar arquivados
+        </label>
       </div>
 
       {filtered.length === 0 ? (

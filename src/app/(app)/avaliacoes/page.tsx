@@ -29,7 +29,7 @@ export default async function AvaliacoesPage() {
     }
   }
 
-  const cycles = await listCycles(profile.company_id, { scopedIds });
+  const cycles = await listCycles(profile.company_id, { scopedIds, includeArchived: true });
   const progressPairs = await Promise.all(
     cycles.map(async (c) => [c.id, await getCycleProgress(c.id)] as const),
   );
