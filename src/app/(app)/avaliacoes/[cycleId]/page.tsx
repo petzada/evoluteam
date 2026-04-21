@@ -5,6 +5,7 @@ import {
 } from '@/features/reviews/queries';
 
 import { CycleDetail } from '@/features/reviews/components/CycleDetail';
+import { BreadcrumbLabel } from '@/features/shell/components/BreadcrumbLabel';
 
 function deriveCycleLabel(status: string, responseStart: string, responseEnd: string): string {
   if (status === 'draft') return 'Rascunho';
@@ -47,7 +48,9 @@ export default async function CycleDetailPage({
   ]);
 
   return (
-    <CycleDetail
+    <>
+      <BreadcrumbLabel segment={cycleId} label={cycle.name} />
+      <CycleDetail
       cycle={{
         id: cycle.id,
         name: cycle.name,
@@ -69,5 +72,6 @@ export default async function CycleDetailPage({
       isAdmin={profile.role === 'admin_rh'}
       deriveLabel={deriveCycleLabel(cycle.status, cycle.response_start, cycle.response_end)}
     />
+    </>
   );
 }

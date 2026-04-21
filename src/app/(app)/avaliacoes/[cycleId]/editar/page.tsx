@@ -12,6 +12,7 @@ import {
 import { PublishedCycleEditForm } from '@/features/reviews/components/PublishedCycleEditForm';
 import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/ui/button';
+import { BreadcrumbLabel } from '@/features/shell/components/BreadcrumbLabel';
 
 export default async function EditCyclePage({
   params,
@@ -37,6 +38,7 @@ export default async function EditCyclePage({
   if (cycle.status === 'closed' || cycle.status === 'archived') {
     return (
       <div>
+        <BreadcrumbLabel segment={cycleId} label={cycle.name} />
         <PageHeader
           title="Ciclo não editável"
           description={
@@ -55,6 +57,7 @@ export default async function EditCyclePage({
   if (cycle.status === 'published') {
     return (
       <div>
+        <BreadcrumbLabel segment={cycleId} label={cycle.name} />
         <PageHeader
           title={`Editar: ${cycle.name}`}
           description="Ajustes permitidos após publicação."
@@ -125,6 +128,7 @@ export default async function EditCyclePage({
 
   return (
     <div>
+      <BreadcrumbLabel segment={cycleId} label={cycle.name} />
       <PageHeader
         title={`Editar: ${cycle.name}`}
         description="Rascunho — todos os campos podem ser alterados. Você pode salvar como rascunho ou publicar."

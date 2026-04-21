@@ -194,9 +194,10 @@ export function EmployeesList({
   }, [employees]);
 
   const activeManagers = useMemo(
-    () => employees.filter((e) => e.status === 'active')
+    () => employees
+      .filter((e) => e.status === 'active' && (subordinatesByManager[e.id] ?? 0) > 0)
       .map((e) => ({ id: e.id, full_name: e.full_name })),
-    [employees],
+    [employees, subordinatesByManager],
   );
 
   const metrics = useMemo(() => {

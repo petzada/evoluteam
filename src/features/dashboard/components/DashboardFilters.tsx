@@ -26,6 +26,7 @@ interface Props {
 }
 
 const NO_CYCLE_VALUE = '__none__';
+const ALL_CYCLES_VALUE = '__all__';
 const ALL_DEPTS_VALUE = '__all__';
 
 function labelForCycle(c: CycleOption) {
@@ -58,10 +59,15 @@ export function DashboardFilters({
   }
 
   const hasCycles = cycles.length > 0;
-  const cycleValue = selectedCycleId ?? (hasCycles ? cycles[0].id : NO_CYCLE_VALUE);
+  const cycleValue = selectedCycleId === 'all'
+    ? ALL_CYCLES_VALUE
+    : (selectedCycleId ?? (hasCycles ? cycles[0].id : NO_CYCLE_VALUE));
 
   const cycleItems = hasCycles
-    ? cycles.map((c) => ({ value: c.id, label: labelForCycle(c) }))
+    ? [
+        { value: ALL_CYCLES_VALUE, label: 'Todos os ciclos (consolidado)' },
+        ...cycles.map((c) => ({ value: c.id, label: labelForCycle(c) })),
+      ]
     : [{ value: NO_CYCLE_VALUE, label: 'Nenhum ciclo criado' }];
 
   const deptValue = selectedDepartmentId ?? ALL_DEPTS_VALUE;
@@ -71,16 +77,23 @@ export function DashboardFilters({
   ];
 
   return (
-    <div className="flex flex-wrap items-center gap-3" data-pending={pending ? '' : undefined}>
+    <div className="flex flex-wrap items-end gap-3" data-pending={pending ? '' : undefined}>
       <div className="flex flex-col gap-1">
         <label className="text-xs text-muted-foreground">Ciclo</label>
         <Select
           value={cycleValue}
-          onValueChange={(v) => hasCycles && v && v !== NO_CYCLE_VALUE && setParam('cycle_id', v)}
+          onValueChange={(v) => {
+            if (!hasCycles || !v || v === NO_CYCLE_VALUE) return;
+            if (v === ALL_CYCLES_VALUE) {
+              setParam('cycle_id', 'all');
+              return;
+            }
+            setParam('cycle_id', v);
+          }}
           items={cycleItems}
           disabled={!hasCycles}
         >
-          <SelectTrigger className="w-64">
+          <SelectTrigger className="w-60">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -101,7 +114,7 @@ export function DashboardFilters({
             onValueChange={(v) => setParam('dept_id', v === ALL_DEPTS_VALUE ? null : (v ?? null))}
             items={deptItems}
           >
-            <SelectTrigger className="w-56">
+            <SelectTrigger className="w-52">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

@@ -28,7 +28,7 @@ interface Props {
 }
 
 type DerivedStatus = 'draft' | 'scheduled' | 'in_progress' | 'closed' | 'archived';
-type StatusFilterValue = 'all' | 'published' | DerivedStatus;
+type StatusFilterValue = 'all' | DerivedStatus;
 
 function deriveStatus(cycle: CycleRow): DerivedStatus {
   if (cycle.status === 'draft') return 'draft';
@@ -58,7 +58,6 @@ const STATUS_VARIANTS: Record<DerivedStatus, 'default' | 'secondary' | 'outline'
 
 const FILTER_ITEMS = [
   { value: 'all', label: 'Todos' },
-  { value: 'published', label: 'Publicados' },
   { value: 'draft', label: 'Rascunho' },
   { value: 'scheduled', label: 'Agendado' },
   { value: 'in_progress', label: 'Em andamento' },
@@ -67,7 +66,7 @@ const FILTER_ITEMS = [
 ];
 
 const STATUS_URL_ALIASES: Record<string, StatusFilterValue> = {
-  published: 'published',
+  published: 'in_progress',
   in_progress: 'in_progress',
   scheduled: 'scheduled',
   draft: 'draft',
@@ -90,8 +89,7 @@ export function CyclesList({ cycles, pending, isAdmin }: Props) {
     const lower = search.trim().toLowerCase();
     return cycles.filter((c) => {
       const matchSearch = !lower || c.name.toLowerCase().includes(lower);
-      const matchStatus = status === 'all'
-        || (status === 'published' ? c.status === 'published' : deriveStatus(c) === status);
+      const matchStatus = status === 'all' || deriveStatus(c) === status;
       return matchSearch && matchStatus;
     });
   }, [cycles, search, status]);

@@ -5,29 +5,44 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
-type Kind = 'department' | 'position';
+type Kind = 'department' | 'position' | 'competency';
 
 interface Props {
   open: boolean;
   kind: Kind;
-  target: { name: string; employeeCount: number } | null;
+  target: { name: string; usageCount: number } | null;
   onOpenChange: (o: boolean) => void;
   onConfirm: () => void;
 }
 
-export function ConfirmArchiveDialog({ open, kind, target, onOpenChange, onConfirm }: Props) {
-  const singular = kind === 'department' ? 'departamento' : 'cargo';
-  const n = target?.employeeCount ?? 0;
+const SINGULAR: Record<Kind, string> = {
+  department: 'departamento',
+  position: 'cargo',
+  competency: 'competência',
+};
 
+function describeUsage(kind: Kind, count: number): string {
+  if (kind === 'competency') {
+    if (count === 0) {
+      return 'Esta competência não aparecerá em novas seleções. Pode ser desarquivada a qualquer momento.';
+    }
+    return `${count} ${count === 1 ? 'referência existente' : 'referências existentes'} em ciclos, feedbacks ou PDIs permanecerão, mas a competência não aparecerá em novas seleções.`;
+  }
+  const singular = SINGULAR[kind];
+  if (count === 0) {
+    return `Este ${singular} não aparecerá em novos cadastros. Pode ser desarquivado a qualquer momento.`;
+  }
+  return `${count} ${count === 1 ? 'colaborador está' : 'colaboradores estão'} vinculado${count === 1 ? '' : 's'} a este ${singular}. ${count === 1 ? 'Ele continuará' : 'Eles continuarão'} vinculado${count === 1 ? '' : 's'}, mas o ${singular} não aparecerá em novos cadastros.`;
+}
+
+export function ConfirmArchiveDialog({ open, kind, target, onOpenChange, onConfirm }: Props) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Arquivar {target?.name}?</AlertDialogTitle>
           <AlertDialogDescription>
-            {n > 0
-              ? `${n} ${n === 1 ? 'colaborador está' : 'colaboradores estão'} vinculado${n === 1 ? '' : 's'} a este ${singular}. ${n === 1 ? 'Ele continuará' : 'Eles continuarão'} vinculado${n === 1 ? '' : 's'}, mas o ${singular} não aparecerá em novos cadastros.`
-              : `Este ${singular} não aparecerá em novos cadastros. Pode ser desarquivado a qualquer momento.`}
+            {describeUsage(kind, target?.usageCount ?? 0)}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

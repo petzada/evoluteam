@@ -14,6 +14,7 @@ import {
 } from '@/features/employees/queries';
 import { canViewEmployee, canSeeInternalNotes } from '@/features/employees/permissions';
 import { EmployeeProfile } from '@/features/employees/components/EmployeeProfile';
+import { BreadcrumbLabel } from '@/features/shell/components/BreadcrumbLabel';
 import { listFeedbacksForEmployee } from '@/features/feedbacks/queries';
 import { listPdisForEmployee } from '@/features/pdi/queries';
 import { listReviewCyclesForEmployee } from '@/features/reviews/queries';
@@ -145,7 +146,9 @@ export default async function EmployeeProfilePage({
   }
 
   return (
-    <EmployeeProfile
+    <>
+      <BreadcrumbLabel segment={id} label={employee.full_name} />
+      <EmployeeProfile
       employee={employee as Parameters<typeof EmployeeProfile>[0]['employee']}
       directReports={directReports as Parameters<typeof EmployeeProfile>[0]['directReports']}
       activityLog={activityLog as Parameters<typeof EmployeeProfile>[0]['activityLog']}
@@ -171,5 +174,6 @@ export default async function EmployeeProfilePage({
       pdiCycles={pdiCycles ?? []}
       actorEmployeeId={actorEmployeeId}
     />
+    </>
   );
 }

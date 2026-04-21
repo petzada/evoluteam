@@ -19,7 +19,10 @@ export type CycleRow = {
   updated_at: string;
 };
 
-export async function listCycles(companyId: string, opts: { includeArchived?: boolean } = {}) {
+export async function listCycles(
+  companyId: string,
+  opts: { includeArchived?: boolean; scopedIds?: string[] | null } = {},
+) {
   const supabase = await createServerSupabaseClient();
   let query = supabase
     .from('review_cycles')
@@ -29,8 +32,49 @@ export async function listCycles(companyId: string, opts: { includeArchived?: bo
   if (!opts.includeArchived) {
     query = query.neq('status', 'archived');
   }
+  if (opts.scopedIds) {
+    if (opts.scopedIds.length === 0) return [] as CycleRow[];
+    query = query.in('id', opts.scopedIds);
+  }
   const { data } = await query;
   return (data ?? []) as CycleRow[];
+}
+
+export async function listCycleIdsInvolvingEmployee(
+  companyId: string,
+  employeeId: string,
+): Promise<string[]> {
+  const supabase = await createServerSupabaseClient();
+
+  const { data: visibleCycles } = await supabase
+    .from('review_cycles')
+    .select('id')
+    .eq('company_id', companyId)
+    .in('status', ['published', 'closed']);
+  const visibleIds = new Set((visibleCycles ?? []).map((c) => c.id));
+  if (visibleIds.size === 0) return [];
+
+  const [participants, assignments] = await Promise.all([
+    supabase
+      .from('review_cycle_participants')
+      .select('cycle_id')
+      .eq('employee_id', employeeId)
+      .is('removed_at', null),
+    supabase
+      .from('review_assignments')
+      .select('cycle_id')
+      .eq('company_id', companyId)
+      .eq('reviewer_id', employeeId),
+  ]);
+
+  const ids = new Set<string>();
+  for (const r of participants.data ?? []) {
+    if (r.cycle_id && visibleIds.has(r.cycle_id)) ids.add(r.cycle_id);
+  }
+  for (const r of assignments.data ?? []) {
+    if (r.cycle_id && visibleIds.has(r.cycle_id)) ids.add(r.cycle_id);
+  }
+  return Array.from(ids);
 }
 
 export async function getCycle(cycleId: string) {

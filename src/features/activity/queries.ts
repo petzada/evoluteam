@@ -1,16 +1,29 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 
+export const ACTIVITY_PAGE_SIZE = 20;
+
+export type ActivityLogEntry = {
+  id: number;
+  action: string;
+  entity_type: string | null;
+  entity_id: string | null;
+  metadata: unknown;
+  created_at: string;
+  actor_user_id: string | null;
+  actorName: string;
+};
+
 export async function listActivityLogs(
   companyId: string,
-  options?: { page?: number; action?: string; dateFrom?: string; dateTo?: string },
-) {
+  options?: { page?: number; pageSize?: number; action?: string; dateFrom?: string; dateTo?: string },
+): Promise<{ rows: ActivityLogEntry[]; total: number; pageSize: number; page: number }> {
   const supabase = await createServerSupabaseClient();
-  const pageSize = 30;
-  const page = options?.page ?? 0;
+  const pageSize = options?.pageSize ?? ACTIVITY_PAGE_SIZE;
+  const page = Math.max(0, options?.page ?? 0);
 
   let query = supabase
     .from('activity_logs')
-    .select('id, action, entity_type, entity_id, metadata, created_at, actor_user_id')
+    .select('id, action, entity_type, entity_id, metadata, created_at, actor_user_id', { count: 'exact' })
     .eq('company_id', companyId)
     .order('created_at', { ascending: false })
     .range(page * pageSize, page * pageSize + pageSize - 1);
@@ -19,13 +32,15 @@ export async function listActivityLogs(
   if (options?.dateFrom) query = query.gte('created_at', options.dateFrom);
   if (options?.dateTo) query = query.lte('created_at', options.dateTo);
 
-  const { data, error } = await query;
+  const { data, count, error } = await query;
   if (error) throw error;
 
-  if (!data?.length) return [];
+  const rows = data ?? [];
+  if (rows.length === 0) {
+    return { rows: [], total: count ?? 0, pageSize, page };
+  }
 
-  // Fetch actor names via profiles
-  const actorIds = [...new Set(data.map((r) => r.actor_user_id).filter(Boolean))] as string[];
+  const actorIds = [...new Set(rows.map((r) => r.actor_user_id).filter(Boolean))] as string[];
   const { data: profiles } = actorIds.length
     ? await supabase
         .from('profiles')
@@ -35,8 +50,10 @@ export async function listActivityLogs(
 
   const profileMap = Object.fromEntries((profiles ?? []).map((p) => [p.id, p.full_name]));
 
-  return data.map((row) => ({
+  const mapped: ActivityLogEntry[] = rows.map((row) => ({
     ...row,
     actorName: row.actor_user_id ? (profileMap[row.actor_user_id] ?? 'Sistema') : 'Sistema',
   }));
+
+  return { rows: mapped, total: count ?? mapped.length, pageSize, page };
 }

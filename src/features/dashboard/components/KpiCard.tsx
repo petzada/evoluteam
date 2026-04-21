@@ -30,7 +30,11 @@ export function KpiCard({ label, icon: Icon, value, hint, href, tone = 'default'
       </CardHeader>
       <CardContent>
         <p className={cn('text-2xl font-bold', TONE_CLASS[tone])}>{value}</p>
-        {hint && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}
+        {hint ? (
+          <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
+        ) : (
+          <p aria-hidden className="mt-1 text-xs select-none">&nbsp;</p>
+        )}
       </CardContent>
     </Card>
   );

@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -154,13 +154,6 @@ export function EmployeeProfile({
     internalNotes: canSeeInternalNotes ? employee.internal_notes ?? null : null,
     descendantIds,
   };
-
-  const accountActivity = useMemo(() => {
-    if (!employee.user_id) return [];
-    return activityLog
-      .filter((l) => l.actor_user_id === employee.user_id)
-      .slice(0, 10);
-  }, [activityLog, employee.user_id]);
 
   const pendingInvite = employee.invite?.find(
     (i) => !i.accepted_at && !i.revoked_at && new Date(i.expires_at) > new Date(),
@@ -418,28 +411,6 @@ export function EmployeeProfile({
               </section>
             )}
 
-            <section>
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">
-                Atividade da conta
-              </p>
-              {accountActivity.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  Nenhuma atividade registrada{lastSignInAt ? '' : ' e nenhum login conhecido'}.
-                </p>
-              ) : (
-                <ol className="rounded-md border divide-y">
-                  {accountActivity.map((log) => (
-                    <li key={log.id} className="px-4 py-2 text-sm flex justify-between gap-4">
-                      <span className="font-medium">{ACTIVITY_LABELS[log.action] ?? log.action}</span>
-                      <span className="text-xs text-muted-foreground">{formatDateTime(log.created_at)}</span>
-                    </li>
-                  ))}
-                </ol>
-              )}
-              <p className="mt-2 text-[11px] text-muted-foreground">
-                Histórico detalhado de logins não está disponível nesta versão — apenas o último login é exibido.
-              </p>
-            </section>
           </div>
         </TabsContent>
 

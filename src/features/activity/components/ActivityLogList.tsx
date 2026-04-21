@@ -1,26 +1,33 @@
+'use client';
+
+import { useRouter, useSearchParams } from 'next/navigation';
 import { formatDateTime } from '@/lib/date';
-import { ACTIVITY_LABELS } from '@/lib/activity';
+import { ACTIVITY_LABELS, humanizeActivityMetadata } from '@/lib/activity';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { EmptyState } from '@/components/EmptyState';
+import { PaginationControls } from '@/components/PaginationControls';
 import { ScrollText } from 'lucide-react';
-
-type LogEntry = {
-  id: number;
-  action: string;
-  entity_type: string | null;
-  entity_id: string | null;
-  metadata: unknown;
-  created_at: string;
-  actor_user_id: string | null;
-  actorName: string;
-};
+import type { ActivityLogEntry } from '../queries';
 
 interface Props {
-  logs: LogEntry[];
+  logs: ActivityLogEntry[];
+  total: number;
+  pageSize: number;
+  page: number;
 }
 
-export function ActivityLogList({ logs }: Props) {
-  if (logs.length === 0) {
+export function ActivityLogList({ logs, total, pageSize, page }: Props) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  function goToPage(next: number) {
+    const params = new URLSearchParams(searchParams?.toString() ?? '');
+    if (next <= 1) params.delete('page'); else params.set('page', String(next));
+    const qs = params.toString();
+    router.push(`/configuracoes/auditoria${qs ? `?${qs}` : ''}`);
+  }
+
+  if (logs.length === 0 && page === 1) {
     return (
       <EmptyState
         icon={ScrollText}
@@ -31,36 +38,51 @@ export function ActivityLogList({ logs }: Props) {
   }
 
   return (
-    <div className="rounded-md border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Evento</TableHead>
-            <TableHead>Responsável</TableHead>
-            <TableHead>Data/hora</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {logs.map((log) => (
-            <TableRow key={log.id}>
-              <TableCell>
-                <p className="font-medium">{ACTIVITY_LABELS[log.action] ?? log.action}</p>
-                {typeof log.metadata === 'object' && log.metadata !== null && !Array.isArray(log.metadata) && Object.keys(log.metadata).length > 0 && (
-                  <p className="text-xs text-muted-foreground">
-                    {Object.entries(log.metadata as Record<string, string>)
-                      .map(([k, v]) => `${k}: ${v}`)
-                      .join(' · ')}
-                  </p>
-                )}
-              </TableCell>
-              <TableCell>{log.actorName}</TableCell>
-              <TableCell className="text-muted-foreground whitespace-nowrap">
-                {formatDateTime(log.created_at)}
-              </TableCell>
+    <div className="space-y-3">
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Evento</TableHead>
+              <TableHead>Responsável</TableHead>
+              <TableHead>Data/hora</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {logs.map((log) => {
+              const label = ACTIVITY_LABELS[log.action] ?? log.action;
+              const entries = humanizeActivityMetadata(log.action, log.metadata);
+              return (
+                <TableRow key={log.id}>
+                  <TableCell>
+                    <p className="font-medium">{label}</p>
+                    {entries.length > 0 && (
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {entries.map((e, i) => (
+                          <span key={i}>
+                            {i > 0 && <span className="text-muted-foreground/40"> · </span>}
+                            {e.label}: <b className="font-medium text-foreground/80">{e.value}</b>
+                          </span>
+                        ))}
+                      </p>
+                    )}
+                  </TableCell>
+                  <TableCell>{log.actorName}</TableCell>
+                  <TableCell className="text-muted-foreground whitespace-nowrap">
+                    {formatDateTime(log.created_at)}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </div>
+      <PaginationControls
+        page={page}
+        pageSize={pageSize}
+        total={total}
+        onChange={goToPage}
+      />
     </div>
   );
 }

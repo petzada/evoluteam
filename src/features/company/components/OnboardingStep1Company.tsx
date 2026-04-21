@@ -41,7 +41,7 @@ export function OnboardingStep1Company({ defaultValues, onNext }: Props) {
         <FormField control={form.control} name="segment" render={({ field }) => (
           <FormItem>
             <FormLabel>Segmento *</FormLabel>
-            <Select onValueChange={field.onChange} defaultValue={field.value}>
+            <Select onValueChange={field.onChange} value={field.value ?? ''}>
               <FormControl>
                 <SelectTrigger><SelectValue placeholder="Selecione…" /></SelectTrigger>
               </FormControl>
@@ -58,7 +58,7 @@ export function OnboardingStep1Company({ defaultValues, onNext }: Props) {
         <FormField control={form.control} name="teamSize" render={({ field }) => (
           <FormItem>
             <FormLabel>Tamanho do time *</FormLabel>
-            <Select onValueChange={field.onChange} defaultValue={field.value}>
+            <Select onValueChange={field.onChange} value={field.value ?? ''}>
               <FormControl>
                 <SelectTrigger><SelectValue placeholder="Selecione…" /></SelectTrigger>
               </FormControl>

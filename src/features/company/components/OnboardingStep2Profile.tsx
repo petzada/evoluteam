@@ -41,7 +41,7 @@ export function OnboardingStep2Profile({ defaultValues, onNext, onBack }: Props)
         <FormField control={form.control} name="positionId" render={({ field }) => (
           <FormItem>
             <FormLabel>Seu cargo *</FormLabel>
-            <Select onValueChange={field.onChange} defaultValue={field.value}>
+            <Select onValueChange={field.onChange} value={field.value ?? ''}>
               <FormControl>
                 <SelectTrigger><SelectValue placeholder="Selecione…" /></SelectTrigger>
               </FormControl>

@@ -24,51 +24,93 @@ import { ConfirmArchiveDialog } from './ConfirmArchiveDialog';
 import { ConfirmDeleteDialog } from './ConfirmDeleteDialog';
 import { archiveTaxonomy, deleteTaxonomy } from '../actions';
 
-type Kind = 'department' | 'position';
+type Kind = 'department' | 'position' | 'competency';
 
 type Row = {
   id: string;
   name: string;
   is_archived: boolean;
-  employeeCount: number;
+  usageCount: number;
+  usageLabel: string;
+  usageHref?: string;
 };
 
-interface Props {
+interface PropsBase {
   kind: Kind;
-  items: Row[];
 }
+
+interface PropsDepartmentOrPosition extends PropsBase {
+  kind: 'department' | 'position';
+  items: (Omit<Row, 'usageCount' | 'usageLabel' | 'usageHref'> & { employeeCount: number })[];
+}
+
+interface PropsCompetency extends PropsBase {
+  kind: 'competency';
+  items: (Omit<Row, 'usageCount' | 'usageLabel' | 'usageHref'> & { usageCount: number })[];
+}
+
+type Props = PropsDepartmentOrPosition | PropsCompetency;
 
 const COPY: Record<Kind, {
   title: string;
   description: string;
-  newLabel: string;
-  filterQuery: string;
-  listedRoute: string;
   singular: string;
   searchPlaceholder: string;
+  usageColLabel: string;
+  deleteBlockedHint: string;
 }> = {
   department: {
     title: 'Departamentos',
     description: 'Gerencie os departamentos da empresa.',
-    newLabel: '+ Novo departamento',
-    filterQuery: 'department',
-    listedRoute: '/colaboradores',
     singular: 'departamento',
     searchPlaceholder: 'Buscar departamento…',
+    usageColLabel: 'Colaboradores',
+    deleteBlockedHint: 'Remova os colaboradores vinculados antes.',
   },
   position: {
     title: 'Cargos',
     description: 'Gerencie os cargos da empresa.',
-    newLabel: '+ Novo cargo',
-    filterQuery: 'position',
-    listedRoute: '/colaboradores',
     singular: 'cargo',
     searchPlaceholder: 'Buscar cargo…',
+    usageColLabel: 'Colaboradores',
+    deleteBlockedHint: 'Remova os colaboradores vinculados antes.',
+  },
+  competency: {
+    title: 'Competências',
+    description: 'Competências avaliadas em ciclos, feedbacks e PDIs.',
+    singular: 'competência',
+    searchPlaceholder: 'Buscar competência…',
+    usageColLabel: 'Em uso',
+    deleteBlockedHint: 'Remova as referências em avaliações, feedbacks ou PDIs antes.',
   },
 };
 
-export function TaxonomyList({ kind, items }: Props) {
+function normalizeItems(props: Props): Row[] {
+  if (props.kind === 'competency') {
+    return props.items.map((i) => ({
+      id: i.id,
+      name: i.name,
+      is_archived: i.is_archived,
+      usageCount: i.usageCount,
+      usageLabel: i.usageCount === 1 ? '1 referência' : `${i.usageCount} referências`,
+    }));
+  }
+  return props.items.map((i) => ({
+    id: i.id,
+    name: i.name,
+    is_archived: i.is_archived,
+    usageCount: i.employeeCount,
+    usageLabel: `${i.employeeCount} ${i.employeeCount === 1 ? 'colaborador' : 'colaboradores'}`,
+    usageHref: i.employeeCount > 0
+      ? `/colaboradores?${props.kind === 'department' ? 'department' : 'position'}=${i.id}`
+      : undefined,
+  }));
+}
+
+export function TaxonomyList(props: Props) {
+  const { kind } = props;
   const copy = COPY[kind];
+  const rows = useMemo(() => normalizeItems(props), [props]);
   const [search, setSearch] = useState('');
   const [showArchived, setShowArchived] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -78,15 +120,15 @@ export function TaxonomyList({ kind, items }: Props) {
 
   const { filtered, activeCount, archivedCount } = useMemo(() => {
     const lower = search.trim().toLowerCase();
-    const filtered = items.filter((i) => {
+    const filtered = rows.filter((i) => {
       if (!showArchived && i.is_archived) return false;
       if (lower && !i.name.toLowerCase().includes(lower)) return false;
       return true;
     });
-    const activeCount = items.filter((i) => !i.is_archived).length;
-    const archivedCount = items.length - activeCount;
+    const activeCount = rows.filter((i) => !i.is_archived).length;
+    const archivedCount = rows.length - activeCount;
     return { filtered, activeCount, archivedCount };
-  }, [items, search, showArchived]);
+  }, [rows, search, showArchived]);
 
   async function handleArchive(target: Row, archive: boolean) {
     const result = await archiveTaxonomy(kind, target.id, archive);
@@ -108,7 +150,7 @@ export function TaxonomyList({ kind, items }: Props) {
         actions={
           <Button onClick={() => { setEditing(null); setSheetOpen(true); }}>
             <Plus className="mr-2 h-4 w-4" />
-            Novo {copy.singular}
+            Nov{kind === 'competency' ? 'a' : 'o'} {copy.singular}
           </Button>
         }
       />
@@ -130,7 +172,7 @@ export function TaxonomyList({ kind, items }: Props) {
             checked={showArchived}
             onChange={(e) => setShowArchived(e.target.checked)}
           />
-          Mostrar arquivados
+          Mostrar arquivad{kind === 'competency' ? 'a' : 'o'}s
         </label>
       </div>
 
@@ -139,7 +181,7 @@ export function TaxonomyList({ kind, items }: Props) {
           <TableHeader>
             <TableRow>
               <TableHead>Nome</TableHead>
-              <TableHead className="w-48">Colaboradores</TableHead>
+              <TableHead className="w-48">{copy.usageColLabel}</TableHead>
               <TableHead className="w-32">Status</TableHead>
               <TableHead className="w-12" />
             </TableRow>
@@ -148,7 +190,7 @@ export function TaxonomyList({ kind, items }: Props) {
             {filtered.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={4} className="text-center text-sm text-muted-foreground py-10">
-                  Nenhum {copy.singular} encontrado.
+                  Nenhum{kind === 'competency' ? 'a' : ''} {copy.singular} encontrad{kind === 'competency' ? 'a' : 'o'}.
                 </TableCell>
               </TableRow>
             ) : (
@@ -156,20 +198,19 @@ export function TaxonomyList({ kind, items }: Props) {
                 <TableRow key={row.id}>
                   <TableCell className="font-medium">{row.name}</TableCell>
                   <TableCell>
-                    {row.employeeCount === 0 ? (
-                      <span className="text-muted-foreground text-sm">0 colaboradores</span>
-                    ) : (
-                      <Link
-                        href={`${copy.listedRoute}?${copy.filterQuery}=${row.id}`}
-                        className="text-primary hover:underline text-sm"
-                      >
-                        {row.employeeCount} {row.employeeCount === 1 ? 'colaborador' : 'colaboradores'}
+                    {row.usageCount === 0 ? (
+                      <span className="text-muted-foreground text-sm">{row.usageLabel}</span>
+                    ) : row.usageHref ? (
+                      <Link href={row.usageHref} className="text-primary hover:underline text-sm">
+                        {row.usageLabel}
                       </Link>
+                    ) : (
+                      <span className="text-sm">{row.usageLabel}</span>
                     )}
                   </TableCell>
                   <TableCell>
                     <Badge variant={row.is_archived ? 'outline' : 'default'}>
-                      {row.is_archived ? 'Arquivado' : 'Ativo'}
+                      {row.is_archived ? 'Arquivad' + (kind === 'competency' ? 'a' : 'o') : 'Ativ' + (kind === 'competency' ? 'a' : 'o')}
                     </Badge>
                   </TableCell>
                   <TableCell>
@@ -191,7 +232,7 @@ export function TaxonomyList({ kind, items }: Props) {
                           </DropdownMenuItem>
                         )}
                         <DropdownMenuSeparator />
-                        {row.employeeCount > 0 ? (
+                        {row.usageCount > 0 ? (
                           <Tooltip>
                             <TooltipTrigger
                               render={
@@ -204,7 +245,7 @@ export function TaxonomyList({ kind, items }: Props) {
                               }
                             />
                             <TooltipContent side="left">
-                              Remova os colaboradores vinculados antes.
+                              {copy.deleteBlockedHint}
                             </TooltipContent>
                           </Tooltip>
                         ) : (
@@ -226,7 +267,7 @@ export function TaxonomyList({ kind, items }: Props) {
       </div>
 
       <p className="mt-3 text-xs text-muted-foreground">
-        {activeCount} ativo{activeCount === 1 ? '' : 's'} · {archivedCount} arquivado{archivedCount === 1 ? '' : 's'} {showArchived ? 'visível' : 'oculto'}{archivedCount === 1 ? '' : 's'}
+        {activeCount} ativ{kind === 'competency' ? 'a' : 'o'}{activeCount === 1 ? '' : 's'} · {archivedCount} arquivad{kind === 'competency' ? 'a' : 'o'}{archivedCount === 1 ? '' : 's'}
       </p>
 
       <TaxonomySheet

@@ -75,8 +75,14 @@ export async function createPdi(input: PdiInput) {
 
   const actorEmployeeId = await getActorEmployeeForManagerCheck(admin, ctx);
   const isManager = actorEmployeeId && target.manager_id === actorEmployeeId;
+  const isSelf = actorEmployeeId && target.id === actorEmployeeId;
   const isAdmin = ctx.role === 'admin_rh';
-  if (!isAdmin && !isManager) return { error: 'Sem permissão para criar PDI para este colaborador.' };
+  if (!isAdmin && !isManager && !isSelf) {
+    return { error: 'Sem permissão para criar PDI para este colaborador.' };
+  }
+  if (!target.manager_id) {
+    return { error: 'O colaborador precisa ter um gestor direto definido para ter PDI.' };
+  }
 
   if (value.competencyId) {
     const { data: comp } = await admin

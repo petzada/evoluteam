@@ -5,6 +5,7 @@ import {
   getPdiDetail, listActionsForPlan, listCommentsForPlan,
 } from '@/features/pdi/queries';
 import { PdiDetail } from '@/features/pdi/components/PdiDetail';
+import { BreadcrumbLabel } from '@/features/shell/components/BreadcrumbLabel';
 
 export default async function PdiDetailRoute({
   params,
@@ -58,17 +59,20 @@ export default async function PdiDetailRoute({
   ]);
 
   return (
-    <PdiDetail
-      plan={plan}
-      actions={actions}
-      comments={comments}
-      employees={(employees ?? []) as Parameters<typeof PdiDetail>[0]['employees']}
-      competencies={competencies ?? []}
-      cycles={cycles ?? []}
-      actorUserId={user.id}
-      actorEmployeeId={actorEmployeeId}
-      isAdmin={isAdmin}
-      isDirector={isDirector}
-    />
+    <>
+      <BreadcrumbLabel segment={id} label={plan.employee ? `PDI de ${plan.employee.full_name}` : 'PDI'} />
+      <PdiDetail
+        plan={plan}
+        actions={actions}
+        comments={comments}
+        employees={(employees ?? []) as Parameters<typeof PdiDetail>[0]['employees']}
+        competencies={competencies ?? []}
+        cycles={cycles ?? []}
+        actorUserId={user.id}
+        actorEmployeeId={actorEmployeeId}
+        isAdmin={isAdmin}
+        isDirector={isDirector}
+      />
+    </>
   );
 }

@@ -92,7 +92,9 @@ export function PdiSheet({
     const base = employees.filter((e) => e.status !== 'terminated');
     if (isAdmin) return base;
     if (!actorEmployeeId) return [];
-    return base.filter((e) => e.manager_id === actorEmployeeId);
+    return base.filter(
+      (e) => e.id === actorEmployeeId || e.manager_id === actorEmployeeId,
+    );
   }, [employees, isAdmin, actorEmployeeId]);
 
   const filteredEmployees = useMemo(() => {

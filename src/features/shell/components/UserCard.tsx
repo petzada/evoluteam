@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation';
 import { signOut } from '@/features/auth/actions';
 import { useSidebar } from '../SidebarContext';
 import { cn } from '@/lib/utils';
+import { formatSidebarName } from '@/lib/name';
 
 interface UserCardProps {
   fullName: string;
@@ -20,6 +21,7 @@ export function UserCard({ fullName, companyName, avatarUrl }: UserCardProps) {
   const router = useRouter();
   const { collapsed } = useSidebar();
   const initials = fullName.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase();
+  const displayName = formatSidebarName(fullName);
 
   return (
     <div className={cn('border-t border-sidebar-border py-3', collapsed ? 'px-2' : 'px-3')}>
@@ -27,7 +29,7 @@ export function UserCard({ fullName, companyName, avatarUrl }: UserCardProps) {
         <DropdownMenuTrigger
           className={cn(
             'flex items-center rounded-md text-left hover:bg-sidebar-accent transition-colors',
-            collapsed ? 'h-9 w-9 mx-auto justify-center' : 'w-full gap-3 px-2 py-2',
+            collapsed ? 'h-9 w-9 mx-auto justify-center' : 'w-full min-w-0 gap-3 px-2 py-2',
           )}
         >
           <Avatar className="h-7 w-7 shrink-0">
@@ -37,9 +39,9 @@ export function UserCard({ fullName, companyName, avatarUrl }: UserCardProps) {
             </AvatarFallback>
           </Avatar>
           {!collapsed && (
-            <div className="flex flex-col items-start min-w-0">
-              <span className="text-sm font-medium truncate text-sidebar-foreground">{fullName}</span>
-              <span className="text-[11px] text-sidebar-foreground/50 truncate">{companyName}</span>
+            <div className="flex flex-col items-start min-w-0 flex-1 overflow-hidden">
+              <span className="text-sm font-medium truncate max-w-full text-sidebar-foreground">{displayName}</span>
+              <span className="text-[11px] text-sidebar-foreground/50 truncate max-w-full">{companyName}</span>
             </div>
           )}
         </DropdownMenuTrigger>

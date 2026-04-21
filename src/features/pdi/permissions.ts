@@ -23,6 +23,7 @@ export type Employee = {
 export function canCreatePdi(actor: Actor, targetEmployee: Employee): boolean {
   if (actor.role === 'admin_rh') return true;
   if (!actor.employeeId) return false;
+  if (targetEmployee.id === actor.employeeId) return true;
   return targetEmployee.manager_id === actor.employeeId;
 }
 
@@ -49,7 +50,6 @@ export function canUpdateActionStatus(actor: Actor, action: PlanAction): boolean
 }
 
 export function canCommentOnPdi(actor: Actor, plan: Plan, ancestorsOfEmployee: string[]): boolean {
-  if (actor.role === 'director') return false;
   return canViewPdi(actor, plan, ancestorsOfEmployee);
 }
 

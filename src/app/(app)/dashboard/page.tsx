@@ -13,7 +13,6 @@ import { getDepartments } from '@/features/employees/queries';
 import {
   buildScope,
   listCycleOptions,
-  getLastActiveCycleId,
   countActiveEmployees,
   countActiveCycles,
   getAssignmentStats,
@@ -29,6 +28,13 @@ import { KpiCard } from '@/features/dashboard/components/KpiCard';
 import { DashboardFilters } from '@/features/dashboard/components/DashboardFilters';
 import { DepartmentBarsChart } from '@/features/dashboard/components/DepartmentBarsChart';
 import { CompetencyRadarChart } from '@/features/dashboard/components/CompetencyRadarChart';
+import { MinhaArea } from '@/features/dashboard/components/MinhaArea';
+import {
+  getMyPendingAssignments,
+  getMyOpenPdiActions,
+  getMyRecentFeedbacks,
+  getMyCurrentPdi,
+} from '@/features/dashboard/my-area-queries';
 
 type SearchParams = Promise<{ cycle_id?: string; dept_id?: string }>;
 
@@ -72,8 +78,31 @@ export default async function DashboardPage({
   };
 
   if (!canAccessDashboard(actor)) {
-    if (employeeRow?.id) redirect(`/colaboradores/${employeeRow.id}`);
-    redirect('/colaboradores');
+    if (!employeeRow?.id) redirect('/colaboradores');
+
+    const { data: me } = await supabase
+      .from('profiles')
+      .select('full_name')
+      .eq('id', user.id)
+      .single();
+    const firstName = (me?.full_name ?? '').split(/\s+/)[0] ?? '';
+
+    const [assignments, pdiActions, feedbacks, currentPdi] = await Promise.all([
+      getMyPendingAssignments(employeeRow.id),
+      getMyOpenPdiActions(employeeRow.id),
+      getMyRecentFeedbacks(employeeRow.id),
+      getMyCurrentPdi(employeeRow.id),
+    ]);
+
+    return (
+      <MinhaArea
+        firstName={firstName}
+        assignments={assignments}
+        pdiActions={pdiActions}
+        feedbacks={feedbacks}
+        currentPdi={currentPdi}
+      />
+    );
   }
 
   const params = await searchParams;
@@ -81,7 +110,7 @@ export default async function DashboardPage({
     ? await getDepartments(profile.company_id)
     : [];
   const cycles = await listCycleOptions(profile.company_id);
-  const defaultCycleId = params.cycle_id ?? await getLastActiveCycleId(profile.company_id) ?? (cycles[0]?.id ?? null);
+  const defaultCycleId = params.cycle_id ?? (cycles.length > 0 ? 'all' : null);
   const selectedDeptId = canFilterByDepartment(actor) ? (params.dept_id ?? null) : null;
 
   const scope = await buildScope({
@@ -109,7 +138,7 @@ export default async function DashboardPage({
     withoutFeedback,
   ] = await Promise.all([
     countActiveEmployees(scope),
-    countActiveCycles(profile.company_id),
+    countActiveCycles(scope),
     getAssignmentStats(scope),
     getOverallAverage(scope),
     getAveragePerDepartment(scope),
@@ -129,7 +158,7 @@ export default async function DashboardPage({
         : completion >= 50 ? 'warning'
           : 'danger';
 
-  const cycleIdForLink = scope.cycleId ?? '';
+  const cycleIdForLink = scope.cycleId && scope.cycleId !== 'all' ? scope.cycleId : '';
 
   return (
     <div>
@@ -138,16 +167,18 @@ export default async function DashboardPage({
         description={scope.role === 'gestor'
           ? 'Indicadores da sua equipe.'
           : 'Indicadores de gestão de pessoas da empresa.'}
+        actions={
+          <DashboardFilters
+            cycles={cycles}
+            selectedCycleId={scope.cycleId}
+            departments={departments}
+            selectedDepartmentId={selectedDeptId}
+            showDepartmentFilter={canFilterByDepartment(actor)}
+          />
+        }
       />
 
       <div className="space-y-8">
-        <DashboardFilters
-          cycles={cycles}
-          selectedCycleId={scope.cycleId}
-          departments={departments}
-          selectedDepartmentId={selectedDeptId}
-          showDepartmentFilter={canFilterByDepartment(actor)}
-        />
 
         <section aria-labelledby="visao-geral-heading" className="space-y-3">
           <h2 id="visao-geral-heading" className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
@@ -164,7 +195,7 @@ export default async function DashboardPage({
               label="Ciclos ativos"
               icon={Layers}
               value={activeCycles}
-              href="/avaliacoes?status=published"
+              href="/avaliacoes?status=in_progress"
             />
             <KpiCard
               label="Avaliações pendentes"
@@ -178,7 +209,7 @@ export default async function DashboardPage({
               icon={CheckCircle2}
               value={hasCycle ? completionLabel : '—'}
               tone={completionTone}
-              href={hasCycle ? `/avaliacoes/${cycleIdForLink}` : '/avaliacoes'}
+              href={cycleIdForLink ? `/avaliacoes/${cycleIdForLink}` : '/avaliacoes'}
             />
           </div>
         </section>
@@ -260,9 +291,10 @@ export default async function DashboardPage({
           </h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <KpiCard
-              label="PDIs ativos"
+              label="PDIs em andamento"
               icon={Target}
               value={activePdis}
+              hint={overduePdis > 0 ? `${overduePdis} atrasado${overduePdis === 1 ? '' : 's'}` : undefined}
               href="/pdi?status=em_andamento"
             />
             <KpiCard

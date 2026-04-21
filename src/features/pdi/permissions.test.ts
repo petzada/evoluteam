@@ -98,8 +98,8 @@ describe('canCommentOnPdi', () => {
   it('gestor na cadeia comenta', () => {
     expect(canCommentOnPdi(manager, plan, ['e-mgr'])).toBe(true);
   });
-  it('director NUNCA comenta (mesmo vendo)', () => {
-    expect(canCommentOnPdi(director, plan, [])).toBe(false);
+  it('director comenta em PDI que visualiza', () => {
+    expect(canCommentOnPdi(director, plan, [])).toBe(true);
   });
   it('terceiro não comenta', () => {
     expect(canCommentOnPdi(other, plan, [])).toBe(false);

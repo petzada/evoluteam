@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import {
   listCycles, getCycleProgress, getAssignmentsForReviewer, getActorEmployeeId,
+  listCycleIdsInvolvingEmployee,
 } from '@/features/reviews/queries';
 import { CyclesList, type AssignmentForUser } from '@/features/reviews/components/CyclesList';
 
@@ -17,7 +18,18 @@ export default async function AvaliacoesPage() {
     .single();
   if (!profile?.company_id) redirect('/onboarding/criar-empresa');
 
-  const cycles = await listCycles(profile.company_id);
+  const employeeId = await getActorEmployeeId(user.id);
+  const canSeeAll = profile.role === 'admin_rh' || profile.role === 'director';
+  let scopedIds: string[] | null = null;
+  if (!canSeeAll) {
+    if (!employeeId) {
+      scopedIds = [];
+    } else {
+      scopedIds = await listCycleIdsInvolvingEmployee(profile.company_id, employeeId);
+    }
+  }
+
+  const cycles = await listCycles(profile.company_id, { scopedIds });
   const progressPairs = await Promise.all(
     cycles.map(async (c) => [c.id, await getCycleProgress(c.id)] as const),
   );
@@ -27,7 +39,6 @@ export default async function AvaliacoesPage() {
     progress: progressById.get(c.id),
   }));
 
-  const employeeId = await getActorEmployeeId(user.id);
   const pending = employeeId
     ? await getAssignmentsForReviewer(employeeId, { onlyOpen: true })
     : [];

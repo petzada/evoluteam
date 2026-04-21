@@ -19,31 +19,53 @@ async function getActorContext() {
   return { user, profile: profile as { company_id: string; role: string } };
 }
 
-type Kind = 'department' | 'position';
+export type Kind = 'department' | 'position' | 'competency';
 
 function tableFor(kind: Kind) {
-  return kind === 'department' ? 'departments' : 'positions';
+  if (kind === 'department') return 'departments';
+  if (kind === 'position') return 'positions';
+  return 'competencies';
 }
 
 function routeFor(kind: Kind) {
-  return kind === 'department'
-    ? '/configuracoes/departamentos'
-    : '/configuracoes/cargos';
+  if (kind === 'department') return '/configuracoes/departamentos';
+  if (kind === 'position') return '/configuracoes/cargos';
+  return '/configuracoes/competencias';
 }
 
 function labelFor(kind: Kind) {
-  return kind === 'department' ? 'Departamento' : 'Cargo';
+  if (kind === 'department') return 'Departamento';
+  if (kind === 'position') return 'Cargo';
+  return 'Competência';
 }
 
-async function countEmployeesIn(kind: Kind, id: string, companyId: string) {
+function actionFor(kind: Kind, verb: 'created' | 'updated' | 'archived' | 'deleted') {
+  const base = kind === 'department' ? 'department' : kind === 'position' ? 'role' : 'competency';
+  return `${base}.${verb}` as const;
+}
+
+async function countUsage(kind: Kind, id: string, companyId: string): Promise<number> {
   const admin = createAdminSupabaseClient();
-  const column = kind === 'department' ? 'department_id' : 'position_id';
-  const { count } = await admin
-    .from('employees')
-    .select('*', { count: 'exact', head: true })
-    .eq(column, id)
-    .eq('company_id', companyId);
-  return count ?? 0;
+
+  if (kind === 'department' || kind === 'position') {
+    const column = kind === 'department' ? 'department_id' : 'position_id';
+    const { count } = await admin
+      .from('employees')
+      .select('*', { count: 'exact', head: true })
+      .eq(column, id)
+      .eq('company_id', companyId);
+    return count ?? 0;
+  }
+
+  const [q, f, p] = await Promise.all([
+    admin.from('review_questions').select('*', { count: 'exact', head: true })
+      .eq('competency_id', id).eq('company_id', companyId),
+    admin.from('feedbacks').select('*', { count: 'exact', head: true })
+      .eq('competency_id', id).eq('company_id', companyId),
+    admin.from('development_plans').select('*', { count: 'exact', head: true })
+      .eq('competency_id', id).eq('company_id', companyId),
+  ]);
+  return (q.count ?? 0) + (f.count ?? 0) + (p.count ?? 0);
 }
 
 export async function createTaxonomy(kind: Kind, input: TaxonomyInput) {
@@ -59,7 +81,7 @@ export async function createTaxonomy(kind: Kind, input: TaxonomyInput) {
 
   if (error) {
     if (error.code === '23505') {
-      return { error: `Já existe um ${labelFor(kind).toLowerCase()} com esse nome.` };
+      return { error: `Já existe ${kind === 'competency' ? 'uma' : 'um'} ${labelFor(kind).toLowerCase()} com esse nome.` };
     }
     return { error: `Erro ao criar ${labelFor(kind).toLowerCase()}.` };
   }
@@ -67,7 +89,7 @@ export async function createTaxonomy(kind: Kind, input: TaxonomyInput) {
   await logActivity({
     companyId: ctx.profile.company_id,
     actorUserId: ctx.user.id,
-    action: kind === 'department' ? 'department.created' : 'role.created',
+    action: actionFor(kind, 'created'),
     entityType: kind,
     entityId: data.id,
     metadata: { name: input.name.trim() },
@@ -90,7 +112,7 @@ export async function updateTaxonomy(kind: Kind, id: string, input: TaxonomyInpu
 
   if (error) {
     if (error.code === '23505') {
-      return { error: `Já existe um ${labelFor(kind).toLowerCase()} com esse nome.` };
+      return { error: `Já existe ${kind === 'competency' ? 'uma' : 'um'} ${labelFor(kind).toLowerCase()} com esse nome.` };
     }
     return { error: `Erro ao atualizar ${labelFor(kind).toLowerCase()}.` };
   }
@@ -98,7 +120,7 @@ export async function updateTaxonomy(kind: Kind, id: string, input: TaxonomyInpu
   await logActivity({
     companyId: ctx.profile.company_id,
     actorUserId: ctx.user.id,
-    action: kind === 'department' ? 'department.updated' : 'role.updated',
+    action: actionFor(kind, 'updated'),
     entityType: kind,
     entityId: id,
   });
@@ -123,9 +145,7 @@ export async function archiveTaxonomy(kind: Kind, id: string, archived: boolean)
   await logActivity({
     companyId: ctx.profile.company_id,
     actorUserId: ctx.user.id,
-    action: kind === 'department'
-      ? (archived ? 'department.archived' : 'department.updated')
-      : (archived ? 'role.archived' : 'role.updated'),
+    action: archived ? actionFor(kind, 'archived') : actionFor(kind, 'updated'),
     entityType: kind,
     entityId: id,
   });
@@ -138,8 +158,11 @@ export async function deleteTaxonomy(kind: Kind, id: string) {
   const ctx = await getActorContext();
   if (!ctx || ctx.profile.role !== 'admin_rh') return { error: 'Sem permissão.' };
 
-  const count = await countEmployeesIn(kind, id, ctx.profile.company_id);
+  const count = await countUsage(kind, id, ctx.profile.company_id);
   if (count > 0) {
+    if (kind === 'competency') {
+      return { error: 'Remova as referências em avaliações, feedbacks ou PDIs antes de deletar.' };
+    }
     return { error: 'Remova os colaboradores vinculados antes de deletar.' };
   }
 
@@ -155,7 +178,7 @@ export async function deleteTaxonomy(kind: Kind, id: string) {
   await logActivity({
     companyId: ctx.profile.company_id,
     actorUserId: ctx.user.id,
-    action: kind === 'department' ? 'department.deleted' : 'role.deleted',
+    action: actionFor(kind, 'deleted'),
     entityType: kind,
     entityId: id,
   });

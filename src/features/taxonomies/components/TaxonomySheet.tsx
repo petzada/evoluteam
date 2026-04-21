@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { TaxonomyInputSchema, type TaxonomyInput } from '../schema';
 import { createTaxonomy, updateTaxonomy } from '../actions';
 
-type Kind = 'department' | 'position';
+type Kind = 'department' | 'position' | 'competency';
 type Existing = { id: string; name: string } | null;
 
 interface Props {
@@ -23,9 +23,10 @@ interface Props {
   existing: Existing;
 }
 
-const LABELS: Record<Kind, { singular: string; create: string; edit: string }> = {
-  department: { singular: 'departamento', create: 'Novo departamento', edit: 'Editar departamento' },
-  position: { singular: 'cargo', create: 'Novo cargo', edit: 'Editar cargo' },
+const LABELS: Record<Kind, { singular: string; create: string; edit: string; placeholder: string }> = {
+  department: { singular: 'departamento', create: 'Novo departamento', edit: 'Editar departamento', placeholder: 'Ex: Engenharia' },
+  position: { singular: 'cargo', create: 'Novo cargo', edit: 'Editar cargo', placeholder: 'Ex: Analista' },
+  competency: { singular: 'competência', create: 'Nova competência', edit: 'Editar competência', placeholder: 'Ex: Comunicação' },
 };
 
 export function TaxonomySheet({ kind, open, onOpenChange, existing }: Props) {
@@ -64,7 +65,9 @@ export function TaxonomySheet({ kind, open, onOpenChange, existing }: Props) {
         <DialogHeader>
           <DialogTitle>{isEdit ? labels.edit : labels.create}</DialogTitle>
           <DialogDescription>
-            O nome aparece em listagens e seleções de colaboradores.
+            {kind === 'competency'
+              ? 'A competência aparece em ciclos de avaliação, feedbacks e PDIs.'
+              : 'O nome aparece em listagens e seleções de colaboradores.'}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -73,7 +76,7 @@ export function TaxonomySheet({ kind, open, onOpenChange, existing }: Props) {
               <FormItem>
                 <FormLabel>Nome *</FormLabel>
                 <FormControl>
-                  <Input autoFocus placeholder="Ex: Engenharia" {...field} />
+                  <Input autoFocus placeholder={labels.placeholder} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

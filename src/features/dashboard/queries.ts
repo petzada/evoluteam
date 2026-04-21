@@ -51,6 +51,18 @@ export async function buildScope(input: ScopeInput): Promise<DashboardScope | nu
   };
 }
 
+async function resolveCycleIds(scope: DashboardScope): Promise<string[] | null> {
+  if (!scope.cycleId) return null;
+  if (scope.cycleId !== 'all') return [scope.cycleId];
+  const supabase = await createServerSupabaseClient();
+  const { data } = await supabase
+    .from('review_cycles')
+    .select('id')
+    .eq('company_id', scope.companyId)
+    .in('status', ['published', 'closed']);
+  return (data ?? []).map((r) => r.id);
+}
+
 async function resolveScopedEmployeeIds(scope: DashboardScope): Promise<string[] | null> {
   const supabase = await createServerSupabaseClient();
   let query = supabase
@@ -141,14 +153,37 @@ export async function countActiveEmployees(scope: DashboardScope): Promise<numbe
 }
 
 // ---------- KPI 2: Ciclos ativos ----------
-export async function countActiveCycles(companyId: string): Promise<number> {
+export async function countActiveCycles(scope: DashboardScope): Promise<number> {
   const supabase = await createServerSupabaseClient();
-  const { count } = await supabase
+  const base = supabase
     .from('review_cycles')
-    .select('*', { count: 'exact', head: true })
-    .eq('company_id', companyId)
+    .select('id', { count: 'exact', head: true })
+    .eq('company_id', scope.companyId)
     .eq('status', 'published');
-  return count ?? 0;
+
+  if (scope.employeeIds === 'all' && !scope.departmentId) {
+    const { count } = await base;
+    return count ?? 0;
+  }
+
+  const revieweeIds = await resolveScopedEmployeeIds(scope);
+  if (!revieweeIds || revieweeIds.length === 0) return 0;
+
+  const { data: cycles } = await supabase
+    .from('review_cycles')
+    .select('id')
+    .eq('company_id', scope.companyId)
+    .eq('status', 'published');
+  const cycleIds = (cycles ?? []).map((c) => c.id);
+  if (cycleIds.length === 0) return 0;
+
+  const { data: assignments } = await supabase
+    .from('review_assignments')
+    .select('cycle_id')
+    .in('cycle_id', cycleIds)
+    .in('reviewee_id', revieweeIds);
+  const distinct = new Set((assignments ?? []).map((a) => a.cycle_id));
+  return distinct.size;
 }
 
 // ---------- KPI 3 + 4: Avaliações pendentes + Taxa de conclusão ----------
@@ -165,7 +200,8 @@ export async function getAssignmentStats(scope: DashboardScope): Promise<Assignm
   const empty: AssignmentStats = {
     total: 0, submitted: 0, pending: 0, inProgress: 0, cancelled: 0, completionRate: null,
   };
-  if (!scope.cycleId) return empty;
+  const cycleIds = await resolveCycleIds(scope);
+  if (!cycleIds || cycleIds.length === 0) return empty;
 
   const supabase = await createServerSupabaseClient();
 
@@ -178,7 +214,7 @@ export async function getAssignmentStats(scope: DashboardScope): Promise<Assignm
   let query = supabase
     .from('review_assignments')
     .select('status')
-    .eq('cycle_id', scope.cycleId)
+    .in('cycle_id', cycleIds)
     .eq('company_id', scope.companyId);
   if (revieweeIds) query = query.in('reviewee_id', revieweeIds);
 
@@ -189,7 +225,8 @@ export async function getAssignmentStats(scope: DashboardScope): Promise<Assignm
   const pending = rows.filter((r) => r.status === 'pending').length;
   const inProgress = rows.filter((r) => r.status === 'in_progress').length;
   const cancelled = rows.filter((r) => r.status === 'cancelled').length;
-  const completionRate = total > 0 ? (submitted / total) * 100 : null;
+  const effectiveTotal = total - cancelled;
+  const completionRate = effectiveTotal > 0 ? (submitted / effectiveTotal) * 100 : null;
   return { total, submitted, pending, inProgress, cancelled, completionRate };
 }
 
@@ -220,7 +257,8 @@ async function fetchCycleRatingInputs(scope: DashboardScope): Promise<{
   answersByCompetency: Map<string, number[]>;
   competencyNames: Map<string, string>;
 } | null> {
-  if (!scope.cycleId) return null;
+  const cycleIds = await resolveCycleIds(scope);
+  if (!cycleIds || cycleIds.length === 0) return null;
 
   const supabase = await createServerSupabaseClient();
 
@@ -230,11 +268,10 @@ async function fetchCycleRatingInputs(scope: DashboardScope): Promise<{
     if (revieweeIdsFilter && revieweeIdsFilter.length === 0) return null;
   }
 
-  // Buscamos só assignments de gestor (evita dupla contagem self+manager); se incluir_manager=false, caímos no self.
   let submittedQuery = supabase
     .from('review_assignments')
     .select('id, reviewee_id, type, status')
-    .eq('cycle_id', scope.cycleId)
+    .in('cycle_id', cycleIds)
     .eq('company_id', scope.companyId)
     .eq('status', 'submitted');
   if (revieweeIdsFilter) submittedQuery = submittedQuery.in('reviewee_id', revieweeIdsFilter);
@@ -415,9 +452,21 @@ export async function getCompetencyAverages(scope: DashboardScope): Promise<Comp
   const data = await fetchCycleRatingInputs(scope);
   if (!data) return [];
 
+  const perReviewee = new Map<string, number[]>();
+  for (const [, compMap] of data.answersByReviewee_Competency) {
+    for (const [compId, values] of compMap) {
+      if (compId === '__none__') continue;
+      const empCompAvg = avg(values);
+      if (empCompAvg === null) continue;
+      const arr = perReviewee.get(compId) ?? [];
+      arr.push(empCompAvg);
+      perReviewee.set(compId, arr);
+    }
+  }
+
   const result: CompetencyAverage[] = [];
-  for (const [compId, values] of data.answersByCompetency) {
-    const a = avg(values);
+  for (const [compId, perRevieweeAverages] of perReviewee) {
+    const a = avg(perRevieweeAverages);
     if (a === null) continue;
     result.push({
       competencyId: compId,

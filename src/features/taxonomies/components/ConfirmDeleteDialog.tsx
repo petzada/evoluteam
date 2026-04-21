@@ -5,7 +5,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
-type Kind = 'department' | 'position';
+type Kind = 'department' | 'position' | 'competency';
 
 interface Props {
   open: boolean;
@@ -15,8 +15,24 @@ interface Props {
   onConfirm: () => void;
 }
 
+const SINGULAR: Record<Kind, string> = {
+  department: 'departamento',
+  position: 'cargo',
+  competency: 'competência',
+};
+
+const ARTICLE: Record<Kind, string> = {
+  department: 'o',
+  position: 'o',
+  competency: 'a',
+};
+
 export function ConfirmDeleteDialog({ open, kind, target, onOpenChange, onConfirm }: Props) {
-  const singular = kind === 'department' ? 'departamento' : 'cargo';
+  const singular = SINGULAR[kind];
+  const art = ARTICLE[kind];
+  const refNote = kind === 'competency'
+    ? 'Não há referências em avaliações, feedbacks ou PDIs.'
+    : 'Não há colaboradores vinculados.';
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -24,7 +40,7 @@ export function ConfirmDeleteDialog({ open, kind, target, onOpenChange, onConfir
         <AlertDialogHeader>
           <AlertDialogTitle>Deletar {target?.name}?</AlertDialogTitle>
           <AlertDialogDescription>
-            Esta ação é permanente — o {singular} será removido para sempre. Não há colaboradores vinculados.
+            Esta ação é permanente — {art} {singular} será removid{art} para sempre. {refNote}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

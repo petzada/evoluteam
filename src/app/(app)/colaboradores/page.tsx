@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import {
   listEmployees, getPositions, getDepartments, getCompanyProfileRoles,
+  getEmployeeByUserId, getEmployeeDescendants,
 } from '@/features/employees/queries';
 import { listEmployeesWithoutRecentFeedback } from '@/features/dashboard/queries';
 import { EmployeesList } from '@/features/employees/components/EmployeesList';
@@ -33,8 +34,22 @@ export default async function ColaboradoresPage({
   const params = await searchParams;
   const filter = params.filter === 'sem_feedback' ? 'sem_feedback' : null;
 
+  const canSeeAll = profile.role === 'admin_rh' || profile.role === 'director';
+  let scopedIds: string[] | null = null;
+
+  if (!canSeeAll) {
+    const actor = await getEmployeeByUserId(user.id);
+    if (!actor?.id) redirect('/dashboard');
+    const descendants = await getEmployeeDescendants(actor.id);
+    const visible = Array.from(new Set([actor.id, ...descendants]));
+    if (visible.length === 1) {
+      redirect(`/colaboradores/${actor.id}`);
+    }
+    scopedIds = visible;
+  }
+
   const [employees, positions, departments, profileRoles, withoutFeedbackIds] = await Promise.all([
-    listEmployees(profile.company_id),
+    listEmployees(profile.company_id, { scopedIds }),
     getPositions(profile.company_id),
     getDepartments(profile.company_id),
     getCompanyProfileRoles(profile.company_id),

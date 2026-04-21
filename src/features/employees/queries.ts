@@ -1,6 +1,9 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 
-export async function listEmployees(companyId: string, search?: string) {
+export async function listEmployees(
+  companyId: string,
+  opts?: { search?: string; scopedIds?: string[] | null },
+) {
   const supabase = await createServerSupabaseClient();
 
   let query = supabase
@@ -15,8 +18,13 @@ export async function listEmployees(companyId: string, search?: string) {
     .eq('company_id', companyId)
     .order('full_name');
 
-  if (search) {
-    query = query.or(`full_name.ilike.%${search}%,email.ilike.%${search}%`);
+  if (opts?.search) {
+    query = query.or(`full_name.ilike.%${opts.search}%,email.ilike.%${opts.search}%`);
+  }
+
+  if (opts?.scopedIds) {
+    if (opts.scopedIds.length === 0) return [];
+    query = query.in('id', opts.scopedIds);
   }
 
   const { data, error } = await query;
@@ -121,7 +129,7 @@ export async function getEmployeeByUserId(userId: string) {
   const supabase = await createServerSupabaseClient();
   const { data } = await supabase
     .from('employees')
-    .select('id, company_id')
+    .select('id, company_id, manager_id')
     .eq('user_id', userId)
     .maybeSingle();
   return data;

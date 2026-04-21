@@ -45,6 +45,11 @@ export async function logActivity({
 export const ACTIVITY_LABELS: Record<string, string> = {
   'company.created': 'Empresa criada',
   'company.updated': 'Empresa atualizada',
+  'user.invited': 'Usuário convidado',
+  'user.activated': 'Usuário ativado',
+  'user.deactivated': 'Usuário desativado',
+  'user.updated': 'Usuário atualizado',
+  'user.role_changed': 'Papel alterado',
   'invite.sent': 'Convite enviado',
   'invite.accepted': 'Convite aceito',
   'invite.revoked': 'Convite revogado',
@@ -52,8 +57,6 @@ export const ACTIVITY_LABELS: Record<string, string> = {
   'employee.created': 'Colaborador criado',
   'employee.updated': 'Colaborador atualizado',
   'employee.terminated': 'Colaborador desligado',
-  'user.deactivated': 'Usuário desativado',
-  'user.role_changed': 'Papel alterado',
   'review_cycle.created': 'Ciclo de avaliação criado',
   'review_cycle.updated': 'Ciclo atualizado',
   'review_cycle.published': 'Ciclo publicado',
@@ -73,4 +76,158 @@ export const ACTIVITY_LABELS: Record<string, string> = {
   'pdi.deleted': 'PDI removido',
   'pdi_action.created': 'Ação do PDI adicionada',
   'pdi_action.updated': 'Ação do PDI atualizada',
+  'department.created': 'Departamento criado',
+  'department.updated': 'Departamento atualizado',
+  'department.archived': 'Departamento arquivado',
+  'department.deleted': 'Departamento removido',
+  'role.created': 'Cargo criado',
+  'role.updated': 'Cargo atualizado',
+  'role.archived': 'Cargo arquivado',
+  'role.deleted': 'Cargo removido',
+  'competency.created': 'Competência criada',
+  'competency.updated': 'Competência atualizada',
+  'competency.archived': 'Competência arquivada',
+  'competency.deleted': 'Competência removida',
 };
+
+const ROLE_DISPLAY: Record<string, string> = {
+  admin_rh: 'Admin RH',
+  director: 'Diretor',
+  user: 'Colaborador',
+};
+
+type MetadataRecord = Record<string, unknown>;
+
+type MetadataEntry = { label: string; value: string };
+
+function pickString(meta: MetadataRecord, ...keys: string[]): string | null {
+  for (const k of keys) {
+    const v = meta[k];
+    if (typeof v === 'string' && v.trim().length > 0) return v;
+    if (typeof v === 'number') return String(v);
+  }
+  return null;
+}
+
+function pickRole(meta: MetadataRecord, ...keys: string[]): string | null {
+  const raw = pickString(meta, ...keys);
+  if (!raw) return null;
+  return ROLE_DISPLAY[raw] ?? raw;
+}
+
+export function humanizeActivityMetadata(
+  action: string,
+  metadata: unknown,
+): MetadataEntry[] {
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return [];
+  const meta = metadata as MetadataRecord;
+  const entries: MetadataEntry[] = [];
+
+  const push = (label: string, value: string | null | undefined) => {
+    if (!value) return;
+    entries.push({ label, value });
+  };
+
+  switch (action) {
+    case 'invite.sent':
+    case 'invite.resent': {
+      push('Convidado', pickString(meta, 'invitee_name', 'name', 'full_name', 'email'));
+      push('Papel', pickRole(meta, 'role'));
+      break;
+    }
+    case 'invite.accepted':
+    case 'invite.revoked': {
+      push('Convidado', pickString(meta, 'invitee_name', 'name', 'full_name', 'email'));
+      break;
+    }
+    case 'employee.created':
+    case 'employee.updated':
+    case 'employee.terminated': {
+      push('Colaborador', pickString(meta, 'employee_name', 'name', 'full_name'));
+      push('Cargo', pickString(meta, 'position_name', 'position'));
+      break;
+    }
+    case 'user.invited':
+    case 'user.activated':
+    case 'user.deactivated':
+    case 'user.updated': {
+      push('Usuário', pickString(meta, 'user_name', 'name', 'full_name', 'email'));
+      break;
+    }
+    case 'user.role_changed': {
+      push('Usuário', pickString(meta, 'user_name', 'name', 'full_name', 'email'));
+      push('De', pickRole(meta, 'old_role', 'from_role', 'previous_role'));
+      push('Para', pickRole(meta, 'new_role', 'to_role', 'role'));
+      break;
+    }
+    case 'review_cycle.created':
+    case 'review_cycle.updated':
+    case 'review_cycle.published':
+    case 'review_cycle.closed':
+    case 'review_cycle.archived':
+    case 'review_cycle.reminded': {
+      push('Ciclo', pickString(meta, 'cycle_name', 'name'));
+      push('Participantes', pickString(meta, 'participants', 'participant_count'));
+      break;
+    }
+    case 'review_assignment.submitted':
+    case 'review_assignment.cancelled': {
+      push('Ciclo', pickString(meta, 'cycle_name'));
+      push('Avaliado', pickString(meta, 'reviewee_name'));
+      push('Avaliador', pickString(meta, 'reviewer_name'));
+      break;
+    }
+    case 'review_result.released':
+    case 'review_result.hidden': {
+      push('Ciclo', pickString(meta, 'cycle_name'));
+      push('Colaborador', pickString(meta, 'employee_name'));
+      break;
+    }
+    case 'feedback.created':
+    case 'feedback.deleted': {
+      push('Destinatário', pickString(meta, 'recipient_name'));
+      push('Tipo', pickString(meta, 'type_label', 'type'));
+      break;
+    }
+    case 'pdi.created':
+    case 'pdi.updated':
+    case 'pdi.concluded':
+    case 'pdi.cancelled':
+    case 'pdi.deleted': {
+      push('Colaborador', pickString(meta, 'employee_name'));
+      push('Ações', pickString(meta, 'actions_summary', 'actions'));
+      break;
+    }
+    case 'pdi_action.created':
+    case 'pdi_action.updated': {
+      push('Ação', pickString(meta, 'action_title', 'title'));
+      push('Responsável', pickString(meta, 'responsible_name'));
+      break;
+    }
+    case 'department.created':
+    case 'department.updated':
+    case 'department.archived':
+    case 'department.deleted': {
+      push('Departamento', pickString(meta, 'department_name', 'name'));
+      break;
+    }
+    case 'role.created':
+    case 'role.updated':
+    case 'role.archived':
+    case 'role.deleted': {
+      push('Cargo', pickString(meta, 'role_name', 'name'));
+      break;
+    }
+    case 'competency.created':
+    case 'competency.updated':
+    case 'competency.archived':
+    case 'competency.deleted': {
+      push('Competência', pickString(meta, 'competency_name', 'name'));
+      break;
+    }
+    default:
+      break;
+  }
+
+  return entries;
+}

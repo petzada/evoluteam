@@ -5,6 +5,7 @@ import { Sidebar } from '@/features/shell/components/Sidebar';
 import { TopBar } from '@/features/shell/components/TopBar';
 import { UserCard } from '@/features/shell/components/UserCard';
 import { SidebarProvider } from '@/features/shell/SidebarContext';
+import { BreadcrumbProvider } from '@/features/shell/BreadcrumbContext';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createServerSupabaseClient();
@@ -26,24 +27,26 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <SidebarProvider initialCollapsed={initialCollapsed}>
-      <div className="flex h-full">
-        <Sidebar
-          role={profile.role}
-          footer={
-            <UserCard
-              fullName={profile.full_name}
-              companyName={company?.name ?? ''}
-              avatarUrl={profile.avatar_url}
-            />
-          }
-        />
-        <div className="flex flex-1 flex-col overflow-hidden">
-          <TopBar />
-          <main className="flex-1 overflow-y-auto p-6">
-            {children}
-          </main>
+      <BreadcrumbProvider>
+        <div className="flex h-full">
+          <Sidebar
+            role={profile.role}
+            footer={
+              <UserCard
+                fullName={profile.full_name}
+                companyName={company?.name ?? ''}
+                avatarUrl={profile.avatar_url}
+              />
+            }
+          />
+          <div className="flex flex-1 flex-col overflow-hidden">
+            <TopBar />
+            <main className="flex-1 overflow-y-auto p-6">
+              {children}
+            </main>
+          </div>
         </div>
-      </div>
+      </BreadcrumbProvider>
     </SidebarProvider>
   );
 }
