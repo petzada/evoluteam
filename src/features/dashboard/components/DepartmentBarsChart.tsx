@@ -35,28 +35,28 @@ export function DepartmentBarsChart({ data }: Props) {
       <ResponsiveContainer width="100%" height="100%">
         <BarChart
           data={chartData}
-          layout="vertical"
-          margin={{ top: 8, right: 32, bottom: 8, left: 8 }}
+          margin={{ top: 16, right: 16, bottom: 24, left: 8 }}
           barCategoryGap={12}
         >
           <XAxis
+            type="category"
+            dataKey="name"
+            tick={{ fontSize: 11 }}
+            interval={0}
+            axisLine={false}
+            tickLine={false}
+          />
+          <YAxis
             type="number"
             domain={[0, 5]}
             tick={{ fontSize: 11 }}
             axisLine={false}
             tickLine={false}
-          />
-          <YAxis
-            type="category"
-            dataKey="name"
-            tick={{ fontSize: 12 }}
-            width={140}
-            axisLine={false}
-            tickLine={false}
+            width={28}
           />
           <Bar
             dataKey="average"
-            radius={[0, 6, 6, 0]}
+            radius={[6, 6, 0, 0]}
             onClick={(payload: unknown) => {
               const entry = payload as { id?: string | null } | null;
               if (entry && entry.id) {
@@ -69,7 +69,7 @@ export function DepartmentBarsChart({ data }: Props) {
           >
             <LabelList
               dataKey="average"
-              position="right"
+              position="top"
               formatter={(v) => (v === null || v === undefined ? '' : Number(v).toFixed(1))}
               style={{ fontSize: 11, fill: 'currentColor' }}
             />

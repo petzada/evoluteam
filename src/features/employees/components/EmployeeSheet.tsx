@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
@@ -66,6 +67,7 @@ const EMPTY_DEFAULTS: EmployeeInput = {
 export function EmployeeSheet({
   open, onOpenChange, positions, departments, managers, employee, isAdmin,
 }: Props) {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [createdLocally, setCreatedLocally] = useState<Department[]>([]);
   const [createDeptOpen, setCreateDeptOpen] = useState(false);
@@ -133,6 +135,7 @@ export function EmployeeSheet({
           ? 'Colaborador cadastrado e convite enviado!'
           : 'Colaborador cadastrado sem convite.',
     );
+    router.refresh();
     onOpenChange(false);
     setLoading(false);
   }
