@@ -88,16 +88,23 @@ export function canHireCandidate(actor: RecruitmentActor): boolean {
 // ============================================================
 
 export function canGiveFeedback(actor: RecruitmentActor): boolean {
+  // Director tambem (FT-8 · P4 B): opina em candidato mesmo sem ser HM.
+  if (actor.role === 'director') return true;
   if (hasAdminPower(actor, 'can_recruitment')) return true;
   return actor.role === 'user' && !!actor.employeeId;
 }
 
 export function canSubmitScorecard(actor: RecruitmentActor): boolean {
-  return canGiveFeedback(actor);
+  // Director NAO entra aqui (P4 B limita director a feedback — scorecard
+  // tem nota e peso de decisao, fica com HM + admin/rh-recruitment).
+  if (hasAdminPower(actor, 'can_recruitment')) return true;
+  return actor.role === 'user' && !!actor.employeeId;
 }
 
 export function canManageTasks(actor: RecruitmentActor): boolean {
-  return canGiveFeedback(actor);
+  // Director NAO entra aqui (task tem compromisso operacional; P4 B).
+  if (hasAdminPower(actor, 'can_recruitment')) return true;
+  return actor.role === 'user' && !!actor.employeeId;
 }
 
 // ============================================================

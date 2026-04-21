@@ -84,18 +84,19 @@ describe('candidatos e aplicações', () => {
 });
 
 describe('feedback, scorecard, tasks', () => {
-  it('canGiveFeedback: admin e user-com-employee', () => {
+  it('canGiveFeedback: admin, director (FT-8) e user-com-employee', () => {
     expect(canGiveFeedback(admin)).toBe(true);
     expect(canGiveFeedback(gestor)).toBe(true);
-    expect(canGiveFeedback(director)).toBe(false);
+    // FT-8 P4 B: director passou a dar feedback em candidato.
+    expect(canGiveFeedback(director)).toBe(true);
     expect(canGiveFeedback(userSemEmployee)).toBe(false);
   });
-  it('canSubmitScorecard: mesma regra de feedback', () => {
+  it('canSubmitScorecard: director NAO (P4 B limita a feedback)', () => {
     expect(canSubmitScorecard(admin)).toBe(true);
     expect(canSubmitScorecard(gestor)).toBe(true);
     expect(canSubmitScorecard(director)).toBe(false);
   });
-  it('canManageTasks: mesma regra de feedback', () => {
+  it('canManageTasks: director NAO (P4 B limita a feedback)', () => {
     expect(canManageTasks(admin)).toBe(true);
     expect(canManageTasks(gestor)).toBe(true);
     expect(canManageTasks(director)).toBe(false);

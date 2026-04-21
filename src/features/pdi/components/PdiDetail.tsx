@@ -65,8 +65,10 @@ export function PdiDetail({
   const canCancel = (isAdmin || isCreator) && !isClosed;
   const canDelete = isAdmin;
   const canAddActions = canEdit && !isClosed;
-  const canComment = !isDirector && (
+  // FT-8 P4 B: Director passa a comentar em PDI (antes bloqueado).
+  const canComment = (
     isAdmin
+    || isDirector
     || (actorEmployeeId && plan.employee_id === actorEmployeeId)
     || isCreator
   );
