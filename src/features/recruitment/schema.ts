@@ -158,6 +158,20 @@ export const RecruitmentStageInputSchema = z.object({
 });
 export type RecruitmentStageInput = z.infer<typeof RecruitmentStageInputSchema>;
 
+/**
+ * Update aceita name e/ou notifies_hiring_manager — campos opcionais.
+ * A restrição "só kind='intermediate' aceita notifies_hiring_manager"
+ * é validada na action (precisa consultar o banco).
+ */
+export const UpdateRecruitmentStageInputSchema = z.object({
+  name: z.string().min(2, 'Nome obrigatório').max(60, 'Máximo 60 caracteres').optional(),
+  notifiesHiringManager: z.boolean().optional(),
+}).refine(
+  (v) => v.name !== undefined || v.notifiesHiringManager !== undefined,
+  { message: 'Nada para atualizar.' },
+);
+export type UpdateRecruitmentStageInput = z.infer<typeof UpdateRecruitmentStageInputSchema>;
+
 // ============================================================
 // Onda 2 — Feedback
 // ============================================================

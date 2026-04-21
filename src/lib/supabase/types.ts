@@ -827,6 +827,7 @@ export type Database = {
           name: string
           position: number
           kind: 'entry' | 'intermediate' | 'hired_terminal'
+          notifies_hiring_manager: boolean
           archived_at: string | null
           created_at: string
           updated_at: string
@@ -837,6 +838,7 @@ export type Database = {
           name: string
           position: number
           kind?: 'entry' | 'intermediate' | 'hired_terminal'
+          notifies_hiring_manager?: boolean
           archived_at?: string | null
           created_at?: string
           updated_at?: string

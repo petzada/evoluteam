@@ -292,7 +292,7 @@ export async function moveApplicationStage(applicationId: string, targetStageId:
   // Valida target stage
   const { data: target } = await admin
     .from('recruitment_stages')
-    .select('id, kind, name, archived_at, company_id')
+    .select('id, kind, name, notifies_hiring_manager, archived_at, company_id')
     .eq('id', targetStageId)
     .maybeSingle();
   if (!target || target.company_id !== actor.companyId || target.archived_at) {
@@ -348,9 +348,9 @@ export async function moveApplicationStage(applicationId: string, targetStageId:
     },
   });
 
-  // Notificação: se etapa destino é "Entrevista Gestor" e o actor não é o próprio gestor,
-  // notificar o hiring_manager. Na Onda 3 isso virá da flag `notifies_hiring_manager`.
-  if (target.name === 'Entrevista Gestor' && hiringManagerId && actor.employeeId !== hiringManagerId) {
+  // Notificação: se a etapa destino tem notifies_hiring_manager=true e o actor
+  // não é o próprio gestor da vaga, notifica o hiring_manager (spec 14 §6.5, §9).
+  if (target.notifies_hiring_manager === true && hiringManagerId && actor.employeeId !== hiringManagerId) {
     const { data: mgr } = await admin
       .from('employees')
       .select('user_id')

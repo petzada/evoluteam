@@ -4,7 +4,12 @@ import { revalidatePath } from 'next/cache';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 import { logActivity } from '@/lib/activity';
-import { RecruitmentStageInputSchema, type RecruitmentStageInput } from '../schema';
+import {
+  RecruitmentStageInputSchema,
+  UpdateRecruitmentStageInputSchema,
+  type RecruitmentStageInput,
+  type UpdateRecruitmentStageInput,
+} from '../schema';
 
 type Actor = { userId: string; companyId: string; role: 'admin_rh' | 'director' | 'user' };
 
@@ -77,25 +82,46 @@ export async function createRecruitmentStage(input: RecruitmentStageInput) {
   return { id: data.id };
 }
 
-export async function updateRecruitmentStage(id: string, input: RecruitmentStageInput) {
+export async function updateRecruitmentStage(id: string, input: UpdateRecruitmentStageInput) {
   const actor = await getActor();
   if (!actor) return { error: 'Não autenticado.' };
   if (actor.role !== 'admin_rh') return { error: 'Sem permissão.' };
 
-  const parsed = RecruitmentStageInputSchema.safeParse(input);
+  const parsed = UpdateRecruitmentStageInputSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Dados inválidos.' };
 
   const admin = createAdminSupabaseClient();
   const { data: before } = await admin
     .from('recruitment_stages')
-    .select('id, name, company_id')
+    .select('id, name, kind, notifies_hiring_manager, company_id')
     .eq('id', id)
     .maybeSingle();
   if (!before || before.company_id !== actor.companyId) return { error: 'Etapa não encontrada.' };
 
+  // Regra spec 14 §5.11: toggle notifies_hiring_manager só vale em intermediate.
+  if (parsed.data.notifiesHiringManager !== undefined && before.kind !== 'intermediate') {
+    return { error: 'Apenas etapas intermediárias podem notificar o gestor.' };
+  }
+
+  const updates: {
+    name?: string;
+    notifies_hiring_manager?: boolean;
+    updated_at: string;
+  } = { updated_at: new Date().toISOString() };
+  const changes: Record<string, unknown> = {};
+  if (parsed.data.name !== undefined) {
+    const trimmed = parsed.data.name.trim();
+    updates.name = trimmed;
+    changes.name = trimmed;
+  }
+  if (parsed.data.notifiesHiringManager !== undefined) {
+    updates.notifies_hiring_manager = parsed.data.notifiesHiringManager;
+    changes.notifies_hiring_manager = parsed.data.notifiesHiringManager;
+  }
+
   const { error } = await admin
     .from('recruitment_stages')
-    .update({ name: parsed.data.name.trim(), updated_at: new Date().toISOString() })
+    .update(updates)
     .eq('id', id);
   if (error) return { error: 'Falha ao salvar etapa.' };
 
@@ -105,7 +131,7 @@ export async function updateRecruitmentStage(id: string, input: RecruitmentStage
     action: 'recruitment_stage.updated',
     entityType: 'recruitment_stage',
     entityId: id,
-    metadata: { stage_id: id, name: parsed.data.name.trim() },
+    metadata: { stage_id: id, changes },
   });
 
   revalidatePath('/recrutamento/etapas');

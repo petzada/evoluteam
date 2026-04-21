@@ -73,6 +73,19 @@ export function RecruitmentStagesManager({ stages: initialStages }: Props) {
     router.refresh();
   }
 
+  async function onToggleNotify(id: string, next: boolean) {
+    // Optimistic: reflete imediatamente
+    setStages((prev) => prev.map((s) => (s.id === id ? { ...s, notifies_hiring_manager: next } : s)));
+    const result = await updateRecruitmentStage(id, { notifiesHiringManager: next });
+    if ('error' in result && result.error) {
+      toast.error(result.error);
+      setStages(initialStages);
+      return;
+    }
+    toast.success(next ? 'Notificação ligada' : 'Notificação desligada');
+    router.refresh();
+  }
+
   async function onArchive(id: string) {
     const result = await archiveRecruitmentStage(id);
     if ('error' in result && result.error) { toast.error(result.error); return; }
@@ -134,6 +147,7 @@ export function RecruitmentStagesManager({ stages: initialStages }: Props) {
                   onSaveEdit={() => onSaveEdit(stage.id)}
                   onCancelEdit={() => { setEditingId(null); setEditingName(''); }}
                   onArchive={() => onArchive(stage.id)}
+                  onToggleNotify={(next) => onToggleNotify(stage.id, next)}
                 />
               ))}
             </ul>
@@ -197,10 +211,11 @@ interface StageItemProps {
   onSaveEdit: () => void;
   onCancelEdit: () => void;
   onArchive: () => void;
+  onToggleNotify: (next: boolean) => void;
 }
 
 function StageRowItem({
-  stage, isEditing, editingName, onStartEdit, onChangeEditingName, onSaveEdit, onCancelEdit, onArchive,
+  stage, isEditing, editingName, onStartEdit, onChangeEditingName, onSaveEdit, onCancelEdit, onArchive, onToggleNotify,
 }: StageItemProps) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: stage.id });
   const style = {
@@ -243,6 +258,19 @@ function StageRowItem({
         <>
           <span className="text-sm font-medium flex-1">{stage.name}</span>
           <Badge variant="outline" className="text-[10px]">{KIND_LABELS[stage.kind]}</Badge>
+          <label
+            className={`flex items-center gap-1.5 text-xs text-muted-foreground ${isFixed ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
+            title={isFixed ? 'Apenas etapas intermediárias podem notificar o gestor.' : 'Notifica o gestor da vaga quando candidato entra nesta etapa.'}
+          >
+            <input
+              type="checkbox"
+              className="h-3.5 w-3.5 accent-primary"
+              checked={stage.notifies_hiring_manager}
+              disabled={isFixed}
+              onChange={(e) => onToggleNotify(e.target.checked)}
+            />
+            Notifica gestor
+          </label>
           <Button size="icon" variant="ghost" onClick={onStartEdit} aria-label="Renomear">
             <Pencil className="h-3.5 w-3.5" />
           </Button>
