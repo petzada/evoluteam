@@ -19,6 +19,10 @@ import {
 } from '../schema';
 import { CandidateSheet } from './CandidateSheet';
 import { FeedbacksSection } from './FeedbacksSection';
+import { ScorecardsSection } from './ScorecardsSection';
+import { TasksSection } from './TasksSection';
+import type { ScorecardRow } from '../queries/scorecards';
+import type { TaskRow } from '../queries/tasks';
 import { archiveCandidate } from '../actions/candidates';
 
 interface Props {
@@ -26,12 +30,15 @@ interface Props {
   applications: ApplicationRow[];
   history: StageHistoryRow[];
   feedbacks: CandidateFeedbackRow[];
+  scorecards: ScorecardRow[];
+  tasks: TaskRow[];
   hiredEmployeeName: string | null;
   canManage: boolean;
   canGiveFeedback: boolean;
   currentEmployeeId: string | null;
   isAdmin: boolean;
   applicationsOwnedByCurrentGestor: Set<string>;
+  responsibleOptions: { id: string; full_name: string }[];
 }
 
 function statusVariant(status: ApplicationRow['status']): 'default' | 'secondary' | 'outline' | 'destructive' {
@@ -43,9 +50,9 @@ function statusVariant(status: ApplicationRow['status']): 'default' | 'secondary
 }
 
 export function CandidateProfile({
-  candidate, applications, history, feedbacks, hiredEmployeeName,
-  canManage, canGiveFeedback, currentEmployeeId, isAdmin,
-  applicationsOwnedByCurrentGestor,
+  candidate, applications, history, feedbacks, scorecards, tasks,
+  hiredEmployeeName, canManage, canGiveFeedback, currentEmployeeId, isAdmin,
+  applicationsOwnedByCurrentGestor, responsibleOptions,
 }: Props) {
   const router = useRouter();
   const [editOpen, setEditOpen] = useState(false);
@@ -179,6 +186,31 @@ export function CandidateProfile({
               if (isAdmin) return true;
               return applicationsOwnedByCurrentGestor.has(app.id);
             }}
+          />
+
+          <ScorecardsSection
+            applications={applications}
+            scorecards={scorecards}
+            currentEmployeeId={currentEmployeeId}
+            isAdmin={isAdmin}
+            canSubmitScorecardForApp={(app) => {
+              if (!canGiveFeedback) return false;
+              if (isAdmin) return true;
+              return applicationsOwnedByCurrentGestor.has(app.id);
+            }}
+          />
+
+          <TasksSection
+            applications={applications}
+            tasks={tasks}
+            currentEmployeeId={currentEmployeeId}
+            isAdmin={isAdmin}
+            canManageTasksForApp={(app) => {
+              if (!canGiveFeedback) return false;
+              if (isAdmin) return true;
+              return applicationsOwnedByCurrentGestor.has(app.id);
+            }}
+            responsibleOptions={responsibleOptions}
           />
         </div>
 

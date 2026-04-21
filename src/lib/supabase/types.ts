@@ -1048,6 +1048,127 @@ export type Database = {
           },
         ]
       }
+      candidate_scorecards: {
+        Row: {
+          id: string
+          company_id: string
+          application_id: string
+          stage_id: string
+          author_id: string
+          rating_communication: number
+          rating_experience: number
+          rating_role_fit: number
+          rating_culture_fit: number
+          salary_expectation: 'compatible' | 'incompatible' | null
+          comment: string | null
+          recommendation: 'advance' | 'doubt' | 'reject'
+          created_at: string
+          updated_at: string
+          deleted_at: string | null
+        }
+        Insert: {
+          id?: string
+          company_id: string
+          application_id: string
+          stage_id: string
+          author_id: string
+          rating_communication: number
+          rating_experience: number
+          rating_role_fit: number
+          rating_culture_fit: number
+          salary_expectation?: 'compatible' | 'incompatible' | null
+          comment?: string | null
+          recommendation: 'advance' | 'doubt' | 'reject'
+          created_at?: string
+          updated_at?: string
+          deleted_at?: string | null
+        }
+        Update: Partial<Database['public']['Tables']['candidate_scorecards']['Insert']>
+        Relationships: [
+          {
+            foreignKeyName: "candidate_scorecards_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "job_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "candidate_scorecards_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "recruitment_stages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "candidate_scorecards_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      candidate_tasks: {
+        Row: {
+          id: string
+          company_id: string
+          application_id: string
+          title: string
+          due_date: string | null
+          responsible_id: string
+          created_by: string
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          updated_at: string
+          deleted_at: string | null
+        }
+        Insert: {
+          id?: string
+          company_id: string
+          application_id: string
+          title: string
+          due_date?: string | null
+          responsible_id: string
+          created_by: string
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          updated_at?: string
+          deleted_at?: string | null
+        }
+        Update: Partial<Database['public']['Tables']['candidate_tasks']['Insert']>
+        Relationships: [
+          {
+            foreignKeyName: "candidate_tasks_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "job_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "candidate_tasks_responsible_id_fkey"
+            columns: ["responsible_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "candidate_tasks_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "candidate_tasks_completed_by_fkey"
+            columns: ["completed_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       candidate_feedbacks: {
         Row: {
           id: string

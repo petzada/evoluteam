@@ -7,6 +7,9 @@ import {
   listStageHistoryByCandidate,
 } from '@/features/recruitment/queries/applications';
 import { listFeedbacksByCandidate } from '@/features/recruitment/queries/feedbacks';
+import { listScorecardsByCandidate } from '@/features/recruitment/queries/scorecards';
+import { listTasksByCandidate } from '@/features/recruitment/queries/tasks';
+import { listHiringManagerOptions } from '@/features/recruitment/queries/jobOpenings';
 import {
   canManageCandidates, canGiveFeedback,
 } from '@/features/recruitment/permissions';
@@ -40,13 +43,15 @@ export default async function CandidatoPage({ params }: { params: Params }) {
   const candidate = await getCandidateById(id);
   if (!candidate) notFound();
 
-  const [applications, history, feedbacks] = await Promise.all([
+  const [applications, history, feedbacks, scorecards, tasks, responsibleOptions] = await Promise.all([
     listApplicationsByCandidate(id),
     listStageHistoryByCandidate(id),
     listFeedbacksByCandidate(id),
+    listScorecardsByCandidate(id),
+    listTasksByCandidate(id),
+    listHiringManagerOptions(profile.company_id),
   ]);
 
-  // Link bidirecional — nome do employee hired (se existir)
   let hiredEmployeeName: string | null = null;
   if (candidate.hired_employee_id) {
     const admin = createAdminSupabaseClient();
@@ -58,8 +63,6 @@ export default async function CandidatoPage({ params }: { params: Params }) {
     hiredEmployeeName = emp?.full_name ?? null;
   }
 
-  // Quais aplicações pertencem a vagas cujo gestor é o actor atual
-  // (pra controlar permissão de feedback)
   const ownedByGestor = new Set<string>();
   if (actor.role === 'user' && actor.employeeId) {
     const admin = createAdminSupabaseClient();
@@ -81,12 +84,15 @@ export default async function CandidatoPage({ params }: { params: Params }) {
         applications={applications}
         history={history}
         feedbacks={feedbacks}
+        scorecards={scorecards}
+        tasks={tasks}
         hiredEmployeeName={hiredEmployeeName}
         canManage={canManageCandidates(actor)}
         canGiveFeedback={canGiveFeedback(actor)}
         currentEmployeeId={actor.employeeId}
         isAdmin={actor.role === 'admin_rh'}
         applicationsOwnedByCurrentGestor={ownedByGestor}
+        responsibleOptions={responsibleOptions}
       />
     </>
   );

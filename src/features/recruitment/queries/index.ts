@@ -4,3 +4,6 @@ export * from './applications';
 export * from './stages';
 export * from './feedbacks';
 export * from './employeeSource';
+export * from './scorecards';
+export * from './tasks';
+export * from './metrics';

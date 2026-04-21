@@ -17,6 +17,7 @@ import type { JobOpeningRow } from '../queries/jobOpenings';
 import type { ApplicationRow } from '../queries/applications';
 import type { StageRow } from '../queries/stages';
 import type { CandidateRow } from '../queries/candidates';
+import type { TaskKanbanState } from '../queries/tasks';
 import {
   JOB_OPENING_STATUS_LABELS,
   JOB_OPENING_EMPLOYMENT_TYPE_LABELS,
@@ -40,6 +41,8 @@ interface Props {
   canGiveFeedback: boolean;
   canHire: boolean;
   feedbackCounts: Map<string, number>;
+  scorecardCounts: Map<string, number>;
+  taskStates: Map<string, TaskKanbanState>;
   positions: TaxonomyItem[];
   departments: TaxonomyItem[];
   managers: ManagerItem[];
@@ -49,7 +52,8 @@ interface Props {
 export function JobOpeningDetail({
   job, stages, activeApplications, archivedApplications,
   canManage, canMove, canGiveFeedback, canHire,
-  feedbackCounts, positions, departments, managers,
+  feedbackCounts, scorecardCounts, taskStates,
+  positions, departments, managers,
   searchCandidatesAction,
 }: Props) {
   const router = useRouter();
@@ -154,6 +158,8 @@ export function JobOpeningDetail({
               canGiveFeedback={canGiveFeedback}
               canHire={canHire}
               feedbackCounts={feedbackCounts}
+              scorecardCounts={scorecardCounts}
+              taskStates={taskStates}
               job={{
                 id: job.id,
                 title: job.title,

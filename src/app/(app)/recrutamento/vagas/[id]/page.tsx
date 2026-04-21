@@ -10,6 +10,8 @@ import {
 } from '@/features/recruitment/queries/applications';
 import { listActiveStages } from '@/features/recruitment/queries/stages';
 import { countFeedbacksByApplication } from '@/features/recruitment/queries/feedbacks';
+import { countScorecardsByApplication } from '@/features/recruitment/queries/scorecards';
+import { getTaskStatesByApplication } from '@/features/recruitment/queries/tasks';
 import {
   canManageJobOpenings, canMoveApplication,
   canGiveFeedback, canHireCandidate,
@@ -54,7 +56,12 @@ export default async function VagaDetailPage({ params }: { params: Params }) {
     listHiringManagerOptions(profile.company_id),
   ]);
 
-  const feedbackCounts = await countFeedbacksByApplication(active.map((a) => a.id));
+  const appIds = active.map((a) => a.id);
+  const [feedbackCounts, scorecardCounts, taskStates] = await Promise.all([
+    countFeedbacksByApplication(appIds),
+    countScorecardsByApplication(appIds),
+    getTaskStatesByApplication(appIds),
+  ]);
 
   return (
     <>
@@ -69,6 +76,8 @@ export default async function VagaDetailPage({ params }: { params: Params }) {
         canGiveFeedback={canGiveFeedback(actor)}
         canHire={canHireCandidate(actor)}
         feedbackCounts={feedbackCounts}
+        scorecardCounts={scorecardCounts}
+        taskStates={taskStates}
         positions={positions}
         departments={departments}
         managers={managers}

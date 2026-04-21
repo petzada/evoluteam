@@ -186,6 +186,52 @@ export const FEEDBACK_EDIT_WINDOW_MINUTES = 120; // 2h (decisão P22)
 // Onda 2 — Wizard de contratação
 // ============================================================
 
+// ============================================================
+// Onda 3 — Scorecard
+// ============================================================
+
+export const SALARY_EXPECTATIONS = ['compatible', 'incompatible'] as const;
+export type SalaryExpectation = typeof SALARY_EXPECTATIONS[number];
+export const SALARY_EXPECTATION_LABELS: Record<SalaryExpectation, string> = {
+  compatible: 'Compatível',
+  incompatible: 'Incompatível',
+};
+
+export const ScorecardInputSchema = z.object({
+  rating_communication: z.number().int().min(1).max(5),
+  rating_experience: z.number().int().min(1).max(5),
+  rating_role_fit: z.number().int().min(1).max(5),
+  rating_culture_fit: z.number().int().min(1).max(5),
+  salary_expectation: z.enum(SALARY_EXPECTATIONS).nullable().optional(),
+  comment: z.string().max(2000, 'Máximo 2.000 caracteres').nullable().optional(),
+  recommendation: z.enum(FEEDBACK_RECOMMENDATIONS),
+});
+export type ScorecardInput = z.infer<typeof ScorecardInputSchema>;
+
+export const SCORECARD_EDIT_WINDOW_MINUTES = 120; // 2h (decisão P35)
+
+export const SCORECARD_DIMENSION_LABELS = {
+  rating_communication: 'Comunicação',
+  rating_experience: 'Experiência',
+  rating_role_fit: 'Aderência à vaga',
+  rating_culture_fit: 'Fit cultural',
+} as const;
+
+// ============================================================
+// Onda 3 — Tasks
+// ============================================================
+
+export const TaskInputSchema = z.object({
+  title: z.string().min(3, 'Mínimo 3 caracteres').max(140, 'Máximo 140 caracteres'),
+  due_date: z.string().nullable().optional(),
+  responsible_id: z.string().uuid('Responsável obrigatório'),
+});
+export type TaskInput = z.infer<typeof TaskInputSchema>;
+
+// ============================================================
+// Onda 2 — Wizard de contratação
+// ============================================================
+
 export const HireCandidateInputSchema = z.object({
   // Dados pessoais (pré-preenchidos do candidato; admin pode editar)
   name: z.string().min(2, 'Nome obrigatório').max(120),

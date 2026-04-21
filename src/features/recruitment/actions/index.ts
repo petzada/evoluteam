@@ -4,3 +4,5 @@ export * from './applications';
 export * from './stages';
 export * from './feedbacks';
 export * from './hire';
+export * from './scorecards';
+export * from './tasks';

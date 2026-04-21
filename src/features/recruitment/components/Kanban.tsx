@@ -10,7 +10,7 @@ import {
 import { toast } from 'sonner';
 import {
   MoreVertical, ArrowUp, ArrowDown, X, Snowflake,
-  CheckCircle2, MessageSquare,
+  CheckCircle2, MessageSquare, Star,
 } from 'lucide-react';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -27,6 +27,7 @@ import {
 } from '../schema';
 import type { ApplicationRow } from '../queries/applications';
 import type { StageRow } from '../queries/stages';
+import type { TaskKanbanState } from '../queries/tasks';
 import { ArchiveReasonDialog, type ArchiveAction } from './ArchiveReasonDialog';
 import { FeedbackSheet, type FeedbackContext } from './FeedbackSheet';
 import {
@@ -52,6 +53,8 @@ interface Props {
   canGiveFeedback: boolean;
   canHire: boolean;
   feedbackCounts: Map<string, number>;
+  scorecardCounts: Map<string, number>;
+  taskStates: Map<string, TaskKanbanState>;
   job: JobContext;
   positions: TaxonomyItem[];
   departments: TaxonomyItem[];
@@ -65,7 +68,8 @@ function daysSince(iso: string): number {
 
 export function Kanban({
   stages, applications, canMove, canGiveFeedback, canHire,
-  feedbackCounts, job, positions, departments, managers,
+  feedbackCounts, scorecardCounts, taskStates,
+  job, positions, departments, managers,
 }: Props) {
   const router = useRouter();
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
@@ -214,6 +218,8 @@ export function Kanban({
               canGiveFeedback={canGiveFeedback}
               canHire={canHire}
               feedbackCounts={feedbackCounts}
+              scorecardCounts={scorecardCounts}
+              taskStates={taskStates}
               onArchiveAction={openArchive}
               onFeedbackAction={openFeedback}
               onHireAction={triggerHire}
@@ -223,7 +229,15 @@ export function Kanban({
           ))}
         </div>
         <DragOverlay>
-          {activeApp && <CandidateCard app={activeApp} feedbackCount={feedbackCounts.get(activeApp.id) ?? 0} isDragging />}
+          {activeApp && (
+            <CandidateCard
+              app={activeApp}
+              feedbackCount={feedbackCounts.get(activeApp.id) ?? 0}
+              scorecardCount={scorecardCounts.get(activeApp.id) ?? 0}
+              taskState={taskStates.get(activeApp.id) ?? null}
+              isDragging
+            />
+          )}
         </DragOverlay>
       </DndContext>
 
@@ -259,6 +273,8 @@ interface ColumnProps {
   canGiveFeedback: boolean;
   canHire: boolean;
   feedbackCounts: Map<string, number>;
+  scorecardCounts: Map<string, number>;
+  taskStates: Map<string, TaskKanbanState>;
   onArchiveAction: (action: ArchiveAction, app: ApplicationRow) => void;
   onFeedbackAction: (app: ApplicationRow) => void;
   onHireAction: (app: ApplicationRow) => void;
@@ -267,7 +283,8 @@ interface ColumnProps {
 }
 
 function KanbanColumn({
-  stage, applications, canMove, canGiveFeedback, canHire, feedbackCounts,
+  stage, applications, canMove, canGiveFeedback, canHire,
+  feedbackCounts, scorecardCounts, taskStates,
   onArchiveAction, onFeedbackAction, onHireAction, onMoveTo, stages,
 }: ColumnProps) {
   const { isOver, setNodeRef } = useDroppable({
@@ -304,6 +321,8 @@ function KanbanColumn({
             canGiveFeedback={canGiveFeedback}
             canHire={canHire}
             feedbackCount={feedbackCounts.get(app.id) ?? 0}
+            scorecardCount={scorecardCounts.get(app.id) ?? 0}
+            taskState={taskStates.get(app.id) ?? null}
             onArchiveAction={onArchiveAction}
             onFeedbackAction={onFeedbackAction}
             onHireAction={onHireAction}
@@ -323,6 +342,8 @@ interface DraggableCardProps {
   canGiveFeedback: boolean;
   canHire: boolean;
   feedbackCount: number;
+  scorecardCount: number;
+  taskState: TaskKanbanState | null;
   onArchiveAction: (action: ArchiveAction, app: ApplicationRow) => void;
   onFeedbackAction: (app: ApplicationRow) => void;
   onHireAction: (app: ApplicationRow) => void;
@@ -330,7 +351,8 @@ interface DraggableCardProps {
 }
 
 function DraggableCardWithMenu({
-  app, stage, stages, canMove, canGiveFeedback, canHire, feedbackCount,
+  app, stage, stages, canMove, canGiveFeedback, canHire,
+  feedbackCount, scorecardCount, taskState,
   onArchiveAction, onFeedbackAction, onHireAction, onMoveTo,
 }: DraggableCardProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
@@ -359,7 +381,12 @@ function DraggableCardWithMenu({
           {...listeners}
           className={cn('px-2.5 py-2', canMove && 'cursor-grab active:cursor-grabbing')}
         >
-          <CandidateCard app={app} feedbackCount={feedbackCount} />
+          <CandidateCard
+            app={app}
+            feedbackCount={feedbackCount}
+            scorecardCount={scorecardCount}
+            taskState={taskState}
+          />
         </div>
         {hasAnyAction && (
           <div className="absolute right-1 top-1">
@@ -423,16 +450,21 @@ function DraggableCardWithMenu({
 interface CardProps {
   app: ApplicationRow;
   feedbackCount: number;
+  scorecardCount: number;
+  taskState: TaskKanbanState | null;
   isDragging?: boolean;
 }
 
-function CandidateCard({ app, feedbackCount, isDragging }: CardProps) {
+function CandidateCard({ app, feedbackCount, scorecardCount, taskState, isDragging }: CardProps) {
   const days = daysSince(app.stage_entered_at);
   const stalled = days >= STALLED_THRESHOLD_DAYS;
   const source = app.candidate?.source as CandidateSource | undefined;
   const sourceLabel = source === 'outro' && app.candidate?.source_other
     ? app.candidate.source_other
     : source ? CANDIDATE_SOURCE_LABELS[source] : null;
+
+  const taskPill = renderTaskPill(taskState);
+
   return (
     <div className={cn(isDragging && 'rotate-1 shadow-lg')}>
       <p className="text-[12px] font-medium text-foreground truncate">{app.candidate?.name}</p>
@@ -449,7 +481,36 @@ function CandidateCard({ app, feedbackCount, isDragging }: CardProps) {
             <MessageSquare className="h-2.5 w-2.5" /> {feedbackCount}
           </span>
         )}
+        {scorecardCount > 0 && (
+          <span className="bg-blue-100 text-blue-800 rounded-full px-1.5 py-0.5 inline-flex items-center gap-1 font-medium">
+            <Star className="h-2.5 w-2.5" /> {scorecardCount}
+          </span>
+        )}
+        {taskPill}
       </div>
     </div>
+  );
+}
+
+function renderTaskPill(state: TaskKanbanState | null): React.ReactNode {
+  if (!state || state.total === 0) return null;
+  if (state.overdue > 0) {
+    return (
+      <span className="bg-rose-100 text-rose-800 rounded-full px-1.5 py-0.5 font-medium">
+        ⚠ {state.overdue} atras.
+      </span>
+    );
+  }
+  if (state.pending === 0) {
+    return (
+      <span className="bg-emerald-100 text-emerald-800 rounded-full px-1.5 py-0.5 font-medium">
+        ✓ {state.completed}/{state.total}
+      </span>
+    );
+  }
+  return (
+    <span className="bg-muted text-muted-foreground rounded-full px-1.5 py-0.5">
+      {state.pending} pend.
+    </span>
   );
 }
