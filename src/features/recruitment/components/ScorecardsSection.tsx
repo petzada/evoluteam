@@ -6,7 +6,6 @@ import { toast } from 'sonner';
 import {
   ChevronDown, MoreVertical, Pencil, Trash2, Star,
 } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
@@ -106,43 +105,33 @@ export function ScorecardsSection({
 
   if (applications.length === 0) {
     return (
-      <Card>
-        <CardContent className="pt-6">
-          <h3 className="text-sm font-semibold mb-3">Scorecards</h3>
-          <p className="text-sm text-muted-foreground">
-            Candidato ainda não foi vinculado a nenhuma vaga.
-          </p>
-        </CardContent>
-      </Card>
+      <p className="text-sm text-muted-foreground italic">
+        Candidato ainda não foi vinculado a nenhuma vaga.
+      </p>
     );
   }
 
   return (
     <>
-      <Card>
-        <CardContent className="pt-6">
-          <h3 className="text-sm font-semibold mb-3">Scorecards</h3>
-          <div className="space-y-3">
-            {applications.map((app) => {
-              const stageMap = byAppStage.get(app.id) ?? new Map<string, ScorecardRow[]>();
-              return (
-                <ScorecardAppGroup
-                  key={app.id}
-                  app={app}
-                  stageMap={stageMap}
-                  defaultOpen={app.status === 'in_progress'}
-                  currentEmployeeId={currentEmployeeId}
-                  isAdmin={isAdmin}
-                  canSubmit={canSubmitScorecardForApp(app)}
-                  onNewScorecard={() => openNew(app)}
-                  onEditScorecard={(sc) => openEdit(sc, app)}
-                  onDeleteScorecard={onDelete}
-                />
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
+      <div className="space-y-3">
+        {applications.map((app) => {
+          const stageMap = byAppStage.get(app.id) ?? new Map<string, ScorecardRow[]>();
+          return (
+            <ScorecardAppGroup
+              key={app.id}
+              app={app}
+              stageMap={stageMap}
+              defaultOpen={app.status === 'in_progress'}
+              currentEmployeeId={currentEmployeeId}
+              isAdmin={isAdmin}
+              canSubmit={canSubmitScorecardForApp(app)}
+              onNewScorecard={() => openNew(app)}
+              onEditScorecard={(sc) => openEdit(sc, app)}
+              onDeleteScorecard={onDelete}
+            />
+          );
+        })}
+      </div>
 
       <ScorecardSheet
         open={sheetOpen}

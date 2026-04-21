@@ -4,7 +4,6 @@ import { useMemo, useState, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { ChevronDown, MessageSquare, MoreVertical, Pencil, Trash2 } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
@@ -96,44 +95,34 @@ export function FeedbacksSection({
 
   if (applications.length === 0) {
     return (
-      <Card>
-        <CardContent className="pt-6">
-          <h3 className="text-sm font-semibold mb-3">Feedbacks</h3>
-          <p className="text-sm text-muted-foreground">
-            Este candidato ainda não foi vinculado a nenhuma vaga.
-          </p>
-        </CardContent>
-      </Card>
+      <p className="text-sm text-muted-foreground italic">
+        Este candidato ainda não foi vinculado a nenhuma vaga.
+      </p>
     );
   }
 
   return (
     <>
-      <Card>
-        <CardContent className="pt-6">
-          <h3 className="text-sm font-semibold mb-3">Feedbacks</h3>
-          <div className="space-y-3">
-            {applications.map((app) => {
-              const appFeedbacks = byApp.get(app.id) ?? [];
-              const isActive = app.status === 'in_progress';
-              return (
-                <FeedbackGroup
-                  key={app.id}
-                  app={app}
-                  feedbacks={appFeedbacks}
-                  defaultOpen={isActive}
-                  currentEmployeeId={currentEmployeeId}
-                  isAdmin={isAdmin}
-                  canGiveFeedback={canGiveFeedbackForApp(app)}
-                  onNewFeedback={() => openNew(app)}
-                  onEditFeedback={(fb) => openEdit(fb, app)}
-                  onDeleteFeedback={onDelete}
-                />
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
+      <div className="space-y-3">
+        {applications.map((app) => {
+          const appFeedbacks = byApp.get(app.id) ?? [];
+          const isActive = app.status === 'in_progress';
+          return (
+            <FeedbackGroup
+              key={app.id}
+              app={app}
+              feedbacks={appFeedbacks}
+              defaultOpen={isActive}
+              currentEmployeeId={currentEmployeeId}
+              isAdmin={isAdmin}
+              canGiveFeedback={canGiveFeedbackForApp(app)}
+              onNewFeedback={() => openNew(app)}
+              onEditFeedback={(fb) => openEdit(fb, app)}
+              onDeleteFeedback={onDelete}
+            />
+          );
+        })}
+      </div>
 
       <FeedbackSheet
         open={sheetOpen}

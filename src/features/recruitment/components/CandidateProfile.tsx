@@ -8,7 +8,6 @@ import { useRouter } from 'next/navigation';
 import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { formatDate } from '@/lib/date';
 import type { CandidateRow } from '../queries/candidates';
@@ -119,100 +118,96 @@ export function CandidateProfile({
           <TabsTrigger value="scorecards">Scorecards</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="dados" className="mt-6">
-          <Card className="max-w-3xl">
-            <CardContent className="pt-6">
-              <h3 className="text-sm font-semibold mb-3">Dados pessoais</h3>
-              <dl className="grid grid-cols-2 gap-3 text-sm">
-                <Field label="Telefone" value={candidate.phone} />
-                <Field label="Origem" value={sourceLabel} />
-                <Field
-                  label="LinkedIn"
-                  value={candidate.linkedin_url ? (
-                    <a href={candidate.linkedin_url} target="_blank" rel="noreferrer" className="text-primary hover:underline inline-flex items-center gap-1">
-                      Abrir <ExternalLink className="h-3 w-3" />
-                    </a>
-                  ) : null}
-                />
-                <Field
-                  label="Currículo"
-                  value={candidate.resume_url ? (
-                    <a href={candidate.resume_url} target="_blank" rel="noreferrer" className="text-primary hover:underline inline-flex items-center gap-1">
-                      Abrir <ExternalLink className="h-3 w-3" />
-                    </a>
-                  ) : null}
-                />
-                <Field label="Cadastrado em" value={formatDate(candidate.created_at)} />
-                <Field label="Total de aplicações" value={String(applications.length)} />
-              </dl>
-              {candidate.notes && (
-                <>
-                  <p className="text-xs text-muted-foreground mt-4 mb-1 uppercase tracking-wider">Observações</p>
-                  <p className="text-sm whitespace-pre-wrap">{candidate.notes}</p>
-                </>
-              )}
-            </CardContent>
-          </Card>
+        <TabsContent value="dados" className="mt-6 max-w-3xl">
+          <section className="rounded-md border divide-y">
+            <FieldRow label="Nome" value={candidate.name} />
+            <FieldRow label="E-mail" value={candidate.email} />
+            <FieldRow label="Telefone" value={candidate.phone ?? '—'} />
+            <FieldRow label="Origem" value={sourceLabel} />
+            <FieldRow
+              label="LinkedIn"
+              value={candidate.linkedin_url ? (
+                <a href={candidate.linkedin_url} target="_blank" rel="noreferrer" className="text-primary hover:underline inline-flex items-center gap-1">
+                  Abrir <ExternalLink className="h-3 w-3" />
+                </a>
+              ) : '—'}
+            />
+            <FieldRow
+              label="Currículo"
+              value={candidate.resume_url ? (
+                <a href={candidate.resume_url} target="_blank" rel="noreferrer" className="text-primary hover:underline inline-flex items-center gap-1">
+                  Abrir <ExternalLink className="h-3 w-3" />
+                </a>
+              ) : '—'}
+            />
+            <FieldRow label="Cadastrado em" value={formatDate(candidate.created_at)} />
+            <FieldRow label="Total de aplicações" value={String(applications.length)} />
+          </section>
+
+          {candidate.notes && (
+            <section className="rounded-md border p-4 mt-4">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">
+                Observações
+              </p>
+              <p className="text-sm whitespace-pre-wrap">{candidate.notes}</p>
+            </section>
+          )}
         </TabsContent>
 
         <TabsContent value="aplicacoes" className="mt-6">
-          <Card>
-            <CardContent className="pt-6">
-              <h3 className="text-sm font-semibold mb-3">Aplicações</h3>
-              {applications.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Este candidato ainda não foi vinculado a nenhuma vaga.</p>
-              ) : (
-                <ul className="space-y-2">
-                  {applications.map((app) => (
-                    <li key={app.id} className="p-3 border rounded-md hover:bg-muted/30 transition-colors">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <Link
-                            href={`/recrutamento/vagas/${app.job_opening_id}`}
-                            className="text-sm font-medium hover:underline"
-                          >
-                            {app.job_opening?.title ?? 'Vaga'}
-                          </Link>
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            Etapa: {app.current_stage?.name ?? '—'} · entrou em {formatDate(app.stage_entered_at)}
-                          </p>
-                        </div>
-                        <Badge variant={statusVariant(app.status)}>
-                          {APPLICATION_STATUS_LABELS[app.status]}
-                        </Badge>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </CardContent>
-          </Card>
+          <p className="text-sm text-muted-foreground mb-3">
+            {applications.length} aplicaç{applications.length === 1 ? 'ão' : 'ões'} no histórico do candidato
+          </p>
+          {applications.length === 0 ? (
+            <p className="text-sm text-muted-foreground italic">
+              Este candidato ainda não foi vinculado a nenhuma vaga.
+            </p>
+          ) : (
+            <ul className="space-y-3">
+              {applications.map((app) => (
+                <li key={app.id} className="rounded-md border p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <Link
+                        href={`/recrutamento/vagas/${app.job_opening_id}`}
+                        className="font-medium hover:text-primary hover:underline"
+                      >
+                        {app.job_opening?.title ?? 'Vaga'}
+                      </Link>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Etapa: {app.current_stage?.name ?? '—'} · entrou em {formatDate(app.stage_entered_at)}
+                      </p>
+                    </div>
+                    <Badge variant={statusVariant(app.status)}>
+                      {APPLICATION_STATUS_LABELS[app.status]}
+                    </Badge>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
         </TabsContent>
 
-        <TabsContent value="historico" className="mt-6">
-          <Card className="max-w-3xl">
-            <CardContent className="pt-6">
-              <h3 className="text-sm font-semibold mb-3">Histórico</h3>
-              {history.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Sem eventos registrados.</p>
-              ) : (
-                <ol className="space-y-3 text-xs">
-                  {history.map((h) => (
-                    <li key={h.id} className="relative pl-4 border-l">
-                      <div className="absolute left-[-4px] top-1 h-2 w-2 rounded-full bg-primary" />
-                      <p className="text-muted-foreground">{formatDate(h.changed_at)}</p>
-                      <p className="mt-0.5">
-                        {describeHistoryEvent(h)}
-                      </p>
-                      {h.reason_notes && (
-                        <p className="mt-0.5 text-muted-foreground italic">{h.reason_notes}</p>
-                      )}
-                    </li>
-                  ))}
-                </ol>
-              )}
-            </CardContent>
-          </Card>
+        <TabsContent value="historico" className="mt-6 max-w-3xl">
+          {history.length === 0 ? (
+            <p className="text-sm text-muted-foreground italic">Sem eventos registrados.</p>
+          ) : (
+            <ol className="space-y-3">
+              {history.map((h) => (
+                <li key={h.id} className="flex gap-3 rounded-md border p-3 text-sm">
+                  <div className="flex-1">
+                    <p className="font-medium text-foreground">{describeHistoryEvent(h)}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {formatDate(h.changed_at)}
+                    </p>
+                    {h.reason_notes && (
+                      <p className="text-xs text-muted-foreground italic mt-1">{h.reason_notes}</p>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ol>
+          )}
         </TabsContent>
 
         <TabsContent value="tarefas" className="mt-6">
@@ -281,11 +276,11 @@ export function CandidateProfile({
   );
 }
 
-function Field({ label, value }: { label: string; value: React.ReactNode }) {
+function FieldRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div>
-      <dt className="text-xs text-muted-foreground uppercase tracking-wider">{label}</dt>
-      <dd className="mt-0.5">{value || '—'}</dd>
+    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 px-4 py-3">
+      <p className="w-40 shrink-0 text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+      <div className="text-sm text-foreground flex-1 min-w-0">{value}</div>
     </div>
   );
 }

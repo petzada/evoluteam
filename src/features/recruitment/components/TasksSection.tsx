@@ -6,7 +6,6 @@ import { toast } from 'sonner';
 import {
   ChevronDown, MoreVertical, Pencil, Trash2, Plus, RotateCcw,
 } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -128,42 +127,34 @@ export function TasksSection({
 
   if (applications.length === 0) {
     return (
-      <Card>
-        <CardContent className="pt-6">
-          <h3 className="text-sm font-semibold mb-3">Tarefas</h3>
-          <p className="text-sm text-muted-foreground">Candidato ainda não foi vinculado a nenhuma vaga.</p>
-        </CardContent>
-      </Card>
+      <p className="text-sm text-muted-foreground italic">
+        Candidato ainda não foi vinculado a nenhuma vaga.
+      </p>
     );
   }
 
   return (
     <>
-      <Card>
-        <CardContent className="pt-6">
-          <h3 className="text-sm font-semibold mb-3">Tarefas</h3>
-          <div className="space-y-3">
-            {applications.map((app) => {
-              const appTasks = byApp.get(app.id) ?? [];
-              return (
-                <TaskAppGroup
-                  key={app.id}
-                  app={app}
-                  tasks={appTasks}
-                  defaultOpen={app.status === 'in_progress'}
-                  currentEmployeeId={currentEmployeeId}
-                  isAdmin={isAdmin}
-                  canManage={canManageTasksForApp(app)}
-                  onNew={() => openNew(app)}
-                  onEdit={(t) => openEdit(t, app)}
-                  onToggle={onToggle}
-                  onDelete={onDelete}
-                />
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
+      <div className="space-y-3">
+        {applications.map((app) => {
+          const appTasks = byApp.get(app.id) ?? [];
+          return (
+            <TaskAppGroup
+              key={app.id}
+              app={app}
+              tasks={appTasks}
+              defaultOpen={app.status === 'in_progress'}
+              currentEmployeeId={currentEmployeeId}
+              isAdmin={isAdmin}
+              canManage={canManageTasksForApp(app)}
+              onNew={() => openNew(app)}
+              onEdit={(t) => openEdit(t, app)}
+              onToggle={onToggle}
+              onDelete={onDelete}
+            />
+          );
+        })}
+      </div>
 
       <TaskDialog
         open={dialogOpen}
