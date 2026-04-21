@@ -12,7 +12,8 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { AccessSheet } from '@/features/permissions/components/AccessSheet';
+import { ROLE_LABELS as CENTRAL_ROLE_LABELS, type RhPermissions, type Role as CentralRole } from '@/features/permissions/types';
 import { EmployeeSheet, type ExistingEmployee } from './EmployeeSheet';
 import { ConfirmStatusDialog, type StatusAction } from './ConfirmStatusDialog';
 import { FeedbackCard } from '@/features/feedbacks/components/FeedbackCard';
@@ -31,7 +32,7 @@ import {
 import { MultiSelectFilter } from '@/components/MultiSelectFilter';
 import { formatDate, formatDateTime } from '@/lib/date';
 import { ACTIVITY_LABELS } from '@/lib/activity';
-import { resendInvite, revokeInvite, updateRole } from '../actions';
+import { resendInvite, revokeInvite } from '../actions';
 
 type Employee = {
   id: string;
@@ -65,7 +66,7 @@ type ActivityLog = {
   created_at: string;
 };
 
-type Role = 'admin_rh' | 'director' | 'user';
+type Role = CentralRole;
 
 interface Position { id: string; name: string }
 interface Department { id: string; name: string }
@@ -102,13 +103,13 @@ interface Props {
     jobTitle: string;
     hiredAt: string;
   } | null;
+  // FT-8 · drawer de Gerenciar acesso
+  targetRhPermissions: RhPermissions;
+  currentActorRole: CentralRole;
+  currentActorCanInvites: boolean;
 }
 
-const ROLE_LABELS: Record<Role, string> = {
-  admin_rh: 'Admin RH',
-  director: 'Diretor',
-  user: 'Colaborador',
-};
+const ROLE_LABELS: Record<Role, string> = CENTRAL_ROLE_LABELS;
 
 const STATUS_LABEL: Record<string, string> = {
   active: 'Ativo',
@@ -132,6 +133,7 @@ const CYCLE_STATUS_LABEL: Record<'draft' | 'published' | 'closed' | 'archived', 
 
 export function EmployeeProfile({
   employee, directReports, activityLog, role, lastSignInAt, isAdmin, isSelf,
+  targetRhPermissions, currentActorRole, currentActorCanInvites,
   canSeeInternalNotes, positions, departments, managers, descendantIds,
   subordinatesCount, actors, feedbacks, reviewCycles, canSeeResults, initialTab,
   pdis, canCreatePdi, pdiEmployees, pdiCompetencies, pdiCycles, actorEmployeeId,
@@ -143,6 +145,7 @@ export function EmployeeProfile({
   const router = useRouter();
   const [sheetOpen, setSheetOpen] = useState(false);
   const [pdiSheetOpen, setPdiSheetOpen] = useState(false);
+  const [accessSheetOpen, setAccessSheetOpen] = useState(false);
   const [statusAction, setStatusAction] = useState<StatusAction | null>(null);
   const [pdiStatusFilter, setPdiStatusFilter] = useState<string[]>([]);
   const [pdiCompetencyFilter, setPdiCompetencyFilter] = useState<string[]>([]);
@@ -180,13 +183,6 @@ export function EmployeeProfile({
     if (r.error) toast.error(r.error);
     else toast.success('Convite revogado.');
   }
-  async function handleRoleChange(newRole: Role) {
-    if (!employee.user_id) return;
-    const r = await updateRole(employee.user_id, newRole);
-    if (r.error) toast.error(r.error);
-    else { toast.success('Papel atualizado.'); router.refresh(); }
-  }
-
   return (
     <div>
       <nav className="flex items-center gap-1 text-sm text-muted-foreground mb-4">
@@ -395,23 +391,14 @@ export function EmployeeProfile({
               <FieldRow label="Último login" value={lastSignInAt ? formatDateTime(lastSignInAt) : '—'} />
             </section>
 
-            {isAdmin && employee.user_id && !isSelf && (
+            {employee.user_id && !isSelf && (isAdmin || (currentActorRole === 'rh' && currentActorCanInvites && role === 'user')) && (
               <section>
                 <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">
-                  Alterar papel
+                  Acesso
                 </p>
-                <div className="flex items-center gap-2 max-w-sm">
-                  <Select value={role ?? 'user'} onValueChange={(v) => handleRoleChange(v as Role)}
-                    items={(Object.entries(ROLE_LABELS) as [Role, string][]).map(([value, label]) => ({ value, label }))}
-                  >
-                    <SelectTrigger className="flex-1"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {(Object.entries(ROLE_LABELS) as [Role, string][]).map(([value, label]) => (
-                        <SelectItem key={value} value={value}>{label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                <Button variant="outline" size="sm" onClick={() => setAccessSheetOpen(true)}>
+                  Gerenciar acesso
+                </Button>
               </section>
             )}
 
@@ -631,6 +618,20 @@ export function EmployeeProfile({
         actorEmployeeId={actorEmployeeId}
         presetEmployeeId={employee.id}
       />
+
+      {employee.user_id && (
+        <AccessSheet
+          open={accessSheetOpen}
+          onOpenChange={setAccessSheetOpen}
+          profileId={employee.user_id}
+          fullName={employee.full_name}
+          email={employee.email}
+          initialRole={(role ?? 'user')}
+          initialPermissions={targetRhPermissions}
+          currentActorRole={currentActorRole}
+          currentActorCanInvites={currentActorCanInvites}
+        />
+      )}
 
       <ConfirmStatusDialog
         open={!!statusAction}

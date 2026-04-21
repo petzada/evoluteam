@@ -32,7 +32,7 @@ export interface ExistingEmployee {
   positionId: string | null;
   departmentId: string | null;
   managerId: string | null;
-  role: 'admin_rh' | 'director' | 'user';
+  role: 'admin_rh' | 'director' | 'user' | 'rh';
   hireDate: string;
   isSelf: boolean;
   internalNotes?: string | null;
@@ -49,7 +49,7 @@ interface Props {
   isAdmin: boolean;
 }
 
-const ROLE_LABELS = { admin_rh: 'Administrador RH', director: 'Diretor', user: 'Colaborador' };
+const ROLE_LABELS = { admin_rh: 'Administrador', director: 'Diretor', user: 'Colaborador', rh: 'RH' };
 
 const EMPTY_DEFAULTS: EmployeeInput = {
   fullName: '',

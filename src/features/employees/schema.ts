@@ -4,7 +4,7 @@ export const EmployeeSchema = z.object({
   fullName: z.string().min(2, 'Nome obrigatório'),
   email: z.string().email('E-mail inválido'),
   positionId: z.string().min(1, 'Cargo obrigatório'),
-  role: z.enum(['admin_rh', 'director', 'user']),
+  role: z.enum(['admin_rh', 'director', 'user', 'rh']),
   departmentId: z.string().optional().nullable(),
   managerId: z.string().optional().nullable(),
   hireDate: z.string().min(1, 'Data obrigatória'),
@@ -15,7 +15,7 @@ export const EmployeeSchema = z.object({
 
 export const UpdateRoleSchema = z.object({
   employeeId: z.string().uuid(),
-  role: z.enum(['admin_rh', 'director', 'user']),
+  role: z.enum(['admin_rh', 'director', 'user', 'rh']),
 });
 
 export const TransferOptionSchema = z.discriminatedUnion('mode', [

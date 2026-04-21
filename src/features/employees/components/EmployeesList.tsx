@@ -116,8 +116,9 @@ const STATUS_FILTER_ITEMS = [
 ];
 
 const ROLE_PILL: Record<string, string> = {
-  admin_rh: 'Admin RH',
+  admin_rh: 'Administrador',
   director: 'Diretor',
+  rh: 'RH',
 };
 
 type ColumnKey = 'email' | 'role' | 'admission' | 'phone';
@@ -129,7 +130,7 @@ const DEFAULT_COLUMNS: Record<ColumnKey, boolean> = {
 };
 const COLUMN_LABELS: Record<ColumnKey, string> = {
   email: 'E-mail',
-  role: 'Papel',
+  role: 'Acesso',
   admission: 'Admissão',
   phone: 'Telefone',
 };

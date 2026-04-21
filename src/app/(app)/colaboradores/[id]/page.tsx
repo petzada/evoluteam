@@ -40,8 +40,25 @@ export default async function EmployeeProfilePage({
     .single();
   if (!profile?.company_id) redirect('/onboarding/criar-empresa');
 
-  const actorRole = profile.role as 'admin_rh' | 'director' | 'user';
-  const showInternalNotes = canSeeInternalNotes({ role: actorRole });
+  const actorRole = profile.role as 'admin_rh' | 'director' | 'user' | 'rh';
+
+  // Carrega rhPermissions do ator se for role='rh' (para poder filtrar
+  // gates como canSeeInternalNotes / canManageEmployee de forma granular).
+  let actorRhPermissions: import('@/features/permissions/types').RhPermissions | null = null;
+  if (actorRole === 'rh') {
+    const admin = createAdminSupabaseClient();
+    const { data: perms } = await admin
+      .from('rh_permissions')
+      .select('can_employees, can_reviews, can_recruitment, can_pdi_feedback, can_invites, can_audit')
+      .eq('profile_id', user.id)
+      .maybeSingle();
+    actorRhPermissions = perms ?? null;
+  }
+
+  const showInternalNotes = canSeeInternalNotes({
+    role: actorRole,
+    rhPermissions: actorRhPermissions,
+  });
 
   const employee = await getEmployee(id, { includeInternalNotes: showInternalNotes })
     .catch(() => null);
@@ -59,7 +76,7 @@ export default async function EmployeeProfilePage({
   const isDescendantOfActor = actorDescendants.includes(id);
 
   const canView = canViewEmployee(
-    { id: '', role: actorRole, userId: user.id, employeeId: actorEmployeeId },
+    { id: '', role: actorRole, userId: user.id, employeeId: actorEmployeeId, rhPermissions: actorRhPermissions },
     { id, managerChain: isDescendantOfActor ? [actorEmployeeId ?? ''] : [] },
   );
   if (!canView) {
@@ -102,13 +119,17 @@ export default async function EmployeeProfilePage({
 
   const canCreatePdiHere =
     actorRole === 'admin_rh'
+    || (actorRole === 'rh' && !!actorRhPermissions?.can_pdi_feedback)
     || (actorEmployeeId !== null && employee.manager?.id === actorEmployeeId);
 
   // canSeeResults: admin_rh e director veem tudo; gestor vê descendentes; self só com liberação.
   // Quando canSeeResults=false e isSelf=true, o componente libera por ciclo (isReleased).
   const isSelfHere = employee.user_id === user.id;
   const canSeeResults =
-    actorRole === 'admin_rh' || actorRole === 'director' || (!isSelfHere && isDescendantOfActor);
+    actorRole === 'admin_rh'
+    || actorRole === 'director'
+    || (actorRole === 'rh' && !!actorRhPermissions?.can_reviews)
+    || (!isSelfHere && isDescendantOfActor);
 
   // Último login via admin auth
   let lastSignInAt: string | null = null;
@@ -122,15 +143,32 @@ export default async function EmployeeProfilePage({
     }
   }
 
-  // Role do target
-  let targetRole: 'admin_rh' | 'director' | 'user' | null = null;
+  // Role + permissoes do target (para o AccessSheet em edicao).
+  let targetRole: 'admin_rh' | 'director' | 'user' | 'rh' | null = null;
+  let targetRhPermissions: import('@/features/permissions/types').RhPermissions = {
+    can_employees: false,
+    can_reviews: false,
+    can_recruitment: false,
+    can_pdi_feedback: false,
+    can_invites: false,
+    can_audit: false,
+  };
   if (employee.user_id) {
     const { data: targetProfile } = await supabase
       .from('profiles')
       .select('role')
       .eq('id', employee.user_id)
       .maybeSingle();
-    targetRole = (targetProfile?.role as 'admin_rh' | 'director' | 'user' | null) ?? null;
+    targetRole = (targetProfile?.role as 'admin_rh' | 'director' | 'user' | 'rh' | null) ?? null;
+    if (targetRole === 'rh') {
+      const admin = createAdminSupabaseClient();
+      const { data: perms } = await admin
+        .from('rh_permissions')
+        .select('can_employees, can_reviews, can_recruitment, can_pdi_feedback, can_invites, can_audit')
+        .eq('profile_id', employee.user_id)
+        .maybeSingle();
+      if (perms) targetRhPermissions = perms;
+    }
   }
 
   // Origem de recrutamento (Onda 2 FT-7): se employee veio do wizard de contratação
@@ -177,6 +215,9 @@ export default async function EmployeeProfilePage({
       pdiCompetencies={pdiCompetencies ?? []}
       pdiCycles={pdiCycles ?? []}
       actorEmployeeId={actorEmployeeId}
+      targetRhPermissions={targetRhPermissions}
+      currentActorRole={actorRole}
+      currentActorCanInvites={actorRole === 'admin_rh' || (actorRole === 'rh' && !!actorRhPermissions?.can_invites)}
       recruitmentSource={recruitmentSource}
     />
     </>

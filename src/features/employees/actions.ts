@@ -268,36 +268,6 @@ export async function revokeInvite(inviteId: string) {
   return { ok: true };
 }
 
-export async function updateRole(employeeUserId: string, role: 'admin_rh' | 'director' | 'user') {
-  const ctx = await getActorContext();
-  if (!ctx || ctx.profile.role !== 'admin_rh') return { error: 'Sem permissão.' };
-  if (ctx.user.id === employeeUserId) return { error: 'Você não pode alterar o próprio papel.' };
-
-  if (role !== 'admin_rh') {
-    const adminCount = await countActiveAdmins(ctx.profile.company_id);
-    const { data: target } = await (await createServerSupabaseClient())
-      .from('profiles')
-      .select('role')
-      .eq('id', employeeUserId)
-      .single();
-    if (target?.role === 'admin_rh' && adminCount <= 1) {
-      return { error: 'A empresa precisa de ao menos um administrador.' };
-    }
-  }
-
-  const supabase = await createServerSupabaseClient();
-  await supabase
-    .from('profiles')
-    .update({ role })
-    .eq('id', employeeUserId)
-    .eq('company_id', ctx.profile.company_id);
-
-  await logActivity({ companyId: ctx.profile.company_id, actorUserId: ctx.user.id, action: 'user.role_changed', entityType: 'profile', entityId: employeeUserId, metadata: { role } });
-
-  revalidatePath('/colaboradores');
-  return { ok: true };
-}
-
 async function countActiveAdmins(companyId: string): Promise<number> {
   const admin = createAdminSupabaseClient();
   const { count } = await admin
