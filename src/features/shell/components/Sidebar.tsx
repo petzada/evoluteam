@@ -29,8 +29,8 @@ const MAIN_NAV: NavItem[] = [
 const RECRUITMENT_NAV: NavItem[] = [
   { label: 'Candidatos', href: '/recrutamento/candidatos', icon: UserPlus },
   { label: 'Vagas', href: '/recrutamento/vagas', icon: Briefcase },
-  { label: 'Relatórios', href: '/recrutamento/relatorios', icon: BarChart3 },
   { label: 'Etapas', href: '/recrutamento/etapas', icon: KanbanSquare, adminOnly: true },
+  { label: 'Relatórios', href: '/recrutamento/relatorios', icon: BarChart3 },
 ];
 
 const CONFIG_NAV: NavItem[] = [

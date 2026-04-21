@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Briefcase, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -25,6 +25,7 @@ interface Props {
 }
 
 export function JobOpeningsTable({ jobs, departments, positions, managers, canCreate }: Props) {
+  const router = useRouter();
   const [sheetOpen, setSheetOpen] = useState(false);
 
   return (
@@ -66,14 +67,13 @@ export function JobOpeningsTable({ jobs, departments, positions, managers, canCr
             </TableHeader>
             <TableBody>
               {jobs.map((job) => (
-                <TableRow key={job.id} className="hover:bg-muted/40 cursor-pointer">
-                  <TableCell>
-                    <Link
-                      href={`/recrutamento/vagas/${job.id}`}
-                      className="font-medium text-foreground hover:underline"
-                    >
-                      {job.title}
-                    </Link>
+                <TableRow
+                  key={job.id}
+                  className="hover:bg-muted/40 cursor-pointer"
+                  onClick={() => router.push(`/recrutamento/vagas/${job.id}`)}
+                >
+                  <TableCell className="font-medium text-foreground">
+                    {job.title}
                   </TableCell>
                   <TableCell>{job.department?.name ?? '—'}</TableCell>
                   <TableCell>{job.hiring_manager?.full_name ?? '—'}</TableCell>

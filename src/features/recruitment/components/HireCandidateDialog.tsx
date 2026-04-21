@@ -99,15 +99,15 @@ function HireCandidateDialogInner({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto overflow-x-hidden">
         {eligibility && !eligibility.ok && eligibility.reason === 'CANDIDATE_ALREADY_HIRED' ? (
           <BlockedAlreadyHired hiredEmployeeId={eligibility.hiredEmployeeId} hiredEmployeeName={eligibility.hiredEmployeeName} onClose={() => onOpenChange(false)} />
         ) : (
           <>
             <DialogHeader>
-              <DialogTitle>
-                Contratar {context?.candidate.name}
-                <Badge variant="default" className="ml-2 bg-emerald-600 hover:bg-emerald-600">
+              <DialogTitle className="flex flex-wrap items-center gap-2 min-w-0">
+                <span className="truncate">Contratar {context?.candidate.name}</span>
+                <Badge variant="default" className="bg-emerald-600 hover:bg-emerald-600 shrink-0">
                   Vira colaborador(a)
                 </Badge>
               </DialogTitle>

@@ -9,6 +9,7 @@ import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { formatDate } from '@/lib/date';
 import type { CandidateRow } from '../queries/candidates';
 import type { ApplicationRow, StageHistoryRow } from '../queries/applications';
@@ -108,9 +109,18 @@ export function CandidateProfile({
         </div>
       )}
 
-      <div className="grid gap-4 md:grid-cols-[2fr_1fr] max-w-6xl">
-        <div className="space-y-4">
-          <Card>
+      <Tabs defaultValue="dados">
+        <TabsList>
+          <TabsTrigger value="dados">Dados</TabsTrigger>
+          <TabsTrigger value="aplicacoes">Aplicações</TabsTrigger>
+          <TabsTrigger value="historico">Histórico</TabsTrigger>
+          <TabsTrigger value="tarefas">Tarefas</TabsTrigger>
+          <TabsTrigger value="feedbacks">Feedbacks</TabsTrigger>
+          <TabsTrigger value="scorecards">Scorecards</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="dados" className="mt-6">
+          <Card className="max-w-3xl">
             <CardContent className="pt-6">
               <h3 className="text-sm font-semibold mb-3">Dados pessoais</h3>
               <dl className="grid grid-cols-2 gap-3 text-sm">
@@ -143,7 +153,9 @@ export function CandidateProfile({
               )}
             </CardContent>
           </Card>
+        </TabsContent>
 
+        <TabsContent value="aplicacoes" className="mt-6">
           <Card>
             <CardContent className="pt-6">
               <h3 className="text-sm font-semibold mb-3">Aplicações</h3>
@@ -175,47 +187,10 @@ export function CandidateProfile({
               )}
             </CardContent>
           </Card>
+        </TabsContent>
 
-          <FeedbacksSection
-            applications={applications}
-            feedbacks={feedbacks}
-            currentEmployeeId={currentEmployeeId}
-            isAdmin={isAdmin}
-            canGiveFeedbackForApp={(app) => {
-              if (!canGiveFeedback) return false;
-              if (isAdmin) return true;
-              return applicationsOwnedByCurrentGestor.has(app.id);
-            }}
-          />
-
-          <ScorecardsSection
-            applications={applications}
-            scorecards={scorecards}
-            currentEmployeeId={currentEmployeeId}
-            isAdmin={isAdmin}
-            canSubmitScorecardForApp={(app) => {
-              if (!canGiveFeedback) return false;
-              if (isAdmin) return true;
-              return applicationsOwnedByCurrentGestor.has(app.id);
-            }}
-          />
-
-          <TasksSection
-            applications={applications}
-            tasks={tasks}
-            currentEmployeeId={currentEmployeeId}
-            isAdmin={isAdmin}
-            canManageTasksForApp={(app) => {
-              if (!canGiveFeedback) return false;
-              if (isAdmin) return true;
-              return applicationsOwnedByCurrentGestor.has(app.id);
-            }}
-            responsibleOptions={responsibleOptions}
-          />
-        </div>
-
-        <div>
-          <Card>
+        <TabsContent value="historico" className="mt-6">
+          <Card className="max-w-3xl">
             <CardContent className="pt-6">
               <h3 className="text-sm font-semibold mb-3">Histórico</h3>
               {history.length === 0 ? (
@@ -238,8 +213,51 @@ export function CandidateProfile({
               )}
             </CardContent>
           </Card>
-        </div>
-      </div>
+        </TabsContent>
+
+        <TabsContent value="tarefas" className="mt-6">
+          <TasksSection
+            applications={applications}
+            tasks={tasks}
+            currentEmployeeId={currentEmployeeId}
+            isAdmin={isAdmin}
+            canManageTasksForApp={(app) => {
+              if (!canGiveFeedback) return false;
+              if (isAdmin) return true;
+              return applicationsOwnedByCurrentGestor.has(app.id);
+            }}
+            responsibleOptions={responsibleOptions}
+          />
+        </TabsContent>
+
+        <TabsContent value="feedbacks" className="mt-6">
+          <FeedbacksSection
+            applications={applications}
+            feedbacks={feedbacks}
+            currentEmployeeId={currentEmployeeId}
+            isAdmin={isAdmin}
+            canGiveFeedbackForApp={(app) => {
+              if (!canGiveFeedback) return false;
+              if (isAdmin) return true;
+              return applicationsOwnedByCurrentGestor.has(app.id);
+            }}
+          />
+        </TabsContent>
+
+        <TabsContent value="scorecards" className="mt-6">
+          <ScorecardsSection
+            applications={applications}
+            scorecards={scorecards}
+            currentEmployeeId={currentEmployeeId}
+            isAdmin={isAdmin}
+            canSubmitScorecardForApp={(app) => {
+              if (!canGiveFeedback) return false;
+              if (isAdmin) return true;
+              return applicationsOwnedByCurrentGestor.has(app.id);
+            }}
+          />
+        </TabsContent>
+      </Tabs>
 
       {canManage && (
         <CandidateSheet

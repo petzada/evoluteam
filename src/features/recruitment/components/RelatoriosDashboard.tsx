@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { Users, CheckCircle2, Clock, AlertTriangle } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { HoverCard, HoverCardTrigger, HoverCardContent } from '@/components/ui/hover-card';
@@ -10,7 +11,9 @@ import type {
   JobOption, EmployeeOption,
 } from '../queries/metrics';
 import { PageHeader } from '@/components/PageHeader';
+import { KpiCard } from '@/features/dashboard/components/KpiCard';
 import { DashboardFilters } from './dashboard/DashboardFilters';
+import { DashboardPeriodChips } from './dashboard/DashboardPeriodChips';
 import { OriginsDualDonut } from './dashboard/OriginsDualDonut';
 import { StageDurationsLollipop } from './dashboard/StageDurationsLollipop';
 
@@ -37,7 +40,8 @@ export function RelatoriosDashboard({
     <div>
       <PageHeader
         title="Relatórios de Recrutamento"
-        description={`Métricas do funil, tempo por etapa, origens e tarefas pendentes. Período: ${periodLabel}.`}
+        description="Indicadores de gestão de recrutamentos da empresa."
+        actions={<DashboardPeriodChips />}
       />
 
       <DashboardFilters
@@ -46,25 +50,29 @@ export function RelatoriosDashboard({
         hideManagerFilter={hideManagerFilter}
       />
 
-      <div className="grid gap-3 grid-cols-2 md:grid-cols-4 mb-5">
-        <Kpi
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+        <KpiCard
           label="Candidatos ativos"
-          value={kpis.activeCandidates.toString()}
+          icon={Users}
+          value={kpis.activeCandidates}
           hint={`em ${kpis.activeCandidatesJobCount} ${kpis.activeCandidatesJobCount === 1 ? 'vaga' : 'vagas'}`}
         />
-        <Kpi
+        <KpiCard
           label="Contratados"
-          value={kpis.hiredInPeriod.toString()}
+          icon={CheckCircle2}
+          value={kpis.hiredInPeriod}
           hint={periodLabel}
         />
-        <Kpi
+        <KpiCard
           label="Tempo até contratação"
+          icon={Clock}
           value={kpis.medianTimeToHireDays !== null ? `${kpis.medianTimeToHireDays}d` : '—'}
           hint="mediana"
         />
-        <Kpi
+        <KpiCard
           label="Tarefas atrasadas"
-          value={kpis.overdueTasks.toString()}
+          icon={AlertTriangle}
+          value={kpis.overdueTasks}
           tone={kpis.overdueTasks > 0 ? 'danger' : 'default'}
         />
       </div>
@@ -225,28 +233,5 @@ function FunnelRow({ label, value }: { label: string; value: string }) {
       <span className="text-muted-foreground">{label}</span>
       <span className="tabular-nums font-medium text-foreground">{value}</span>
     </div>
-  );
-}
-
-function Kpi({
-  label, value, hint, tone = 'default',
-}: {
-  label: string;
-  value: string;
-  hint?: string;
-  tone?: 'default' | 'danger';
-}) {
-  return (
-    <Card>
-      <CardContent className="pt-4 pb-4">
-        <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-          {label}
-        </p>
-        <p className={`mt-1 text-2xl font-bold tabular-nums ${tone === 'danger' ? 'text-destructive' : 'text-foreground'}`}>
-          {value}
-        </p>
-        {hint && <p className="text-[10.5px] text-muted-foreground mt-0.5">{hint}</p>}
-      </CardContent>
-    </Card>
   );
 }
