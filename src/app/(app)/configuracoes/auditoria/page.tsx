@@ -3,6 +3,8 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { listActivityLogs, ACTIVITY_PAGE_SIZE } from '@/features/activity/queries';
 import { ActivityLogList } from '@/features/activity/components/ActivityLogList';
 import { PageHeader } from '@/components/PageHeader';
+import { hasAdminPower } from '@/features/permissions/permissions';
+import { loadActorRhPermissions } from '@/features/permissions/queries';
 
 export default async function AuditoriaPage({
   searchParams,
@@ -19,7 +21,11 @@ export default async function AuditoriaPage({
     .eq('id', user.id)
     .single();
 
-  if (!profile?.company_id || profile.role !== 'admin_rh') redirect('/dashboard');
+  if (!profile?.company_id) redirect('/dashboard');
+  const actorRhPermissions = await loadActorRhPermissions(user.id, profile.role);
+  if (!hasAdminPower({ role: profile.role, rhPermissions: actorRhPermissions }, 'can_audit')) {
+    redirect('/dashboard');
+  }
 
   const params = await searchParams;
   const pageNumber = Math.max(1, Number.parseInt(params.page ?? '1', 10) || 1);

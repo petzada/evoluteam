@@ -5,6 +5,8 @@ import {
   listCycleIdsInvolvingEmployee,
 } from '@/features/reviews/queries';
 import { CyclesList, type AssignmentForUser } from '@/features/reviews/components/CyclesList';
+import { hasAdminPower } from '@/features/permissions/permissions';
+import { loadActorRhPermissions } from '@/features/permissions/queries';
 
 export default async function AvaliacoesPage() {
   const supabase = await createServerSupabaseClient();
@@ -19,7 +21,12 @@ export default async function AvaliacoesPage() {
   if (!profile?.company_id) redirect('/onboarding/criar-empresa');
 
   const employeeId = await getActorEmployeeId(user.id);
-  const canSeeAll = profile.role === 'admin_rh' || profile.role === 'director';
+  const actorRhPermissions = await loadActorRhPermissions(user.id, profile.role);
+  const actorForGate = { role: profile.role, rhPermissions: actorRhPermissions };
+  const canSeeAll =
+    profile.role === 'admin_rh'
+    || profile.role === 'director'
+    || hasAdminPower(actorForGate, 'can_reviews');
   let scopedIds: string[] | null = null;
   if (!canSeeAll) {
     if (!employeeId) {
@@ -51,7 +58,7 @@ export default async function AvaliacoesPage() {
     <CyclesList
       cycles={cyclesWithProgress}
       pending={pendingPublished}
-      isAdmin={profile.role === 'admin_rh'}
+      isAdmin={profile.role === 'admin_rh' || hasAdminPower(actorForGate, 'can_reviews')}
     />
   );
 }

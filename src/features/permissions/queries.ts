@@ -3,6 +3,27 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { EMPTY_RH_PERMISSIONS, type RhPermissions, type Role } from './types';
 
 /**
+ * Carrega rhPermissions do usuario apenas se role='rh'. Para outros roles
+ * retorna null (suficiente para hasAdminPower que ja sabe ignorar).
+ *
+ * Use nas pages que precisam fazer gates granulares — evita 5 linhas
+ * boilerplate em cada Server Component.
+ */
+export async function loadActorRhPermissions(
+  userId: string,
+  role: string,
+): Promise<RhPermissions | null> {
+  if (role !== 'rh') return null;
+  const admin = createAdminSupabaseClient();
+  const { data } = await admin
+    .from('rh_permissions')
+    .select('can_employees, can_reviews, can_recruitment, can_pdi_feedback, can_invites, can_audit')
+    .eq('profile_id', userId)
+    .maybeSingle();
+  return data ?? null;
+}
+
+/**
  * Carrega role + permissions atuais de um usuario, para preencher o
  * AccessForm em modo edicao (drawer "Gerenciar acesso").
  */

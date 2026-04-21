@@ -10,6 +10,8 @@ import {
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useSidebar } from '../SidebarContext';
+import { hasAdminPower } from '@/features/permissions/permissions';
+import type { RhPermissions } from '@/features/permissions/types';
 
 interface NavItem {
   label: string;
@@ -17,6 +19,7 @@ interface NavItem {
   icon: React.ElementType;
   disabled?: boolean;
   adminOnly?: boolean;
+  permission?: 'can_employees' | 'can_audit' | 'can_recruitment';
 }
 
 const MAIN_NAV: NavItem[] = [
@@ -30,27 +33,43 @@ const RECRUITMENT_NAV: NavItem[] = [
   { label: 'Relatórios', href: '/recrutamento/relatorios', icon: BarChart3 },
   { label: 'Candidatos', href: '/recrutamento/candidatos', icon: UserPlus },
   { label: 'Vagas', href: '/recrutamento/vagas', icon: Briefcase },
-  { label: 'Etapas', href: '/recrutamento/etapas', icon: KanbanSquare, adminOnly: true },
+  { label: 'Etapas', href: '/recrutamento/etapas', icon: KanbanSquare, permission: 'can_recruitment' },
 ];
 
 const CONFIG_NAV: NavItem[] = [
   { label: 'Empresa', href: '/configuracoes/empresa', icon: Building2 },
-  { label: 'Departamentos', href: '/configuracoes/departamentos', icon: Layers },
-  { label: 'Cargos', href: '/configuracoes/cargos', icon: Briefcase },
-  { label: 'Competências', href: '/configuracoes/competencias', icon: Star },
-  { label: 'Auditoria', href: '/configuracoes/auditoria', icon: ScrollText },
+  { label: 'Departamentos', href: '/configuracoes/departamentos', icon: Layers, permission: 'can_employees' },
+  { label: 'Cargos', href: '/configuracoes/cargos', icon: Briefcase, permission: 'can_employees' },
+  { label: 'Competências', href: '/configuracoes/competencias', icon: Star, permission: 'can_employees' },
+  { label: 'Auditoria', href: '/configuracoes/auditoria', icon: ScrollText, permission: 'can_audit' },
 ];
 
 interface SidebarProps {
   role: string;
+  rhPermissions?: RhPermissions | null;
   isOperationalOnly: boolean;
   footer?: React.ReactNode;
 }
 
-export function Sidebar({ role, isOperationalOnly, footer }: SidebarProps) {
+export function Sidebar({ role, rhPermissions, isOperationalOnly, footer }: SidebarProps) {
   const pathname = usePathname();
   const { collapsed } = useSidebar();
   const isAdmin = role === 'admin_rh';
+  const actorForGate = { role, rhPermissions: rhPermissions ?? null };
+
+  // Filtra item por capacidade administrativa: admin_rh ve tudo;
+  // adminOnly fica admin-only; permission usa o toggle correspondente.
+  const isItemVisible = (item: NavItem): boolean => {
+    if (item.adminOnly) return isAdmin;
+    if (item.permission) return hasAdminPower(actorForGate, item.permission);
+    return true;
+  };
+  // Configuracoes aparece pra admin OU pra rh com qualquer toggle
+  // que destrave algum item dentro de Configuracoes (employees ou audit).
+  const showConfigSection =
+    isAdmin
+    || hasAdminPower(actorForGate, 'can_employees')
+    || hasAdminPower(actorForGate, 'can_audit');
 
   const homeItem: NavItem = isOperationalOnly
     ? { label: 'Início', href: '/dashboard', icon: Home }
@@ -146,21 +165,19 @@ export function Sidebar({ role, isOperationalOnly, footer }: SidebarProps) {
               </p>
             )}
             <ul className="space-y-0.5">
-              {RECRUITMENT_NAV
-                .filter((item) => !item.adminOnly || isAdmin)
-                .map(renderItem)}
+              {RECRUITMENT_NAV.filter(isItemVisible).map(renderItem)}
             </ul>
           </div>
         )}
 
-        {isAdmin && (
+        {showConfigSection && (
           <div>
             {!collapsed && (
               <p className="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/30">
                 Configurações
               </p>
             )}
-            <ul className="space-y-0.5">{CONFIG_NAV.map(renderItem)}</ul>
+            <ul className="space-y-0.5">{CONFIG_NAV.filter(isItemVisible).map(renderItem)}</ul>
           </div>
         )}
       </nav>

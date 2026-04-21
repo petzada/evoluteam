@@ -1,6 +1,7 @@
 import { notFound, redirect } from 'next/navigation';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { createAdminSupabaseClient } from '@/lib/supabase/admin';
+import { loadActorRhPermissions } from '@/features/permissions/queries';
 import {
   getEmployee,
   getDirectReports,
@@ -41,19 +42,7 @@ export default async function EmployeeProfilePage({
   if (!profile?.company_id) redirect('/onboarding/criar-empresa');
 
   const actorRole = profile.role as 'admin_rh' | 'director' | 'user' | 'rh';
-
-  // Carrega rhPermissions do ator se for role='rh' (para poder filtrar
-  // gates como canSeeInternalNotes / canManageEmployee de forma granular).
-  let actorRhPermissions: import('@/features/permissions/types').RhPermissions | null = null;
-  if (actorRole === 'rh') {
-    const admin = createAdminSupabaseClient();
-    const { data: perms } = await admin
-      .from('rh_permissions')
-      .select('can_employees, can_reviews, can_recruitment, can_pdi_feedback, can_invites, can_audit')
-      .eq('profile_id', user.id)
-      .maybeSingle();
-    actorRhPermissions = perms ?? null;
-  }
+  const actorRhPermissions = await loadActorRhPermissions(user.id, actorRole);
 
   const showInternalNotes = canSeeInternalNotes({
     role: actorRole,
