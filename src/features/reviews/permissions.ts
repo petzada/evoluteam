@@ -1,14 +1,23 @@
-export type Role = 'admin_rh' | 'director' | 'user';
+import { hasAdminPower } from '@/features/permissions/permissions';
+import type { RhPermissions } from '@/features/permissions/types';
 
-export type Actor = { role: Role | string; userId: string; employeeId: string | null };
+export type Role = 'admin_rh' | 'director' | 'user' | 'rh';
+
+export type Actor = {
+  role: Role | string;
+  userId: string;
+  employeeId: string | null;
+  rhPermissions?: RhPermissions | null;
+};
+
 export type CycleStatus = 'draft' | 'published' | 'closed' | 'archived';
 
 export function canCreateCycle(actor: Actor): boolean {
-  return actor.role === 'admin_rh';
+  return hasAdminPower(actor, 'can_reviews');
 }
 
 export function canEditCycle(actor: Actor, cycle: { status: CycleStatus }): boolean {
-  if (actor.role !== 'admin_rh') return false;
+  if (!hasAdminPower(actor, 'can_reviews')) return false;
   if (cycle.status === 'archived') return false;
   return true;
 }
@@ -35,6 +44,7 @@ export function canSeeCycle(
   involvement: { isParticipant: boolean; isReviewer: boolean },
 ): boolean {
   if (actor.role === 'admin_rh' || actor.role === 'director') return true;
+  if (hasAdminPower(actor, 'can_reviews')) return true;
   return involvement.isParticipant || involvement.isReviewer;
 }
 
@@ -56,10 +66,11 @@ export function canSeeResultOf(
   },
 ): boolean {
   if (actor.role === 'admin_rh' || actor.role === 'director') return true;
+  if (hasAdminPower(actor, 'can_reviews')) return true;
   if (actor.employeeId === params.targetEmployeeId) return params.isReleased;
   return params.descendantsOfActor.includes(params.targetEmployeeId);
 }
 
 export function canReleaseResult(actor: Actor): boolean {
-  return actor.role === 'admin_rh';
+  return hasAdminPower(actor, 'can_reviews');
 }

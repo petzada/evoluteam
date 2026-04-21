@@ -1,9 +1,13 @@
-export type Role = 'admin_rh' | 'director' | 'user';
+import { hasAdminPower } from '@/features/permissions/permissions';
+import type { RhPermissions } from '@/features/permissions/types';
+
+export type Role = 'admin_rh' | 'director' | 'user' | 'rh';
 
 export type Actor = {
   role: Role | string;
   userId: string;
   employeeId: string | null;
+  rhPermissions?: RhPermissions | null;
 };
 
 export type Plan = {
@@ -21,7 +25,7 @@ export type Employee = {
 };
 
 export function canCreatePdi(actor: Actor, targetEmployee: Employee): boolean {
-  if (actor.role === 'admin_rh') return true;
+  if (hasAdminPower(actor, 'can_pdi_feedback')) return true;
   if (!actor.employeeId) return false;
   if (targetEmployee.id === actor.employeeId) return true;
   return targetEmployee.manager_id === actor.employeeId;
@@ -29,13 +33,14 @@ export function canCreatePdi(actor: Actor, targetEmployee: Employee): boolean {
 
 export function canViewPdi(actor: Actor, plan: Plan, ancestorsOfEmployee: string[]): boolean {
   if (actor.role === 'admin_rh' || actor.role === 'director') return true;
+  if (hasAdminPower(actor, 'can_pdi_feedback')) return true;
   if (actor.employeeId && actor.employeeId === plan.employee_id) return true;
   if (actor.employeeId && ancestorsOfEmployee.includes(actor.employeeId)) return true;
   return false;
 }
 
 export function canEditPdiHeader(actor: Actor, plan: Plan): boolean {
-  if (actor.role === 'admin_rh') return true;
+  if (hasAdminPower(actor, 'can_pdi_feedback')) return true;
   return plan.created_by === actor.userId;
 }
 
@@ -44,7 +49,7 @@ export function canAddAction(actor: Actor, plan: Plan): boolean {
 }
 
 export function canUpdateActionStatus(actor: Actor, action: PlanAction): boolean {
-  if (actor.role === 'admin_rh') return true;
+  if (hasAdminPower(actor, 'can_pdi_feedback')) return true;
   if (actor.employeeId && action.responsible_employee_id === actor.employeeId) return true;
   return false;
 }
@@ -54,7 +59,7 @@ export function canCommentOnPdi(actor: Actor, plan: Plan, ancestorsOfEmployee: s
 }
 
 export function canConcludePdi(actor: Actor, plan: Plan): boolean {
-  if (actor.role === 'admin_rh') return true;
+  if (hasAdminPower(actor, 'can_pdi_feedback')) return true;
   return plan.created_by === actor.userId;
 }
 
@@ -63,5 +68,5 @@ export function canCancelPdi(actor: Actor, plan: Plan): boolean {
 }
 
 export function canDeletePdi(actor: Actor): boolean {
-  return actor.role === 'admin_rh';
+  return hasAdminPower(actor, 'can_pdi_feedback');
 }
