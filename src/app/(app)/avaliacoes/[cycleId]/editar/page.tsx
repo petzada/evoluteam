@@ -13,7 +13,7 @@ import { PublishedCycleEditForm } from '@/features/reviews/components/PublishedC
 import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/ui/button';
 import { BreadcrumbLabel } from '@/features/shell/components/BreadcrumbLabel';
-import { loadActorRhPermissions } from '@/features/permissions/queries';
+import { loadActorGate } from '@/features/permissions/queries';
 import { canCreateCycle } from '@/features/reviews/permissions';
 
 export default async function EditCyclePage({
@@ -33,12 +33,12 @@ export default async function EditCyclePage({
     .single();
   if (!profile?.company_id) redirect('/onboarding/criar-empresa');
 
-  const actorRhPermissions = await loadActorRhPermissions(user.id, profile.role);
+  const gate = await loadActorGate(user.id, profile.role);
   const actor = {
     role: profile.role,
     userId: user.id,
     employeeId: null,
-    rhPermissions: actorRhPermissions,
+    ...gate,
   };
   if (!canCreateCycle(actor)) redirect(`/avaliacoes/${cycleId}`);
 

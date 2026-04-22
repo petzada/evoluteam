@@ -6,8 +6,8 @@ import {
 } from '@/features/employees/queries';
 import { listEmployeesWithoutRecentFeedback } from '@/features/dashboard/queries';
 import { EmployeesList } from '@/features/employees/components/EmployeesList';
-import { hasAdminPower } from '@/features/permissions/permissions';
-import { loadActorRhPermissions } from '@/features/permissions/queries';
+import { canDo } from '@/features/permissions/permissions';
+import { loadActorGate } from '@/features/permissions/queries';
 
 type SearchParams = Promise<{
   status?: string;
@@ -36,13 +36,11 @@ export default async function ColaboradoresPage({
   const params = await searchParams;
   const filter = params.filter === 'sem_feedback' ? 'sem_feedback' : null;
 
-  const actorRhPermissions = await loadActorRhPermissions(user.id, profile.role);
-  const actorForGate = { role: profile.role, rhPermissions: actorRhPermissions };
+  const gate = await loadActorGate(user.id, profile.role);
+  const actorForGate = { role: profile.role, ...gate };
 
-  const canSeeAll =
-    profile.role === 'admin_rh'
-    || profile.role === 'director'
-    || hasAdminPower(actorForGate, 'can_employees');
+  // canDo('colaboradores', 'view') cobre admin_rh, director e user/rh com toggle.
+  const canSeeAll = canDo(actorForGate, 'colaboradores', 'view');
   let scopedIds: string[] | null = null;
 
   if (!canSeeAll) {
@@ -72,7 +70,7 @@ export default async function ColaboradoresPage({
       positions={positions}
       departments={departments}
       currentUserId={user.id}
-      isAdmin={profile.role === 'admin_rh' || hasAdminPower(actorForGate, 'can_employees')}
+      isAdmin={canDo(actorForGate, 'colaboradores', 'edit')}
       profileRoles={profileRoles}
       initialStatusFilter={params.status ?? null}
       specialFilter={filter}

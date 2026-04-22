@@ -6,7 +6,7 @@ import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { logActivity } from '@/lib/activity';
 import { getActor } from '@/features/permissions/actor';
-import { hasAdminPower } from '@/features/permissions/permissions';
+import { canDo } from '@/features/permissions/permissions';
 import { SEED_COMPETENCIES } from './schema';
 
 interface CreateCompanyInput {
@@ -110,7 +110,7 @@ export async function updateCompany(data: {
 }) {
   const actor = await getActor();
   if (!actor) return { error: 'Nao autenticado.' };
-  if (!hasAdminPower(actor, 'can_employees')) return { error: 'Sem permissao.' };
+  if (!canDo(actor, 'empresa', 'edit')) return { error: 'Sem permissao.' };
 
   const supabase = await createServerSupabaseClient();
   const { error } = await supabase

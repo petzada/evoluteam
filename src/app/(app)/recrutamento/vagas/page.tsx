@@ -1,7 +1,7 @@
 ﻿import { redirect } from 'next/navigation';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { getDepartments, getPositions } from '@/features/employees/queries';
-import { loadActorRhPermissions } from '@/features/permissions/queries';
+import { loadActorGate } from '@/features/permissions/queries';
 import { listJobOpenings, listHiringManagerOptions } from '@/features/recruitment/queries/jobOpenings';
 import { canManageJobOpenings } from '@/features/recruitment/permissions';
 import { JobOpeningsTable } from '@/features/recruitment/components/JobOpeningsTable';
@@ -25,11 +25,11 @@ export default async function VagasPage() {
     .eq('company_id', profile.company_id)
     .maybeSingle();
 
-  const actorRhPermissions = await loadActorRhPermissions(user.id, profile.role);
+  const gate = await loadActorGate(user.id, profile.role);
   const actor = {
     role: profile.role,
     employeeId: employeeRow?.id ?? null,
-    rhPermissions: actorRhPermissions,
+    ...gate,
   };
 
   const [jobs, departments, positions, managers] = await Promise.all([

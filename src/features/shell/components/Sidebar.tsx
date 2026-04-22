@@ -10,8 +10,8 @@ import {
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useSidebar } from '../SidebarContext';
-import { hasAdminPower } from '@/features/permissions/permissions';
-import type { RhPermissions } from '@/features/permissions/types';
+import { canDo } from '@/features/permissions/permissions';
+import type { RhPermissions, ScreenKey, ScreenPermissions } from '@/features/permissions/types';
 
 interface NavItem {
   label: string;
@@ -19,7 +19,9 @@ interface NavItem {
   icon: React.ElementType;
   disabled?: boolean;
   adminOnly?: boolean;
-  permission?: 'can_employees' | 'can_audit' | 'can_recruitment';
+  // FT-9: cada item da sidebar mapeia para uma tela. Se omitido, visivel
+  // por baseline (dashboard + MAIN_NAV sao vistos por todos autenticados).
+  screen?: ScreenKey;
 }
 
 const MAIN_NAV: NavItem[] = [
@@ -30,47 +32,54 @@ const MAIN_NAV: NavItem[] = [
 ];
 
 const RECRUITMENT_NAV: NavItem[] = [
-  { label: 'Relatórios', href: '/recrutamento/relatorios', icon: BarChart3 },
-  { label: 'Candidatos', href: '/recrutamento/candidatos', icon: UserPlus },
-  { label: 'Vagas', href: '/recrutamento/vagas', icon: Briefcase },
-  { label: 'Etapas', href: '/recrutamento/etapas', icon: KanbanSquare, permission: 'can_recruitment' },
+  { label: 'Relatórios', href: '/recrutamento/relatorios', icon: BarChart3, screen: 'recrutamento_relatorios' },
+  { label: 'Candidatos', href: '/recrutamento/candidatos', icon: UserPlus, screen: 'recrutamento_candidatos' },
+  { label: 'Vagas', href: '/recrutamento/vagas', icon: Briefcase, screen: 'recrutamento_vagas' },
+  { label: 'Etapas', href: '/recrutamento/etapas', icon: KanbanSquare, screen: 'recrutamento_etapas' },
 ];
 
 const CONFIG_NAV: NavItem[] = [
-  { label: 'Empresa', href: '/configuracoes/empresa', icon: Building2, permission: 'can_employees' },
-  { label: 'Departamentos', href: '/configuracoes/departamentos', icon: Layers, permission: 'can_employees' },
-  { label: 'Cargos', href: '/configuracoes/cargos', icon: Briefcase, permission: 'can_employees' },
-  { label: 'Competências', href: '/configuracoes/competencias', icon: Star, permission: 'can_employees' },
-  { label: 'Auditoria', href: '/configuracoes/auditoria', icon: ScrollText, permission: 'can_audit' },
+  { label: 'Empresa',       href: '/configuracoes/empresa',       icon: Building2,  screen: 'empresa' },
+  { label: 'Departamentos', href: '/configuracoes/departamentos', icon: Layers,     screen: 'departamentos' },
+  { label: 'Cargos',        href: '/configuracoes/cargos',        icon: Briefcase,  screen: 'cargos' },
+  { label: 'Competências',  href: '/configuracoes/competencias',  icon: Star,       screen: 'competencias' },
+  { label: 'Auditoria',     href: '/configuracoes/auditoria',     icon: ScrollText, screen: 'auditoria' },
 ];
 
 interface SidebarProps {
   role: string;
   rhPermissions?: RhPermissions | null;
+  screenPermissions?: ScreenPermissions | null;
   isOperationalOnly: boolean;
   footer?: React.ReactNode;
 }
 
-export function Sidebar({ role, rhPermissions, isOperationalOnly, footer }: SidebarProps) {
+export function Sidebar({
+  role, rhPermissions, screenPermissions, isOperationalOnly, footer,
+}: SidebarProps) {
   const pathname = usePathname();
   const { collapsed } = useSidebar();
   const isAdmin = role === 'admin_rh';
-  const actorForGate = { role, rhPermissions: rhPermissions ?? null };
-  const canReadCompanySettings =
-    hasAdminPower(actorForGate, 'can_employees')
-    || hasAdminPower(actorForGate, 'can_audit');
+  const actorForGate = {
+    role,
+    rhPermissions: rhPermissions ?? null,
+    screenPermissions: screenPermissions ?? null,
+  };
 
-  // Filtra item por capacidade administrativa: admin_rh ve tudo;
-  // adminOnly fica admin-only; permission usa o toggle correspondente.
+  // FT-9: item da sidebar aparece se canDo(tela, 'view') OR e baseline.
+  // Baseline (sem screen definido): MAIN_NAV (colaboradores, avaliacoes, feedbacks,
+  // pdi) sempre aparece — conteudo baseline/proprio e visivel. Recrutamento
+  // tambem aparece no baseline se a pessoa tem employeeId (hiring_manager
+  // em potencial) — controlado pelo flag isOperationalOnly + gate isItemVisible.
   const isItemVisible = (item: NavItem): boolean => {
     if (item.adminOnly) return isAdmin;
-    if (item.href === '/configuracoes/empresa') return canReadCompanySettings;
-    if (item.permission) return hasAdminPower(actorForGate, item.permission);
-    return true;
+    if (item.screen) return canDo(actorForGate, item.screen, 'view');
+    return true; // baseline
   };
-  // Configuracoes aparece se houver pelo menos 1 item visivel dentro
-  // dela (deriva da regra acima — evita lista paralela de toggles).
+
+  const visibleRecruitmentItems = RECRUITMENT_NAV.filter(isItemVisible);
   const visibleConfigItems = CONFIG_NAV.filter(isItemVisible);
+  const showRecruitmentSection = visibleRecruitmentItems.length > 0;
   const showConfigSection = visibleConfigItems.length > 0;
 
   const homeItem: NavItem = isOperationalOnly
@@ -159,16 +168,14 @@ export function Sidebar({ role, rhPermissions, isOperationalOnly, footer }: Side
           <ul className="space-y-0.5">{MAIN_NAV.map(renderItem)}</ul>
         </div>
 
-        {!isOperationalOnly && (
+        {!isOperationalOnly && showRecruitmentSection && (
           <div>
             {!collapsed && (
               <p className="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/30">
                 Recrutamento
               </p>
             )}
-            <ul className="space-y-0.5">
-              {RECRUITMENT_NAV.filter(isItemVisible).map(renderItem)}
-            </ul>
+            <ul className="space-y-0.5">{visibleRecruitmentItems.map(renderItem)}</ul>
           </div>
         )}
 

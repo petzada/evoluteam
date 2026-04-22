@@ -5,22 +5,32 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 import { logActivity } from '@/lib/activity';
 import { getActor } from '@/features/permissions/actor';
-import { hasAdminPower } from '@/features/permissions/permissions';
+import { canDo } from '@/features/permissions/permissions';
+import type { ScreenKey } from '@/features/permissions/types';
 import type { TaxonomyInput } from './schema';
 
 async function getActorContext() {
   const actor = await getActor();
   if (!actor) return null;
-  const canManageEmployees = hasAdminPower(actor, 'can_employees');
   return {
     actor,
     user: { id: actor.userId },
     profile: { company_id: actor.companyId, role: actor.role as string },
-    canManageEmployees,
   };
 }
 
 export type Kind = 'department' | 'position' | 'competency';
+
+// FT-9: cada kind tem sua tela especifica em vez do gate generico can_employees.
+function screenFor(kind: Kind): ScreenKey {
+  if (kind === 'department') return 'departamentos';
+  if (kind === 'position') return 'cargos';
+  return 'competencias';
+}
+
+function canManageKind(actor: Parameters<typeof canDo>[0], kind: Kind): boolean {
+  return canDo(actor, screenFor(kind), 'edit');
+}
 
 function tableFor(kind: Kind) {
   if (kind === 'department') return 'departments';
@@ -71,7 +81,7 @@ async function countUsage(kind: Kind, id: string, companyId: string): Promise<nu
 
 export async function createTaxonomy(kind: Kind, input: TaxonomyInput) {
   const ctx = await getActorContext();
-  if (!ctx || !ctx.canManageEmployees) return { error: 'Sem permissão.' };
+  if (!ctx || !canManageKind(ctx.actor, kind)) return { error: 'Sem permissão.' };
 
   const supabase = await createServerSupabaseClient();
   const { data, error } = await supabase
@@ -102,7 +112,7 @@ export async function createTaxonomy(kind: Kind, input: TaxonomyInput) {
 
 export async function updateTaxonomy(kind: Kind, id: string, input: TaxonomyInput) {
   const ctx = await getActorContext();
-  if (!ctx || !ctx.canManageEmployees) return { error: 'Sem permissão.' };
+  if (!ctx || !canManageKind(ctx.actor, kind)) return { error: 'Sem permissão.' };
 
   const supabase = await createServerSupabaseClient();
   const { error } = await supabase
@@ -132,7 +142,7 @@ export async function updateTaxonomy(kind: Kind, id: string, input: TaxonomyInpu
 
 export async function archiveTaxonomy(kind: Kind, id: string, archived: boolean) {
   const ctx = await getActorContext();
-  if (!ctx || !ctx.canManageEmployees) return { error: 'Sem permissão.' };
+  if (!ctx || !canManageKind(ctx.actor, kind)) return { error: 'Sem permissão.' };
 
   const supabase = await createServerSupabaseClient();
   const { error } = await supabase
@@ -157,7 +167,7 @@ export async function archiveTaxonomy(kind: Kind, id: string, archived: boolean)
 
 export async function deleteTaxonomy(kind: Kind, id: string) {
   const ctx = await getActorContext();
-  if (!ctx || !ctx.canManageEmployees) return { error: 'Sem permissão.' };
+  if (!ctx || !canManageKind(ctx.actor, kind)) return { error: 'Sem permissão.' };
 
   const count = await countUsage(kind, id, ctx.profile.company_id);
   if (count > 0) {

@@ -1,7 +1,8 @@
 import { notFound, redirect } from 'next/navigation';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { createAdminSupabaseClient } from '@/lib/supabase/admin';
-import { loadActorRhPermissions } from '@/features/permissions/queries';
+import { loadActorGate } from '@/features/permissions/queries';
+import { canDo } from '@/features/permissions/permissions';
 import {
   getEmployee,
   getDirectReports,
@@ -42,11 +43,11 @@ export default async function EmployeeProfilePage({
   if (!profile?.company_id) redirect('/onboarding/criar-empresa');
 
   const actorRole = profile.role as 'admin_rh' | 'director' | 'user' | 'rh';
-  const actorRhPermissions = await loadActorRhPermissions(user.id, actorRole);
+  const gate = await loadActorGate(user.id, actorRole);
 
   const showInternalNotes = canSeeInternalNotes({
     role: actorRole,
-    rhPermissions: actorRhPermissions,
+    ...gate,
   });
 
   const employee = await getEmployee(id, { includeInternalNotes: showInternalNotes })
@@ -65,7 +66,7 @@ export default async function EmployeeProfilePage({
   const isDescendantOfActor = actorDescendants.includes(id);
 
   const canView = canViewEmployee(
-    { id: '', role: actorRole, userId: user.id, employeeId: actorEmployeeId, rhPermissions: actorRhPermissions },
+    { id: '', role: actorRole, userId: user.id, employeeId: actorEmployeeId, ...gate },
     { id, managerChain: isDescendantOfActor ? [actorEmployeeId ?? ''] : [] },
   );
   if (!canView) {
@@ -107,17 +108,15 @@ export default async function EmployeeProfilePage({
   ]);
 
   const canCreatePdiHere =
-    actorRole === 'admin_rh'
-    || (actorRole === 'rh' && !!actorRhPermissions?.can_pdi_feedback)
+    canDo({ role: actorRole, ...gate }, 'pdi', 'edit')
     || (actorEmployeeId !== null && employee.manager?.id === actorEmployeeId);
 
-  // canSeeResults: admin_rh e director veem tudo; gestor vê descendentes; self só com liberação.
-  // Quando canSeeResults=false e isSelf=true, o componente libera por ciclo (isReleased).
+  // canSeeResults: quem tem avaliacoes.view ve tudo; gestor vê descendentes;
+  // self só com liberação. Quando canSeeResults=false e isSelf=true, o
+  // componente libera por ciclo (isReleased).
   const isSelfHere = employee.user_id === user.id;
   const canSeeResults =
-    actorRole === 'admin_rh'
-    || actorRole === 'director'
-    || (actorRole === 'rh' && !!actorRhPermissions?.can_reviews)
+    canDo({ role: actorRole, ...gate }, 'avaliacoes', 'view')
     || (!isSelfHere && isDescendantOfActor);
 
   // Último login via admin auth
@@ -206,7 +205,7 @@ export default async function EmployeeProfilePage({
       actorEmployeeId={actorEmployeeId}
       targetRhPermissions={targetRhPermissions}
       currentActorRole={actorRole}
-      currentActorCanInvites={actorRole === 'admin_rh' || (actorRole === 'rh' && !!actorRhPermissions?.can_invites)}
+      currentActorCanInvites={canDo({ role: actorRole, ...gate }, 'colaboradores', 'edit')}
       recruitmentSource={recruitmentSource}
     />
     </>

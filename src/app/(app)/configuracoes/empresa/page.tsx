@@ -4,8 +4,8 @@ import { getCurrentCompany } from '@/features/company/queries';
 import { CompanyEditForm } from '@/features/company/components/CompanyEditForm';
 import { PageHeader } from '@/components/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
-import { hasAdminPower } from '@/features/permissions/permissions';
-import { loadActorRhPermissions } from '@/features/permissions/queries';
+import { canDo } from '@/features/permissions/permissions';
+import { loadActorGate } from '@/features/permissions/queries';
 
 export default async function EmpresaPage() {
   const supabase = await createServerSupabaseClient();
@@ -18,10 +18,10 @@ export default async function EmpresaPage() {
     .eq('id', user.id)
     .single();
   if (!profile?.company_id) redirect('/onboarding/criar-empresa');
-  const actorRhPermissions = await loadActorRhPermissions(user.id, profile.role);
-  const actorForGate = { role: profile.role, rhPermissions: actorRhPermissions };
-  const canEditCompany = hasAdminPower(actorForGate, 'can_employees');
-  const canReadCompany = canEditCompany || hasAdminPower(actorForGate, 'can_audit');
+  const gate = await loadActorGate(user.id, profile.role);
+  const actorForGate = { role: profile.role, ...gate };
+  const canEditCompany = canDo(actorForGate, 'empresa', 'edit');
+  const canReadCompany = canDo(actorForGate, 'empresa', 'view');
   if (!canReadCompany) {
     redirect('/dashboard');
   }

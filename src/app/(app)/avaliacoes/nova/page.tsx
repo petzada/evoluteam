@@ -4,7 +4,7 @@ import { getDepartments, getPositions } from '@/features/employees/queries';
 import { getEligibleEmployees } from '@/features/reviews/queries';
 import { ReviewCycleWizard } from '@/features/reviews/components/ReviewCycleWizard';
 import { PageHeader } from '@/components/PageHeader';
-import { loadActorRhPermissions } from '@/features/permissions/queries';
+import { loadActorGate } from '@/features/permissions/queries';
 import { canCreateCycle } from '@/features/reviews/permissions';
 
 export default async function NovaAvaliacaoPage() {
@@ -19,12 +19,12 @@ export default async function NovaAvaliacaoPage() {
     .single();
   if (!profile?.company_id) redirect('/onboarding/criar-empresa');
 
-  const actorRhPermissions = await loadActorRhPermissions(user.id, profile.role);
+  const gate = await loadActorGate(user.id, profile.role);
   const actor = {
     role: profile.role,
     userId: user.id,
     employeeId: null,
-    rhPermissions: actorRhPermissions,
+    ...gate,
   };
   if (!canCreateCycle(actor)) redirect('/avaliacoes');
 

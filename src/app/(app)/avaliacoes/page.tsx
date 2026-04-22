@@ -5,8 +5,8 @@ import {
   listCycleIdsInvolvingEmployee,
 } from '@/features/reviews/queries';
 import { CyclesList, type AssignmentForUser } from '@/features/reviews/components/CyclesList';
-import { hasAdminPower } from '@/features/permissions/permissions';
-import { loadActorRhPermissions } from '@/features/permissions/queries';
+import { canDo } from '@/features/permissions/permissions';
+import { loadActorGate } from '@/features/permissions/queries';
 
 export default async function AvaliacoesPage() {
   const supabase = await createServerSupabaseClient();
@@ -21,12 +21,9 @@ export default async function AvaliacoesPage() {
   if (!profile?.company_id) redirect('/onboarding/criar-empresa');
 
   const employeeId = await getActorEmployeeId(user.id);
-  const actorRhPermissions = await loadActorRhPermissions(user.id, profile.role);
-  const actorForGate = { role: profile.role, rhPermissions: actorRhPermissions };
-  const canSeeAll =
-    profile.role === 'admin_rh'
-    || profile.role === 'director'
-    || hasAdminPower(actorForGate, 'can_reviews');
+  const gate = await loadActorGate(user.id, profile.role);
+  const actorForGate = { role: profile.role, ...gate };
+  const canSeeAll = canDo(actorForGate, 'avaliacoes', 'view');
   let scopedIds: string[] | null = null;
   if (!canSeeAll) {
     if (!employeeId) {
@@ -58,7 +55,7 @@ export default async function AvaliacoesPage() {
     <CyclesList
       cycles={cyclesWithProgress}
       pending={pendingPublished}
-      isAdmin={profile.role === 'admin_rh' || hasAdminPower(actorForGate, 'can_reviews')}
+      isAdmin={canDo(actorForGate, 'avaliacoes', 'edit')}
     />
   );
 }

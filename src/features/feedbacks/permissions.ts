@@ -1,5 +1,5 @@
-import { hasAdminPower } from '@/features/permissions/permissions';
-import type { RhPermissions } from '@/features/permissions/types';
+import { canDo } from '@/features/permissions/permissions';
+import type { RhPermissions, ScreenPermissions } from '@/features/permissions/types';
 import type { FeedbackType, FeedbackVisibility } from './schema';
 
 export type Role = 'admin_rh' | 'director' | 'user' | 'rh';
@@ -10,6 +10,7 @@ export type Actor = {
   employeeId: string | null;
   employeeStatus?: 'active' | 'inactive' | 'terminated' | null;
   rhPermissions?: RhPermissions | null;
+  screenPermissions?: ScreenPermissions | null;
 };
 
 export type FeedbackView = {
@@ -34,9 +35,9 @@ export function canViewFeedback(
   feedback: FeedbackView,
   ancestorsOfRecipient: string[],
 ): boolean {
-  // Feedback deletado: so admin_rh ou rh com can_pdi_feedback (moderacao).
+  // Feedback deletado: so quem pode moderar (feedbacks.edit).
   if (feedback.deletedAt) {
-    return hasAdminPower(actor, 'can_pdi_feedback');
+    return canDo(actor, 'feedbacks', 'edit');
   }
   if (actor.employeeId && actor.employeeId === feedback.senderId) return true;
   if (actor.employeeId && actor.employeeId === feedback.recipientId) return true;
@@ -50,8 +51,8 @@ export function canViewFeedback(
     return true;
   }
 
-  // visivel_para_rh: admin_rh ja via; agora rh com can_pdi_feedback tambem.
-  if (feedback.visibility === 'visivel_para_rh' && hasAdminPower(actor, 'can_pdi_feedback')) {
+  // visivel_para_rh: quem tem feedbacks.view (admin, director, user/rh com toggle).
+  if (feedback.visibility === 'visivel_para_rh' && canDo(actor, 'feedbacks', 'view')) {
     return true;
   }
 
@@ -59,7 +60,7 @@ export function canViewFeedback(
 }
 
 export function canDeleteFeedback(actor: Actor): boolean {
-  return hasAdminPower(actor, 'can_pdi_feedback');
+  return canDo(actor, 'feedbacks', 'edit');
 }
 
 export function enforceVisibilityForType(

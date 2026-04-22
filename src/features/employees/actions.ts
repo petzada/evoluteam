@@ -8,7 +8,7 @@ import { notify } from '@/lib/notifications';
 import { sendEmail } from '@/lib/email';
 import { employeeInviteEmail } from '@/lib/emails/employee-invite';
 import { getActor } from '@/features/permissions/actor';
-import { canInviteAs, hasAdminPower } from '@/features/permissions/permissions';
+import { canDo, canInviteAs } from '@/features/permissions/permissions';
 import type { Role } from '@/features/permissions/types';
 import type { EmployeeInput, TransferOption } from './schema';
 import { TransferOptionSchema } from './schema';
@@ -19,8 +19,12 @@ async function getActorContext() {
   const actor = await getActor();
   if (!actor) return null;
 
-  const canManageEmployees = hasAdminPower(actor, 'can_employees');
-  const canInviteUsers = hasAdminPower(actor, 'can_invites');
+  // FT-9: colaboradores.edit cobre CRUD + convite (unificacao de can_invites).
+  // canInviteUsers mantem nome por compat com chamadas abaixo, mas a
+  // semantica agora e igual a canManageEmployees — ambos verificam o mesmo
+  // gate. A diferenca entre "gerencia" e "convida" vira semantica no UI.
+  const canManageEmployees = canDo(actor, 'colaboradores', 'edit');
+  const canInviteUsers = canDo(actor, 'colaboradores', 'edit');
 
   return {
     actor,

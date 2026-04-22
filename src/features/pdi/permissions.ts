@@ -1,5 +1,5 @@
-import { hasAdminPower } from '@/features/permissions/permissions';
-import type { RhPermissions } from '@/features/permissions/types';
+import { canDo } from '@/features/permissions/permissions';
+import type { RhPermissions, ScreenPermissions } from '@/features/permissions/types';
 
 export type Role = 'admin_rh' | 'director' | 'user' | 'rh';
 
@@ -8,6 +8,7 @@ export type Actor = {
   userId: string;
   employeeId: string | null;
   rhPermissions?: RhPermissions | null;
+  screenPermissions?: ScreenPermissions | null;
 };
 
 export type Plan = {
@@ -25,22 +26,22 @@ export type Employee = {
 };
 
 export function canCreatePdi(actor: Actor, targetEmployee: Employee): boolean {
-  if (hasAdminPower(actor, 'can_pdi_feedback')) return true;
+  if (canDo(actor, 'pdi', 'edit')) return true;
   if (!actor.employeeId) return false;
   if (targetEmployee.id === actor.employeeId) return true;
   return targetEmployee.manager_id === actor.employeeId;
 }
 
 export function canViewPdi(actor: Actor, plan: Plan, ancestorsOfEmployee: string[]): boolean {
-  if (actor.role === 'admin_rh' || actor.role === 'director') return true;
-  if (hasAdminPower(actor, 'can_pdi_feedback')) return true;
+  // canDo('pdi', 'view') cobre admin_rh, director e user/rh com toggle.
+  if (canDo(actor, 'pdi', 'view')) return true;
   if (actor.employeeId && actor.employeeId === plan.employee_id) return true;
   if (actor.employeeId && ancestorsOfEmployee.includes(actor.employeeId)) return true;
   return false;
 }
 
 export function canEditPdiHeader(actor: Actor, plan: Plan): boolean {
-  if (hasAdminPower(actor, 'can_pdi_feedback')) return true;
+  if (canDo(actor, 'pdi', 'edit')) return true;
   return plan.created_by === actor.userId;
 }
 
@@ -49,7 +50,7 @@ export function canAddAction(actor: Actor, plan: Plan): boolean {
 }
 
 export function canUpdateActionStatus(actor: Actor, action: PlanAction): boolean {
-  if (hasAdminPower(actor, 'can_pdi_feedback')) return true;
+  if (canDo(actor, 'pdi', 'edit')) return true;
   if (actor.employeeId && action.responsible_employee_id === actor.employeeId) return true;
   return false;
 }
@@ -59,7 +60,7 @@ export function canCommentOnPdi(actor: Actor, plan: Plan, ancestorsOfEmployee: s
 }
 
 export function canConcludePdi(actor: Actor, plan: Plan): boolean {
-  if (hasAdminPower(actor, 'can_pdi_feedback')) return true;
+  if (canDo(actor, 'pdi', 'edit')) return true;
   return plan.created_by === actor.userId;
 }
 
@@ -68,5 +69,5 @@ export function canCancelPdi(actor: Actor, plan: Plan): boolean {
 }
 
 export function canDeletePdi(actor: Actor): boolean {
-  return hasAdminPower(actor, 'can_pdi_feedback');
+  return canDo(actor, 'pdi', 'edit');
 }

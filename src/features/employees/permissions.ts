@@ -1,17 +1,18 @@
-import { hasAdminPower } from '@/features/permissions/permissions';
-import type { RhPermissions } from '@/features/permissions/types';
+import { canDo } from '@/features/permissions/permissions';
+import type { RhPermissions, ScreenPermissions } from '@/features/permissions/types';
 
 type Actor = {
   id: string;
   role: string;
   userId: string;
   rhPermissions?: RhPermissions | null;
+  screenPermissions?: ScreenPermissions | null;
 };
 
 type Target = { userId?: string | null };
 
 export function canManageEmployee(actor: Actor): boolean {
-  return hasAdminPower(actor, 'can_employees');
+  return canDo(actor, 'colaboradores', 'edit');
 }
 
 export function canDeactivateSelf(actor: Actor, target: Target): boolean {
@@ -23,23 +24,23 @@ export function canChangeSelfRole(actor: Actor, target: Target): boolean {
 }
 
 export function canSeeInternalNotes(
-  actor: { role: string; rhPermissions?: RhPermissions | null },
+  actor: { role: string; rhPermissions?: RhPermissions | null; screenPermissions?: ScreenPermissions | null },
 ): boolean {
-  return hasAdminPower(actor, 'can_employees');
+  return canDo(actor, 'colaboradores', 'edit');
 }
 
 export function canEditEmployee(actor: Actor): boolean {
-  return hasAdminPower(actor, 'can_employees');
+  return canDo(actor, 'colaboradores', 'edit');
 }
 
 export function canTerminateEmployee(actor: Actor, target: Target): boolean {
-  if (!hasAdminPower(actor, 'can_employees')) return false;
+  if (!canDo(actor, 'colaboradores', 'edit')) return false;
   if (actor.userId && actor.userId === target.userId) return false;
   return true;
 }
 
 export function canDeactivateEmployee(actor: Actor, target: Target): boolean {
-  if (!hasAdminPower(actor, 'can_employees')) return false;
+  if (!canDo(actor, 'colaboradores', 'edit')) return false;
   if (actor.userId && actor.userId === target.userId) return false;
   return true;
 }
@@ -51,9 +52,9 @@ export function canViewEmployee(
   actor: ViewActor,
   target: ViewTarget,
 ): boolean {
-  if (actor.role === 'admin_rh') return true;
-  if (actor.role === 'director') return true;
-  if (actor.role === 'rh' && actor.rhPermissions?.can_employees) return true;
+  // canDo('colaboradores', 'view') ja cobre admin_rh (bypass), director
+  // (view em tudo) e user/rh com toggle. Baseline: proprio + arvore.
+  if (canDo(actor, 'colaboradores', 'view')) return true;
   if (actor.employeeId && actor.employeeId === target.id) return true;
   if (target.managerChain?.includes(actor.employeeId ?? '')) return true;
   return false;

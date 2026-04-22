@@ -1,7 +1,7 @@
 import { notFound, redirect } from 'next/navigation';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { createAdminSupabaseClient } from '@/lib/supabase/admin';
-import { loadActorRhPermissions } from '@/features/permissions/queries';
+import { loadActorGate } from '@/features/permissions/queries';
 import { getCandidateById } from '@/features/recruitment/queries/candidates';
 import {
   listApplicationsByCandidate,
@@ -39,11 +39,11 @@ export default async function CandidatoPage({ params }: { params: Params }) {
     .eq('company_id', profile.company_id)
     .maybeSingle();
 
-  const actorRhPermissions = await loadActorRhPermissions(user.id, profile.role);
+  const gate = await loadActorGate(user.id, profile.role);
   const actor = {
     role: profile.role,
     employeeId: employeeRow?.id ?? null,
-    rhPermissions: actorRhPermissions,
+    ...gate,
   };
 
   const candidate = await getCandidateById(id);

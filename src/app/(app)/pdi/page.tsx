@@ -3,8 +3,8 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { getEmployeeByUserId, getEmployeeDescendants } from '@/features/employees/queries';
 import { listMyPdis, listTeamPdis, listAllPdis } from '@/features/pdi/queries';
 import { PdisPage } from '@/features/pdi/components/PdisPage';
-import { hasAdminPower } from '@/features/permissions/permissions';
-import { loadActorRhPermissions } from '@/features/permissions/queries';
+import { canDo } from '@/features/permissions/permissions';
+import { loadActorGate } from '@/features/permissions/queries';
 
 export default async function PdiRoute() {
   const supabase = await createServerSupabaseClient();
@@ -19,9 +19,10 @@ export default async function PdiRoute() {
   if (!profile?.company_id) redirect('/onboarding/criar-empresa');
 
   const role = profile.role as 'admin_rh' | 'director' | 'user' | 'rh';
-  const actorRhPermissions = await loadActorRhPermissions(user.id, role);
-  const hasPdiPower = hasAdminPower({ role, rhPermissions: actorRhPermissions }, 'can_pdi_feedback');
-  const isAdmin = role === 'admin_rh' || hasPdiPower;
+  const gate = await loadActorGate(user.id, role);
+  // Edit em PDI cobre admin_rh + user/rh com toggle. Diretor nao entra
+  // (apenas view+comentarios; nao modera/deleta).
+  const isAdmin = canDo({ role, ...gate }, 'pdi', 'edit');
   const companyId = profile.company_id;
 
   const actorEmployee = await getEmployeeByUserId(user.id);

@@ -7,7 +7,7 @@ import { logActivity } from '@/lib/activity';
 import { notify } from '@/lib/notifications';
 import { Resend } from 'resend';
 import { getActor } from '@/features/permissions/actor';
-import { hasAdminPower } from '@/features/permissions/permissions';
+import { canDo } from '@/features/permissions/permissions';
 import type { Actor } from '@/features/permissions/types';
 import {
   CycleBasicsSchema, CycleTypesSchema, ParticipantsSelectionSchema, FormInputSchema,
@@ -24,7 +24,7 @@ async function getAdminContext(): Promise<Ctx | null> {
 }
 
 function requireAdmin(ctx: Ctx | null): ctx is Ctx {
-  return hasAdminPower(ctx, 'can_reviews');
+  return canDo(ctx, 'avaliacoes', 'edit');
 }
 
 async function ensureNotExpired(cycleId: string, companyId: string) {

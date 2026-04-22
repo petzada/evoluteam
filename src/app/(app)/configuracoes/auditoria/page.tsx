@@ -3,8 +3,8 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { listActivityLogs, ACTIVITY_PAGE_SIZE } from '@/features/activity/queries';
 import { ActivityLogList } from '@/features/activity/components/ActivityLogList';
 import { PageHeader } from '@/components/PageHeader';
-import { hasAdminPower } from '@/features/permissions/permissions';
-import { loadActorRhPermissions } from '@/features/permissions/queries';
+import { canDo } from '@/features/permissions/permissions';
+import { loadActorGate } from '@/features/permissions/queries';
 
 export default async function AuditoriaPage({
   searchParams,
@@ -22,8 +22,8 @@ export default async function AuditoriaPage({
     .single();
 
   if (!profile?.company_id) redirect('/dashboard');
-  const actorRhPermissions = await loadActorRhPermissions(user.id, profile.role);
-  if (!hasAdminPower({ role: profile.role, rhPermissions: actorRhPermissions }, 'can_audit')) {
+  const gate = await loadActorGate(user.id, profile.role);
+  if (!canDo({ role: profile.role, ...gate }, 'auditoria', 'view')) {
     redirect('/dashboard');
   }
 

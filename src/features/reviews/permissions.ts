@@ -1,5 +1,5 @@
-import { hasAdminPower } from '@/features/permissions/permissions';
-import type { RhPermissions } from '@/features/permissions/types';
+import { canDo } from '@/features/permissions/permissions';
+import type { RhPermissions, ScreenPermissions } from '@/features/permissions/types';
 
 export type Role = 'admin_rh' | 'director' | 'user' | 'rh';
 
@@ -8,16 +8,17 @@ export type Actor = {
   userId: string;
   employeeId: string | null;
   rhPermissions?: RhPermissions | null;
+  screenPermissions?: ScreenPermissions | null;
 };
 
 export type CycleStatus = 'draft' | 'published' | 'closed' | 'archived';
 
 export function canCreateCycle(actor: Actor): boolean {
-  return hasAdminPower(actor, 'can_reviews');
+  return canDo(actor, 'avaliacoes', 'edit');
 }
 
 export function canEditCycle(actor: Actor, cycle: { status: CycleStatus }): boolean {
-  if (!hasAdminPower(actor, 'can_reviews')) return false;
+  if (!canDo(actor, 'avaliacoes', 'edit')) return false;
   if (cycle.status === 'archived') return false;
   return true;
 }
@@ -43,8 +44,8 @@ export function canSeeCycle(
   actor: Actor,
   involvement: { isParticipant: boolean; isReviewer: boolean },
 ): boolean {
-  if (actor.role === 'admin_rh' || actor.role === 'director') return true;
-  if (hasAdminPower(actor, 'can_reviews')) return true;
+  // canDo('avaliacoes', 'view') cobre admin_rh, director e user/rh com toggle.
+  if (canDo(actor, 'avaliacoes', 'view')) return true;
   return involvement.isParticipant || involvement.isReviewer;
 }
 
@@ -65,12 +66,11 @@ export function canSeeResultOf(
     descendantsOfActor: string[];
   },
 ): boolean {
-  if (actor.role === 'admin_rh' || actor.role === 'director') return true;
-  if (hasAdminPower(actor, 'can_reviews')) return true;
+  if (canDo(actor, 'avaliacoes', 'view')) return true;
   if (actor.employeeId === params.targetEmployeeId) return params.isReleased;
   return params.descendantsOfActor.includes(params.targetEmployeeId);
 }
 
 export function canReleaseResult(actor: Actor): boolean {
-  return hasAdminPower(actor, 'can_reviews');
+  return canDo(actor, 'avaliacoes', 'edit');
 }

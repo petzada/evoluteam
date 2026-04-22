@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { hasAdminPower } from '@/features/permissions/permissions';
-import { loadActorRhPermissions } from '@/features/permissions/queries';
+import { canDo } from '@/features/permissions/permissions';
+import { loadActorGate } from '@/features/permissions/queries';
 
 export default async function ConfiguracoesPage() {
   const supabase = await createServerSupabaseClient();
@@ -15,13 +15,10 @@ export default async function ConfiguracoesPage() {
     .single();
 
   if (!profile?.company_id) redirect('/onboarding/criar-empresa');
-  const actorRhPermissions = await loadActorRhPermissions(user.id, profile.role);
-  const actorForGate = { role: profile.role, rhPermissions: actorRhPermissions };
+  const gate = await loadActorGate(user.id, profile.role);
+  const actorForGate = { role: profile.role, ...gate };
 
-  if (
-    hasAdminPower(actorForGate, 'can_employees')
-    || hasAdminPower(actorForGate, 'can_audit')
-  ) {
+  if (canDo(actorForGate, 'empresa', 'view')) {
     redirect('/configuracoes/empresa');
   }
 

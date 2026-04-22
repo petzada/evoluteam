@@ -2,8 +2,8 @@ import { redirect } from 'next/navigation';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { listDepartmentsWithCounts } from '@/features/taxonomies/queries';
 import { TaxonomyList } from '@/features/taxonomies/components/TaxonomyList';
-import { hasAdminPower } from '@/features/permissions/permissions';
-import { loadActorRhPermissions } from '@/features/permissions/queries';
+import { canDo } from '@/features/permissions/permissions';
+import { loadActorGate } from '@/features/permissions/queries';
 
 export default async function DepartamentosPage() {
   const supabase = await createServerSupabaseClient();
@@ -16,8 +16,8 @@ export default async function DepartamentosPage() {
     .eq('id', user.id)
     .single();
   if (!profile?.company_id) redirect('/onboarding/criar-empresa');
-  const actorRhPermissions = await loadActorRhPermissions(user.id, profile.role);
-  if (!hasAdminPower({ role: profile.role, rhPermissions: actorRhPermissions }, 'can_employees')) {
+  const gate = await loadActorGate(user.id, profile.role);
+  if (!canDo({ role: profile.role, ...gate }, 'departamentos', 'view')) {
     redirect('/dashboard');
   }
 

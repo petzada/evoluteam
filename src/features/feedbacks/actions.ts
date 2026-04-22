@@ -5,7 +5,7 @@ import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 import { logActivity } from '@/lib/activity';
 import { notify } from '@/lib/notifications';
 import { getActor } from '@/features/permissions/actor';
-import { hasAdminPower } from '@/features/permissions/permissions';
+import { canDo } from '@/features/permissions/permissions';
 import { FeedbackInputSchema, type FeedbackInput } from './schema';
 import { enforceVisibilityForType } from './permissions';
 
@@ -114,7 +114,7 @@ export async function markFeedbackAsRead(feedbackId: string) {
 export async function deleteFeedback(feedbackId: string) {
   const ctx = await getActor();
   if (!ctx) return { error: 'Não autenticado.' };
-  if (!hasAdminPower(ctx, 'can_pdi_feedback')) return { error: 'Sem permissão.' };
+  if (!canDo(ctx, 'feedbacks', 'edit')) return { error: 'Sem permissão.' };
 
   const admin = createAdminSupabaseClient();
   const now = new Date().toISOString();

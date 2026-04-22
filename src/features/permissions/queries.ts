@@ -1,6 +1,11 @@
 import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { EMPTY_RH_PERMISSIONS, type RhPermissions, type Role } from './types';
+import {
+  EMPTY_RH_PERMISSIONS,
+  type RhPermissions,
+  type Role,
+  type ScreenPermissions,
+} from './types';
 
 /**
  * Carrega rhPermissions do usuario apenas se role='rh'. Para outros roles
@@ -21,6 +26,43 @@ export async function loadActorRhPermissions(
     .eq('profile_id', userId)
     .maybeSingle();
   return data ?? null;
+}
+
+/**
+ * Carrega screenPermissions do usuario (FT-9). So existe registro se
+ * profile.role in ('user', 'rh'). Admin/Diretor retornam null.
+ * Use nas pages Server Component que precisam montar o actor para canDo.
+ */
+export async function loadActorScreenPermissions(
+  userId: string,
+  role: string,
+): Promise<ScreenPermissions | null> {
+  if (role !== 'user' && role !== 'rh') return null;
+  const admin = createAdminSupabaseClient();
+  const { data } = await admin
+    .from('user_screen_permissions')
+    .select('permissions')
+    .eq('profile_id', userId)
+    .maybeSingle();
+  return (data?.permissions as ScreenPermissions | undefined) ?? {};
+}
+
+/**
+ * Helper combinado: carrega rhPermissions + screenPermissions numa chamada.
+ * Util para pages que precisam passar ambos ao actor de gates.
+ */
+export async function loadActorGate(
+  userId: string,
+  role: string,
+): Promise<{
+  rhPermissions: RhPermissions | null;
+  screenPermissions: ScreenPermissions | null;
+}> {
+  const [rhPermissions, screenPermissions] = await Promise.all([
+    loadActorRhPermissions(userId, role),
+    loadActorScreenPermissions(userId, role),
+  ]);
+  return { rhPermissions, screenPermissions };
 }
 
 /**

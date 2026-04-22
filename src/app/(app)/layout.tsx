@@ -7,7 +7,7 @@ import { UserCard } from '@/features/shell/components/UserCard';
 import { SidebarProvider } from '@/features/shell/SidebarContext';
 import { BreadcrumbProvider } from '@/features/shell/BreadcrumbContext';
 import { canAccessDashboard } from '@/features/dashboard/permissions';
-import { loadActorRhPermissions } from '@/features/permissions/queries';
+import { loadActorGate } from '@/features/permissions/queries';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createServerSupabaseClient();
@@ -39,13 +39,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     isManager = (count ?? 0) > 0;
   }
 
-  const actorRhPermissions = await loadActorRhPermissions(user.id, profile.role);
+  const gate = await loadActorGate(user.id, profile.role);
 
   const isOperationalOnly = !canAccessDashboard({
     role: profile.role,
     employeeId: actorEmployee?.id ?? null,
     isManager,
-    rhPermissions: actorRhPermissions,
+    ...gate,
   });
 
   const cookieStore = await cookies();
@@ -57,7 +57,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <div className="flex h-full">
           <Sidebar
             role={profile.role}
-            rhPermissions={actorRhPermissions}
+            rhPermissions={gate.rhPermissions}
+            screenPermissions={gate.screenPermissions}
             isOperationalOnly={isOperationalOnly}
             footer={
               <UserCard
