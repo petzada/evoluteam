@@ -13,7 +13,8 @@
     "lint": "eslint",
     "test": "vitest",
     "test:ui": "vitest --ui",
-    "test:run": "vitest run"
+    "test:run": "vitest run",
+    "email:dev": "email dev --dir src/emails --port 3001"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.0",
@@ -22,6 +23,8 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@hookform/resolvers": "^5.2.2",
     "@radix-ui/react-slot": "^1.2.4",
+    "@react-email/components": "^1.0.12",
+    "@react-email/render": "^2.0.7",
     "@sentry/nextjs": "10",
     "@supabase/ssr": "^0.10.2",
     "@supabase/supabase-js": "^2.104.0",
@@ -55,6 +58,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
     "jsdom": "^29.0.2",
+    "react-email": "^6.0.0",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^4.1.4"
