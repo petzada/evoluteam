@@ -19,6 +19,8 @@ import {
 import { EmployeeSchema, type EmployeeInput } from '../schema';
 import { createEmployee, updateEmployee } from '../actions';
 import { createTaxonomy } from '@/features/taxonomies/actions';
+import { EMPTY_RH_PERMISSIONS } from '@/features/permissions/types';
+import { PermissionsToggles } from '@/features/permissions/components/PermissionsToggles';
 
 interface Position { id: string; name: string }
 interface Department { id: string; name: string }
@@ -62,6 +64,7 @@ const EMPTY_DEFAULTS: EmployeeInput = {
   phone: '',
   sendInvite: true,
   internalNotes: '',
+  rhPermissions: null,
 };
 
 export function EmployeeSheet({
@@ -73,6 +76,10 @@ export function EmployeeSheet({
   const [createDeptOpen, setCreateDeptOpen] = useState(false);
   const [newDeptName, setNewDeptName] = useState('');
   const [creatingDept, setCreatingDept] = useState(false);
+  const [createdLocallyPositions, setCreatedLocallyPositions] = useState<Position[]>([]);
+  const [createPositionOpen, setCreatePositionOpen] = useState(false);
+  const [newPositionName, setNewPositionName] = useState('');
+  const [creatingPosition, setCreatingPosition] = useState(false);
   const isEdit = !!employee;
 
   const localDepartments = useMemo(() => {
@@ -81,14 +88,29 @@ export function EmployeeSheet({
     return [...departments, ...fresh].sort((a, b) => a.name.localeCompare(b.name));
   }, [departments, createdLocally]);
 
-  const positionItems = positions.map((p) => ({ value: p.id, label: p.name }));
+  const localPositions = useMemo(() => {
+    const existing = new Set(positions.map((p) => p.id));
+    const fresh = createdLocallyPositions.filter((c) => !existing.has(c.id));
+    return [...positions, ...fresh].sort((a, b) => a.name.localeCompare(b.name));
+  }, [positions, createdLocallyPositions]);
+
+  const positionItems = [
+    ...localPositions.map((p) => ({ value: p.id, label: p.name })),
+    ...(isAdmin ? [{ value: '__create_position__', label: '+ Criar cargo novo' }] : []),
+  ];
   const departmentItems = [
     { value: '__none__', label: 'Nenhum' },
     ...localDepartments.map((d) => ({ value: d.id, label: d.name })),
     ...(isAdmin ? [{ value: '__create__', label: '+ Criar novo departamento' }] : []),
   ];
+  // RH com can_invites (isAdmin=false) so concede Colaborador; demais roles ficam
+  // visiveis, mas desabilitados com tooltip explicativo.
   const roleItems = (Object.entries(ROLE_LABELS) as [EmployeeInput['role'], string][])
-    .map(([value, label]) => ({ value, label }));
+    .map(([value, label]) => ({
+      value,
+      label,
+      disabled: !isAdmin && value !== 'user',
+    }));
 
   const form = useForm<EmployeeInput>({
     resolver: zodResolver(EmployeeSchema),
@@ -96,6 +118,9 @@ export function EmployeeSheet({
   });
 
   const sendInvite = useWatch({ control: form.control, name: 'sendInvite' });
+  const watchedRole = useWatch({ control: form.control, name: 'role' });
+  const watchedRhPermissions = useWatch({ control: form.control, name: 'rhPermissions' });
+  const showRhToggles = !isEdit && watchedRole === 'rh';
 
   useEffect(() => {
     if (!open) return;
@@ -196,13 +221,24 @@ export function EmployeeSheet({
                 <FormField control={form.control} name="positionId" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Cargo *</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value} items={positionItems}>
+                    <Select
+                      onValueChange={(v) => {
+                        if (v === '__create_position__') {
+                          setNewPositionName('');
+                          setCreatePositionOpen(true);
+                          return;
+                        }
+                        field.onChange(v);
+                      }}
+                      value={field.value}
+                      items={positionItems}
+                    >
                       <FormControl>
                         <SelectTrigger className="w-full"><SelectValue placeholder="Selecione…" /></SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {positions.map((p) => (
-                          <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                        {positionItems.map((p) => (
+                          <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -212,24 +248,71 @@ export function EmployeeSheet({
 
                 <FormField control={form.control} name="role" render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Papel *</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value} disabled={roleDisabled} items={roleItems}>
+                    <FormLabel>Acesso *</FormLabel>
+                    <Select
+                      onValueChange={(v) => {
+                        field.onChange(v);
+                        if (v === 'rh') {
+                          if (!form.getValues('rhPermissions')) {
+                            form.setValue('rhPermissions', EMPTY_RH_PERMISSIONS, { shouldDirty: true });
+                          }
+                        } else {
+                          form.setValue('rhPermissions', null, { shouldDirty: true });
+                        }
+                      }}
+                      value={field.value}
+                      disabled={roleDisabled}
+                      items={roleItems}
+                    >
                       <FormControl>
                         <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         {roleItems.map((r) => (
-                          <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+                          <SelectItem
+                            key={r.value}
+                            value={r.value}
+                            disabled={r.disabled}
+                            title={r.disabled ? 'Apenas Administrador pode conceder este acesso.' : undefined}
+                          >
+                            {r.label}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                     {roleDisabled && (
                       <p className="text-[11px] text-muted-foreground">Você não pode alterar seu próprio papel.</p>
                     )}
+                    {!isAdmin && !roleDisabled && (
+                      <p className="text-[11px] text-muted-foreground">
+                        Apenas Administrador pode conceder RH, Administrador ou Diretor.
+                      </p>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )} />
               </div>
+
+              {showRhToggles && (
+                <FormField control={form.control} name="rhPermissions" render={({ field }) => (
+                  <FormItem>
+                    <PermissionsToggles
+                      title="Permissões de RH"
+                      value={field.value ?? EMPTY_RH_PERMISSIONS}
+                      onChange={(next) => field.onChange(next)}
+                    />
+                    <p className="text-[11px] text-muted-foreground">
+                      Aplicadas automaticamente quando o convite for aceito.
+                    </p>
+                  </FormItem>
+                )} />
+              )}
+
+              {isEdit && employee!.role === 'rh' && (
+                <div className="rounded-md border bg-muted/30 p-3 text-xs text-muted-foreground">
+                  Para alterar papel ou permissões deste colaborador, use <strong>Gerenciar acesso</strong> no perfil.
+                </div>
+              )}
 
               <FormField control={form.control} name="departmentId" render={({ field }) => (
                 <FormItem>
@@ -383,6 +466,36 @@ export function EmployeeSheet({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={createPositionOpen} onOpenChange={setCreatePositionOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Novo cargo</DialogTitle>
+            <DialogDescription>Fica disponível imediatamente para seleção.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <label className="text-sm font-medium" htmlFor="new-position-name">Nome *</label>
+            <Input
+              id="new-position-name"
+              autoFocus
+              value={newPositionName}
+              onChange={(e) => setNewPositionName(e.target.value)}
+              placeholder="Ex: Gerente de Produto"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') { e.preventDefault(); void createPosition(); }
+              }}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" type="button" onClick={() => setCreatePositionOpen(false)} disabled={creatingPosition}>
+              Cancelar
+            </Button>
+            <Button type="button" onClick={() => void createPosition()} disabled={creatingPosition || newPositionName.trim().length < 2}>
+              {creatingPosition ? 'Criando…' : 'Criar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Sheet>
   );
 
@@ -398,5 +511,19 @@ export function EmployeeSheet({
     form.setValue('departmentId', result.id, { shouldDirty: true });
     setCreateDeptOpen(false);
     toast.success('Departamento criado e selecionado.');
+  }
+
+  async function createPosition() {
+    const name = newPositionName.trim();
+    if (name.length < 2) { toast.error('Nome muito curto.'); return; }
+    setCreatingPosition(true);
+    const result = await createTaxonomy('position', { name });
+    setCreatingPosition(false);
+    if (result.error || !result.id) { toast.error(result.error ?? 'Erro ao criar.'); return; }
+    const next: Position = { id: result.id, name };
+    setCreatedLocallyPositions((prev) => [...prev, next]);
+    form.setValue('positionId', result.id, { shouldDirty: true });
+    setCreatePositionOpen(false);
+    toast.success('Cargo criado e selecionado.');
   }
 }

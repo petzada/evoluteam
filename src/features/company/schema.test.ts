@@ -3,7 +3,6 @@ import {
   CompanySchema,
   OnboardingStep1Schema,
   OnboardingStep2Schema,
-  SEED_POSITIONS,
   SEED_COMPETENCIES,
 } from './schema';
 
@@ -51,7 +50,7 @@ describe('OnboardingStep1Schema', () => {
 describe('OnboardingStep2Schema', () => {
   const valid = {
     fullName: 'João Silva',
-    positionId: 'Administrativo/RH',
+    positionName: 'Gerente de RH',
     departmentName: 'RH',
     hireDate: '2026-04-20',
     phone: '11999999999',
@@ -65,23 +64,22 @@ describe('OnboardingStep2Schema', () => {
     expect(
       OnboardingStep2Schema.safeParse({
         fullName: valid.fullName,
-        positionId: valid.positionId,
+        positionName: valid.positionName,
         hireDate: valid.hireDate,
       }).success,
     ).toBe(true);
   });
 
   it('rejeita sem cargo', () => {
-    expect(OnboardingStep2Schema.safeParse({ ...valid, positionId: '' }).success).toBe(false);
+    expect(OnboardingStep2Schema.safeParse({ ...valid, positionName: '' }).success).toBe(false);
+  });
+
+  it('rejeita cargo com apenas 1 caractere', () => {
+    expect(OnboardingStep2Schema.safeParse({ ...valid, positionName: 'A' }).success).toBe(false);
   });
 });
 
 describe('Seeds', () => {
-  it('SEED_POSITIONS tem 4 cargos', () => {
-    expect(SEED_POSITIONS).toHaveLength(4);
-    expect(SEED_POSITIONS).toContain('Administrativo/RH');
-  });
-
   it('SEED_COMPETENCIES tem 7 competências', () => {
     expect(SEED_COMPETENCIES).toHaveLength(7);
   });

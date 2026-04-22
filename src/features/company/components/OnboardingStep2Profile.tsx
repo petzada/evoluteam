@@ -2,11 +2,10 @@
 
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { OnboardingStep2Schema, type OnboardingStep2Input, SEED_POSITIONS } from '../schema';
+import { OnboardingStep2Schema, type OnboardingStep2Input } from '../schema';
 
 interface Props {
   defaultValues?: Partial<OnboardingStep2Input>;
@@ -19,7 +18,7 @@ export function OnboardingStep2Profile({ defaultValues, onNext, onBack }: Props)
     resolver: zodResolver(OnboardingStep2Schema),
     defaultValues: {
       fullName: '',
-      positionId: SEED_POSITIONS[0],
+      positionName: '',
       departmentName: '',
       hireDate: new Date().toISOString().split('T')[0],
       phone: '',
@@ -38,19 +37,15 @@ export function OnboardingStep2Profile({ defaultValues, onNext, onBack }: Props)
           </FormItem>
         )} />
 
-        <FormField control={form.control} name="positionId" render={({ field }) => (
+        <FormField control={form.control} name="positionName" render={({ field }) => (
           <FormItem>
             <FormLabel>Seu cargo *</FormLabel>
-            <Select onValueChange={field.onChange} value={field.value ?? ''}>
-              <FormControl>
-                <SelectTrigger><SelectValue placeholder="Selecione…" /></SelectTrigger>
-              </FormControl>
-              <SelectContent>
-                {SEED_POSITIONS.map((p) => (
-                  <SelectItem key={p} value={p}>{p}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <FormControl>
+              <Input placeholder="Ex: Diretor de TI, Gerente de RH, CEO…" {...field} />
+            </FormControl>
+            <FormDescription>
+              Você pode criar outros cargos depois em Configurações.
+            </FormDescription>
             <FormMessage />
           </FormItem>
         )} />

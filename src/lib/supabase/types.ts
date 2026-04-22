@@ -260,6 +260,7 @@ export type Database = {
           id: string
           invited_by: string
           revoked_at: string | null
+          rh_permissions: Json | null
           role: string
           token: string
         }
@@ -273,6 +274,7 @@ export type Database = {
           id?: string
           invited_by: string
           revoked_at?: string | null
+          rh_permissions?: Json | null
           role: string
           token: string
         }
@@ -286,6 +288,7 @@ export type Database = {
           id?: string
           invited_by?: string
           revoked_at?: string | null
+          rh_permissions?: Json | null
           role?: string
           token?: string
         }

@@ -7,11 +7,11 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { logActivity } from '@/lib/activity';
 import { getActor } from '@/features/permissions/actor';
 import { hasAdminPower } from '@/features/permissions/permissions';
-import { SEED_POSITIONS, SEED_COMPETENCIES } from './schema';
+import { SEED_COMPETENCIES } from './schema';
 
 interface CreateCompanyInput {
   company: { name: string; cnpj?: string; segment: string; teamSize: string; logoUrl?: string };
-  profile: { fullName: string; positionId: string; departmentName?: string; hireDate: string; phone?: string };
+  profile: { fullName: string; positionName: string; departmentName?: string; hireDate: string; phone?: string };
 }
 
 export async function createCompany(input: CreateCompanyInput) {
@@ -48,11 +48,13 @@ export async function createCompany(input: CreateCompanyInput) {
     departmentId = dept?.id ?? null;
   }
 
-  // 3. Seed positions (4)
-  const { data: positions } = await admin
+  // 3. Position do admin — unico cargo inicial. Demais cargos ficam a cargo
+  // do admin criar em /configuracoes/cargos ou inline no sheet de colaborador.
+  const { data: adminPosition } = await admin
     .from('positions')
-    .insert(SEED_POSITIONS.map((name) => ({ company_id: companyId, name })))
-    .select('id, name');
+    .insert({ company_id: companyId, name: input.profile.positionName.trim() })
+    .select('id')
+    .single();
 
   // 4. Seed competencies (7)
   await admin
@@ -60,10 +62,7 @@ export async function createCompany(input: CreateCompanyInput) {
     .insert(SEED_COMPETENCIES.map((name) => ({ company_id: companyId, name })));
 
   // 5. Employee do admin
-  const positionId =
-    positions?.find((p) => p.name === input.profile.positionId)?.id
-    ?? positions?.find((p) => p.name === 'Administrativo/RH')?.id
-    ?? positions?.[0]?.id;
+  const positionId = adminPosition?.id ?? null;
 
   const { data: employee, error: empErr } = await admin
     .from('employees')

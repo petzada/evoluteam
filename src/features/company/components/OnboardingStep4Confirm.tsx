@@ -27,7 +27,7 @@ export function OnboardingStep4Confirm({ company, profile, onBack }: Props) {
       },
       profile: {
         fullName: profile.fullName,
-        positionId: profile.positionId,
+        positionName: profile.positionName,
         departmentName: profile.departmentName,
         hireDate: profile.hireDate,
         phone: profile.phone,
@@ -55,14 +55,14 @@ export function OnboardingStep4Confirm({ company, profile, onBack }: Props) {
           <CardContent className="pt-4 pb-4 space-y-1">
             <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Você</p>
             <p className="font-medium">{profile.fullName}</p>
-            <p className="text-sm text-muted-foreground">{profile.positionId}</p>
+            <p className="text-sm text-muted-foreground">{profile.positionName}</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardContent className="pt-4 pb-4 space-y-1">
             <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Estrutura</p>
-            <p className="text-sm text-muted-foreground">4 cargos iniciais · 7 competências</p>
+            <p className="text-sm text-muted-foreground">1 cargo · 7 competências</p>
             {profile.departmentName && (
               <p className="text-sm text-muted-foreground">1 departamento: {profile.departmentName}</p>
             )}

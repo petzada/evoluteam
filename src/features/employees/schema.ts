@@ -1,5 +1,14 @@
 import { z } from 'zod';
 
+export const RhPermissionsSchema = z.object({
+  can_employees: z.boolean(),
+  can_reviews: z.boolean(),
+  can_recruitment: z.boolean(),
+  can_pdi_feedback: z.boolean(),
+  can_invites: z.boolean(),
+  can_audit: z.boolean(),
+});
+
 export const EmployeeSchema = z.object({
   fullName: z.string().min(2, 'Nome obrigatório'),
   email: z.string().email('E-mail inválido'),
@@ -11,6 +20,7 @@ export const EmployeeSchema = z.object({
   phone: z.string().optional().nullable(),
   sendInvite: z.boolean().optional(),
   internalNotes: z.string().optional().nullable(),
+  rhPermissions: RhPermissionsSchema.optional().nullable(),
 });
 
 export const UpdateRoleSchema = z.object({

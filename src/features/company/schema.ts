@@ -7,10 +7,6 @@ export const SEGMENTS = [
 
 export const TEAM_SIZES = ['1–20', '21–50', '51–100', '101–300', '300+'] as const;
 
-export const SEED_POSITIONS = [
-  'Colaborador', 'Líder/Supervisor', 'Coordenador', 'Administrativo/RH',
-];
-
 export const SEED_COMPETENCIES = [
   'Comunicação', 'Liderança', 'Colaboração', 'Entrega',
   'Organização', 'Domínio técnico', 'Comportamento',
@@ -28,7 +24,7 @@ export const OnboardingStep1Schema = CompanySchema;
 
 export const OnboardingStep2Schema = z.object({
   fullName: z.string().min(2, 'Nome obrigatório'),
-  positionId: z.string().min(1, 'Cargo obrigatório'),
+  positionName: z.string().trim().min(2, 'Informe seu cargo').max(80, 'Máximo 80 caracteres'),
   departmentName: z.string().optional(),
   hireDate: z.string().min(1, 'Data obrigatória'),
   phone: z.string().optional(),

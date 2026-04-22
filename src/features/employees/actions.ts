@@ -182,7 +182,16 @@ export async function createEmployee(input: EmployeeInput) {
     if (!canInviteAs(ctx.actor, inviteRole)) {
       return { error: 'Sem permissão para convidar com este papel.' };
     }
-    await sendInviteForEmployee(employee.id, input.email, inviteRole, ctx.user.id, companyId);
+    const rhPermissionsSnapshot =
+      inviteRole === 'rh' && ctx.canManageEmployees ? input.rhPermissions ?? null : null;
+    await sendInviteForEmployee(
+      employee.id,
+      input.email,
+      inviteRole,
+      ctx.user.id,
+      companyId,
+      rhPermissionsSnapshot,
+    );
   }
 
   revalidatePath('/colaboradores');
@@ -196,6 +205,7 @@ async function sendInviteForEmployee(
   role: Role,
   invitedBy: string,
   companyId: string,
+  rhPermissionsSnapshot: EmployeeInput['rhPermissions'] | null = null,
 ) {
   const admin = createAdminSupabaseClient();
   const token = crypto.randomUUID();
@@ -203,7 +213,16 @@ async function sendInviteForEmployee(
 
   const { data: invite, error: invErr } = await admin
     .from('invites')
-    .insert({ company_id: companyId, employee_id: employeeId, email, token, role, invited_by: invitedBy, expires_at: expiresAt })
+    .insert({
+      company_id: companyId,
+      employee_id: employeeId,
+      email,
+      token,
+      role,
+      invited_by: invitedBy,
+      expires_at: expiresAt,
+      rh_permissions: rhPermissionsSnapshot ?? null,
+    })
     .select('id')
     .single();
 
@@ -510,7 +529,7 @@ export async function acceptInvite(token: string, data: { fullName: string; pass
 
   const { data: invite } = await admin
     .from('invites')
-    .select('id, company_id, employee_id, email, role, expires_at, accepted_at, revoked_at, invited_by')
+    .select('id, company_id, employee_id, email, role, expires_at, accepted_at, revoked_at, invited_by, rh_permissions')
     .eq('token', token)
     .single();
 
@@ -535,6 +554,23 @@ export async function acceptInvite(token: string, data: { fullName: string; pass
     role: invite.role as Role,
     full_name: data.fullName,
   });
+
+  // Aplica toggles pre-configurados no convite (trigger ja criou rh_permissions
+  // vazio quando role='rh' foi setado; aqui atualizamos os booleanos).
+  if (invite.role === 'rh' && invite.rh_permissions) {
+    const snapshot = invite.rh_permissions as Record<string, boolean>;
+    await admin
+      .from('rh_permissions')
+      .update({
+        can_employees: !!snapshot.can_employees,
+        can_reviews: !!snapshot.can_reviews,
+        can_recruitment: !!snapshot.can_recruitment,
+        can_pdi_feedback: !!snapshot.can_pdi_feedback,
+        can_invites: !!snapshot.can_invites,
+        can_audit: !!snapshot.can_audit,
+      })
+      .eq('profile_id', userId);
+  }
 
   await admin.from('employees').update({ user_id: userId, full_name: data.fullName, updated_at: new Date().toISOString() }).eq('id', invite.employee_id);
 
