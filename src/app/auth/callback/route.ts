@@ -12,10 +12,14 @@ const VALID_TYPES: ReadonlySet<EmailOtpType> = new Set([
 ]);
 
 export async function GET(request: NextRequest) {
-  const { searchParams, origin } = new URL(request.url);
+  // Usa SITE_URL como origin canonico: request.url em route handler pode retornar
+  // o host interno do proxy reverso (ex: localhost no Railway).
+  const origin = process.env.NEXT_PUBLIC_SITE_URL ?? new URL(request.url).origin;
+  const { searchParams } = new URL(request.url);
   const tokenHash = searchParams.get('token_hash');
   const rawType = searchParams.get('type');
-  const next = searchParams.get('next') ?? '/dashboard';
+  const rawNext = searchParams.get('next') ?? '/dashboard';
+  const next = rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : '/dashboard';
 
   if (!tokenHash || !rawType || !VALID_TYPES.has(rawType as EmailOtpType)) {
     return NextResponse.redirect(`${origin}/login?error=link_invalido`);
