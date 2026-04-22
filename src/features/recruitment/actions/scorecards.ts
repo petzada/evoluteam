@@ -4,8 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 import { logActivity } from '@/lib/activity';
 import { getActor } from '@/features/permissions/actor';
-import { canManageRecruitment } from '@/features/permissions/permissions';
-import { canSubmitScorecard } from '../permissions';
+import { canManageRecruitment, canSubmitScorecard } from '../permissions';
 import {
   ScorecardInputSchema,
   type ScorecardInput,

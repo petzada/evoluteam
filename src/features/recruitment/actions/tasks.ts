@@ -5,8 +5,7 @@ import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 import { logActivity } from '@/lib/activity';
 import { notify } from '@/lib/notifications';
 import { getActor } from '@/features/permissions/actor';
-import { canManageRecruitment } from '@/features/permissions/permissions';
-import { canManageTasks as canManageRecruitmentTasks } from '../permissions';
+import { canManageRecruitment, canManageTasks as canManageRecruitmentTasks } from '../permissions';
 import { TaskInputSchema, type TaskInput } from '../schema';
 
 async function notifyTaskAssigned(

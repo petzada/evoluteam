@@ -1,34 +1,4 @@
-// Tipos manuais das tabelas novas da FT-8. Mantem-se aqui ate o
-// Supabase CLI regenerar src/lib/supabase/types.ts apos a aplicacao
-// da migration em ambiente conectado.
-
-export type RhPermissionsRow = {
-  profile_id: string;
-  company_id: string;
-  can_employees: boolean;
-  can_reviews: boolean;
-  can_recruitment: boolean;
-  can_pdi_feedback: boolean;
-  can_invites: boolean;
-  can_audit: boolean;
-  created_at: string;
-  updated_at: string;
-};
-
-export type RhPermissionsInsert = {
-  profile_id: string;
-  company_id: string;
-  can_employees?: boolean;
-  can_reviews?: boolean;
-  can_recruitment?: boolean;
-  can_pdi_feedback?: boolean;
-  can_invites?: boolean;
-  can_audit?: boolean;
-  created_at?: string;
-  updated_at?: string;
-};
-
-export type RhPermissionsUpdate = Partial<RhPermissionsInsert>;
+// Tipos manuais das tabelas FT-8 que ainda nao entraram no gerado.
 
 export type ReviewResultCommentRow = {
   id: string;

@@ -60,7 +60,7 @@ interface Props {
   departments: Department[];
   currentUserId: string;
   isAdmin: boolean;
-  profileRoles: Record<string, 'admin_rh' | 'director' | 'user' | 'rh'>;
+  profileRoles: Record<string, 'admin_rh' | 'director' | 'user'>;
   openSheet?: boolean;
   editingEmployee?: ExistingEmployee | null;
   initialStatusFilter?: string | null;

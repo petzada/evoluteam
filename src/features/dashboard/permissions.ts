@@ -1,11 +1,10 @@
 import { canDo } from '@/features/permissions/permissions';
-import type { RhPermissions, ScreenPermissions } from '@/features/permissions/types';
+import type { ScreenPermissions } from '@/features/permissions/types';
 
 export type Actor = {
-  role: 'admin_rh' | 'director' | 'user' | 'rh' | string;
+  role: 'admin_rh' | 'director' | 'user' | string;
   employeeId: string | null;
   isManager?: boolean;
-  rhPermissions?: RhPermissions | null;
   screenPermissions?: ScreenPermissions | null;
 };
 
@@ -15,8 +14,6 @@ export function canAccessDashboard(actor: Actor): boolean {
   // "Inicio" (operacional) no lugar via isOperationalOnly.
   if (actor.role === 'admin_rh' || actor.role === 'director') return true;
   if (canDo(actor, 'dashboard', 'view')) return true;
-  // Fallback legado: role rh sempre via dashboard na FT-8.
-  if (actor.role === 'rh') return true;
   // Gestor direto ve dashboard da equipe (baseline hierarquico).
   return !!actor.isManager;
 }

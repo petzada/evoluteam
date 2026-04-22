@@ -34,7 +34,7 @@ export interface ExistingEmployee {
   positionId: string | null;
   departmentId: string | null;
   managerId: string | null;
-  role: 'admin_rh' | 'director' | 'user' | 'rh';
+  role: 'admin_rh' | 'director' | 'user';
   hireDate: string;
   isSelf: boolean;
   internalNotes?: string | null;
@@ -70,7 +70,6 @@ const EMPTY_DEFAULTS: EmployeeInput = {
   phone: '',
   sendInvite: true,
   internalNotes: '',
-  rhPermissions: null,
   screenPermissions: null,
 };
 
@@ -318,7 +317,7 @@ export function EmployeeSheet({
                 )} />
               )}
 
-              {isEdit && (employee!.role === 'user' || employee!.role === 'rh') && (
+              {isEdit && employee!.role === 'user' && (
                 <div className="rounded-md border bg-muted/30 p-3 text-xs text-muted-foreground">
                   Para alterar papel ou permissões deste colaborador, use <strong>Gerenciar acesso</strong> no perfil.
                 </div>

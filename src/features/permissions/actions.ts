@@ -86,7 +86,7 @@ export async function updateUserAccess(input: {
   }
 
   const previousPermissions: ScreenPermissions | null =
-    currentRole === 'user' || currentRole === 'rh'
+    currentRole === 'user'
       ? await readScreenPermissions(input.profileId)
       : null;
 

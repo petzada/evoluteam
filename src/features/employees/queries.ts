@@ -108,9 +108,9 @@ export async function getCompanyProfileRoles(companyId: string) {
     .from('profiles')
     .select('id, role')
     .eq('company_id', companyId);
-  const map: Record<string, 'admin_rh' | 'director' | 'user' | 'rh'> = {};
+  const map: Record<string, 'admin_rh' | 'director' | 'user'> = {};
   for (const p of data ?? []) {
-    map[p.id] = p.role as 'admin_rh' | 'director' | 'user' | 'rh';
+    map[p.id] = p.role as 'admin_rh' | 'director' | 'user';
   }
   return map;
 }

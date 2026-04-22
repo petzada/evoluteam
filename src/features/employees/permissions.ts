@@ -1,11 +1,10 @@
 import { canDo } from '@/features/permissions/permissions';
-import type { RhPermissions, ScreenPermissions } from '@/features/permissions/types';
+import type { ScreenPermissions } from '@/features/permissions/types';
 
 type Actor = {
   id: string;
   role: string;
   userId: string;
-  rhPermissions?: RhPermissions | null;
   screenPermissions?: ScreenPermissions | null;
 };
 
@@ -24,7 +23,7 @@ export function canChangeSelfRole(actor: Actor, target: Target): boolean {
 }
 
 export function canSeeInternalNotes(
-  actor: { role: string; rhPermissions?: RhPermissions | null; screenPermissions?: ScreenPermissions | null },
+  actor: { role: string; screenPermissions?: ScreenPermissions | null },
 ): boolean {
   return canDo(actor, 'colaboradores', 'edit');
 }

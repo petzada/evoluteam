@@ -42,7 +42,7 @@ export default async function EmployeeProfilePage({
     .single();
   if (!profile?.company_id) redirect('/onboarding/criar-empresa');
 
-  const actorRole = profile.role as 'admin_rh' | 'director' | 'user' | 'rh';
+  const actorRole = profile.role as 'admin_rh' | 'director' | 'user';
   const gate = await loadActorGate(user.id, actorRole);
 
   const showInternalNotes = canSeeInternalNotes({
@@ -132,7 +132,7 @@ export default async function EmployeeProfilePage({
   }
 
   // Role + screenPermissions do target (para o AccessSheet em edicao).
-  let targetRole: 'admin_rh' | 'director' | 'user' | 'rh' | null = null;
+  let targetRole: 'admin_rh' | 'director' | 'user' | null = null;
   let targetScreenPermissions: import('@/features/permissions/types').ScreenPermissions = {};
   if (employee.user_id) {
     const { data: targetProfile } = await supabase
@@ -140,8 +140,8 @@ export default async function EmployeeProfilePage({
       .select('role')
       .eq('id', employee.user_id)
       .maybeSingle();
-    targetRole = (targetProfile?.role as 'admin_rh' | 'director' | 'user' | 'rh' | null) ?? null;
-    if (targetRole === 'user' || targetRole === 'rh') {
+    targetRole = (targetProfile?.role as 'admin_rh' | 'director' | 'user' | null) ?? null;
+    if (targetRole === 'user') {
       const admin = createAdminSupabaseClient();
       const { data: perms } = await admin
         .from('user_screen_permissions')

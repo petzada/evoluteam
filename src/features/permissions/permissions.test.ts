@@ -1,16 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
   canChangeUserAccess,
+  canDo,
+  canGrantScreenPermissions,
   canInviteAs,
-  canManageEmployeesAndStructure,
-  canManageInvites,
-  canManageRecruitment,
-  canManageReviews,
-  canModeratePdiAndFeedback,
-  canViewAudit,
-  hasAdminPower,
 } from './permissions';
-import { EMPTY_RH_PERMISSIONS, type Actor, type RhPermissions } from './types';
+import { type Actor, type ScreenPermissions } from './types';
 
 const baseActor = (partial: Partial<Actor> = {}): Actor => ({
   userId: 'u1',
@@ -18,109 +13,105 @@ const baseActor = (partial: Partial<Actor> = {}): Actor => ({
   role: 'user',
   employeeId: 'e1',
   employeeStatus: 'active',
-  rhPermissions: null,
   screenPermissions: null,
   ...partial,
 });
 
-const rhWith = (perms: Partial<RhPermissions>): Actor =>
+const userWith = (perms: ScreenPermissions): Actor =>
   baseActor({
-    role: 'rh',
-    rhPermissions: { ...EMPTY_RH_PERMISSIONS, ...perms },
+    role: 'user',
+    screenPermissions: perms,
   });
 
-describe('hasAdminPower', () => {
-  it('retorna true para admin_rh em qualquer area', () => {
-    const actor = baseActor({ role: 'admin_rh' });
-    expect(hasAdminPower(actor, 'can_employees')).toBe(true);
-    expect(hasAdminPower(actor, 'can_reviews')).toBe(true);
-    expect(hasAdminPower(actor, 'can_recruitment')).toBe(true);
-    expect(hasAdminPower(actor, 'can_pdi_feedback')).toBe(true);
-    expect(hasAdminPower(actor, 'can_invites')).toBe(true);
-    expect(hasAdminPower(actor, 'can_audit')).toBe(true);
-  });
-
-  it('retorna false para director em toda area (director nao tem poder administrativo)', () => {
-    const actor = baseActor({ role: 'director' });
-    expect(hasAdminPower(actor, 'can_employees')).toBe(false);
-    expect(hasAdminPower(actor, 'can_reviews')).toBe(false);
-  });
-
-  it('retorna false para user comum em toda area', () => {
-    expect(hasAdminPower(baseActor(), 'can_employees')).toBe(false);
-    expect(hasAdminPower(baseActor(), 'can_invites')).toBe(false);
-  });
-
-  it('rh sem toggles retorna false em tudo', () => {
-    const actor = rhWith({});
-    expect(hasAdminPower(actor, 'can_employees')).toBe(false);
-    expect(hasAdminPower(actor, 'can_reviews')).toBe(false);
-    expect(hasAdminPower(actor, 'can_recruitment')).toBe(false);
-    expect(hasAdminPower(actor, 'can_pdi_feedback')).toBe(false);
-    expect(hasAdminPower(actor, 'can_invites')).toBe(false);
-    expect(hasAdminPower(actor, 'can_audit')).toBe(false);
-  });
-
-  it('rh so tem poder nas areas em que o toggle esta ativo', () => {
-    const actor = rhWith({ can_employees: true, can_reviews: true });
-    expect(hasAdminPower(actor, 'can_employees')).toBe(true);
-    expect(hasAdminPower(actor, 'can_reviews')).toBe(true);
-    expect(hasAdminPower(actor, 'can_recruitment')).toBe(false);
-    expect(hasAdminPower(actor, 'can_pdi_feedback')).toBe(false);
-  });
-
-  it('retorna false para actor null/undefined', () => {
-    expect(hasAdminPower(null, 'can_employees')).toBe(false);
-    expect(hasAdminPower(undefined, 'can_employees')).toBe(false);
-  });
-
-  it('aceita objetos parciais que tem role e rhPermissions (estrutural)', () => {
-    expect(hasAdminPower({ role: 'admin_rh' }, 'can_employees')).toBe(true);
-    expect(
-      hasAdminPower(
-        { role: 'rh', rhPermissions: { ...EMPTY_RH_PERMISSIONS, can_invites: true } },
-        'can_invites',
-      ),
-    ).toBe(true);
-  });
-});
-
-describe('atalhos por modulo', () => {
-  it('mapeiam para hasAdminPower na area correta', () => {
+describe('canDo', () => {
+  it('admin_rh passa em qualquer tela e acao', () => {
     const adm = baseActor({ role: 'admin_rh' });
-    expect(canManageEmployeesAndStructure(adm)).toBe(true);
-    expect(canManageReviews(adm)).toBe(true);
-    expect(canManageRecruitment(adm)).toBe(true);
-    expect(canModeratePdiAndFeedback(adm)).toBe(true);
-    expect(canManageInvites(adm)).toBe(true);
-    expect(canViewAudit(adm)).toBe(true);
+    expect(canDo(adm, 'colaboradores', 'edit')).toBe(true);
+    expect(canDo(adm, 'pdi', 'view')).toBe(true);
+    expect(canDo(adm, 'recrutamento_etapas', 'edit')).toBe(true);
+    expect(canDo(adm, 'auditoria', 'view')).toBe(true);
+    expect(canDo(adm, 'empresa', 'edit')).toBe(true);
+  });
 
-    const rhRec = rhWith({ can_recruitment: true });
-    expect(canManageRecruitment(rhRec)).toBe(true);
-    expect(canManageReviews(rhRec)).toBe(false);
+  it('director passa em view de qualquer tela, nunca em edit', () => {
+    const dir = baseActor({ role: 'director' });
+    expect(canDo(dir, 'colaboradores', 'view')).toBe(true);
+    expect(canDo(dir, 'pdi', 'view')).toBe(true);
+    expect(canDo(dir, 'colaboradores', 'edit')).toBe(false);
+    expect(canDo(dir, 'pdi', 'edit')).toBe(false);
+  });
+
+  it('user sem toggles nao passa em nada', () => {
+    expect(canDo(baseActor(), 'colaboradores', 'view')).toBe(false);
+    expect(canDo(baseActor(), 'pdi', 'edit')).toBe(false);
+  });
+
+  it('user com toggle especifico passa apenas nele', () => {
+    const actor = userWith({ 'colaboradores.view': true, 'colaboradores.edit': true });
+    expect(canDo(actor, 'colaboradores', 'view')).toBe(true);
+    expect(canDo(actor, 'colaboradores', 'edit')).toBe(true);
+    expect(canDo(actor, 'pdi', 'view')).toBe(false);
+    expect(canDo(actor, 'avaliacoes', 'edit')).toBe(false);
+  });
+
+  it('null/undefined actor nao passa', () => {
+    expect(canDo(null, 'colaboradores', 'view')).toBe(false);
+    expect(canDo(undefined, 'colaboradores', 'view')).toBe(false);
   });
 });
 
-describe('canInviteAs (FT-9 escalacao restrita)', () => {
+describe('canGrantScreenPermissions (escalacao restrita)', () => {
+  it('admin_rh concede qualquer subset', () => {
+    const adm = baseActor({ role: 'admin_rh' });
+    expect(canGrantScreenPermissions(adm, { 'pdi.edit': true, 'auditoria.view': true })).toBe(true);
+  });
+
+  it('user com colaboradores.edit concede apenas subset dos proprios', () => {
+    const actor = userWith({
+      'colaboradores.view': true,
+      'colaboradores.edit': true,
+      'pdi.view': true,
+      'pdi.edit': true,
+    });
+    // Subset dos proprios: OK
+    expect(canGrantScreenPermissions(actor, { 'pdi.view': true })).toBe(true);
+    expect(canGrantScreenPermissions(actor, { 'pdi.edit': true })).toBe(true);
+    expect(canGrantScreenPermissions(actor, { 'colaboradores.view': true })).toBe(true);
+    // Algo que ele nao tem: falha
+    expect(canGrantScreenPermissions(actor, { 'avaliacoes.edit': true })).toBe(false);
+    expect(canGrantScreenPermissions(actor, { 'auditoria.view': true })).toBe(false);
+  });
+
+  it('user sem colaboradores.edit nao concede nada', () => {
+    const actor = userWith({ 'colaboradores.view': true });
+    expect(canGrantScreenPermissions(actor, { 'colaboradores.view': true })).toBe(false);
+  });
+
+  it('director nao concede nada', () => {
+    expect(
+      canGrantScreenPermissions(baseActor({ role: 'director' }), { 'pdi.view': true }),
+    ).toBe(false);
+  });
+});
+
+describe('canInviteAs', () => {
   it('admin_rh pode conceder qualquer role', () => {
     const adm = baseActor({ role: 'admin_rh' });
     expect(canInviteAs(adm, 'user')).toBe(true);
-    expect(canInviteAs(adm, 'rh')).toBe(true);
     expect(canInviteAs(adm, 'director')).toBe(true);
     expect(canInviteAs(adm, 'admin_rh')).toBe(true);
   });
 
-  it('rh legacy com can_employees concede APENAS Colaborador (via mapScreenToLegacyRhKey)', () => {
-    const rh = rhWith({ can_employees: true });
-    expect(canInviteAs(rh, 'user')).toBe(true);
-    expect(canInviteAs(rh, 'rh')).toBe(false);
-    expect(canInviteAs(rh, 'director')).toBe(false);
-    expect(canInviteAs(rh, 'admin_rh')).toBe(false);
+  it('user com colaboradores.edit concede apenas Colaborador', () => {
+    const actor = userWith({ 'colaboradores.view': true, 'colaboradores.edit': true });
+    expect(canInviteAs(actor, 'user')).toBe(true);
+    expect(canInviteAs(actor, 'director')).toBe(false);
+    expect(canInviteAs(actor, 'admin_rh')).toBe(false);
   });
 
-  it('rh sem can_employees nao concede nada (FT-9 unifica can_invites com colaboradores.edit)', () => {
-    const rh = rhWith({ can_reviews: true });
-    expect(canInviteAs(rh, 'user')).toBe(false);
+  it('user sem colaboradores.edit nao concede nada', () => {
+    const actor = userWith({ 'pdi.view': true });
+    expect(canInviteAs(actor, 'user')).toBe(false);
   });
 
   it('director e user comum nao concedem nada', () => {
@@ -141,24 +132,23 @@ describe('canChangeUserAccess', () => {
 
   it('admin_rh pode alterar qualquer outro usuario para qualquer role', () => {
     const adm = baseActor({ role: 'admin_rh' });
-    expect(canChangeUserAccess(adm, { userId: 'other', role: 'user' }, 'rh')).toBe(true);
+    expect(canChangeUserAccess(adm, { userId: 'other', role: 'user' }, 'director')).toBe(true);
     expect(canChangeUserAccess(adm, { userId: 'other', role: 'director' }, 'admin_rh')).toBe(true);
   });
 
-  it('rh legacy com can_employees pode editar Colaboradores mantendo como Colaborador', () => {
-    const rh = rhWith({ can_employees: true });
-    expect(canChangeUserAccess(rh, { userId: 'other', role: 'user' }, 'user')).toBe(true);
+  it('user com colaboradores.edit pode editar Colaboradores mantendo como Colaborador', () => {
+    const actor = userWith({ 'colaboradores.view': true, 'colaboradores.edit': true });
+    expect(canChangeUserAccess(actor, { userId: 'other', role: 'user' }, 'user')).toBe(true);
     // Nao pode escalar:
-    expect(canChangeUserAccess(rh, { userId: 'other', role: 'user' }, 'rh')).toBe(false);
-    expect(canChangeUserAccess(rh, { userId: 'other', role: 'user' }, 'director')).toBe(false);
+    expect(canChangeUserAccess(actor, { userId: 'other', role: 'user' }, 'director')).toBe(false);
+    expect(canChangeUserAccess(actor, { userId: 'other', role: 'user' }, 'admin_rh')).toBe(false);
     // Nao pode editar quem ja tem role privilegiado:
-    expect(canChangeUserAccess(rh, { userId: 'other', role: 'rh' }, 'user')).toBe(false);
-    expect(canChangeUserAccess(rh, { userId: 'other', role: 'director' }, 'user')).toBe(false);
+    expect(canChangeUserAccess(actor, { userId: 'other', role: 'director' }, 'user')).toBe(false);
   });
 
-  it('rh sem can_employees nao altera ninguem', () => {
-    const rh = rhWith({ can_reviews: true });
-    expect(canChangeUserAccess(rh, { userId: 'other', role: 'user' }, 'user')).toBe(false);
+  it('user sem colaboradores.edit nao altera ninguem', () => {
+    const actor = userWith({ 'pdi.view': true });
+    expect(canChangeUserAccess(actor, { userId: 'other', role: 'user' }, 'user')).toBe(false);
   });
 
   it('director e user comum nao alteram ninguem', () => {

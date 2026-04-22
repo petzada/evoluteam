@@ -15,7 +15,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AccessSheet } from '@/features/permissions/components/AccessSheet';
 import {
   ROLE_LABELS as CENTRAL_ROLE_LABELS,
-  type RhPermissions,
   type Role as CentralRole,
   type ScreenPermissions,
 } from '@/features/permissions/types';

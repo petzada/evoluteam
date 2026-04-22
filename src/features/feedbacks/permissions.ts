@@ -1,15 +1,14 @@
 import { canDo } from '@/features/permissions/permissions';
-import type { RhPermissions, ScreenPermissions } from '@/features/permissions/types';
+import type { ScreenPermissions } from '@/features/permissions/types';
 import type { FeedbackType, FeedbackVisibility } from './schema';
 
-export type Role = 'admin_rh' | 'director' | 'user' | 'rh';
+export type Role = 'admin_rh' | 'director' | 'user';
 
 export type Actor = {
   role: Role | string;
   userId: string;
   employeeId: string | null;
   employeeStatus?: 'active' | 'inactive' | 'terminated' | null;
-  rhPermissions?: RhPermissions | null;
   screenPermissions?: ScreenPermissions | null;
 };
 

@@ -12,12 +12,11 @@
  */
 
 import { canDo } from '@/features/permissions/permissions';
-import type { RhPermissions, ScreenPermissions } from '@/features/permissions/types';
+import type { ScreenPermissions } from '@/features/permissions/types';
 
 export interface RecruitmentActor {
-  role: string;                  // 'admin_rh' | 'director' | 'user' | 'rh'
+  role: string;                  // 'admin_rh' | 'director' | 'user'
   employeeId: string | null;     // id em employees (null se user sem perfil de colaborador)
-  rhPermissions?: RhPermissions | null;
   screenPermissions?: ScreenPermissions | null;
 }
 

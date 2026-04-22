@@ -50,7 +50,7 @@ export function AccessForm({
 
   // Se actor nao e Admin, so pode conceder 'user'. Os outros roles ficam
   // desabilitados com tooltip.
-  const disabledRoles: Role[] = actorIsAdmin ? [] : ['admin_rh', 'director', 'rh'];
+  const disabledRoles: Role[] = actorIsAdmin ? [] : ['admin_rh', 'director'];
 
   // Escalacao restrita: actor nao-admin so concede permissoes que ele proprio
   // tem marcadas. Toggles nao possuidos aparecem desabilitados.

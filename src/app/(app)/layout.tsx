@@ -57,7 +57,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <div className="flex h-full">
           <Sidebar
             role={profile.role}
-            rhPermissions={gate.rhPermissions}
             screenPermissions={gate.screenPermissions}
             isOperationalOnly={isOperationalOnly}
             footer={

@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useSidebar } from '../SidebarContext';
 import { canDo } from '@/features/permissions/permissions';
-import type { RhPermissions, ScreenKey, ScreenPermissions } from '@/features/permissions/types';
+import type { ScreenKey, ScreenPermissions } from '@/features/permissions/types';
 
 interface NavItem {
   label: string;
@@ -48,21 +48,19 @@ const CONFIG_NAV: NavItem[] = [
 
 interface SidebarProps {
   role: string;
-  rhPermissions?: RhPermissions | null;
   screenPermissions?: ScreenPermissions | null;
   isOperationalOnly: boolean;
   footer?: React.ReactNode;
 }
 
 export function Sidebar({
-  role, rhPermissions, screenPermissions, isOperationalOnly, footer,
+  role, screenPermissions, isOperationalOnly, footer,
 }: SidebarProps) {
   const pathname = usePathname();
   const { collapsed } = useSidebar();
   const isAdmin = role === 'admin_rh';
   const actorForGate = {
     role,
-    rhPermissions: rhPermissions ?? null,
     screenPermissions: screenPermissions ?? null,
   };
 

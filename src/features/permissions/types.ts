@@ -1,85 +1,17 @@
-// Tipos transversais de roles e permissoes granulares.
-// Spec: docs/dev/19-ft-8-granularidade-rh.md §5, §7.
+// Tipos transversais de roles e permissoes por tela.
+// Spec: docs/dev/21-ft-9-redesign-acessos.md §1 e §4.
 
-export type Role = 'admin_rh' | 'director' | 'user' | 'rh';
+export type Role = 'admin_rh' | 'director' | 'user';
 
 export const ROLE_LABELS: Record<Role, string> = {
   admin_rh: 'Administrador',
   director: 'Diretor',
-  rh: 'RH',
   user: 'Colaborador',
 };
 
-export type RhPermissionKey =
-  | 'can_employees'
-  | 'can_reviews'
-  | 'can_recruitment'
-  | 'can_pdi_feedback'
-  | 'can_invites'
-  | 'can_audit';
-
-export type RhPermissions = {
-  can_employees: boolean;
-  can_reviews: boolean;
-  can_recruitment: boolean;
-  can_pdi_feedback: boolean;
-  can_invites: boolean;
-  can_audit: boolean;
-};
-
-export const EMPTY_RH_PERMISSIONS: RhPermissions = {
-  can_employees: false,
-  can_reviews: false,
-  can_recruitment: false,
-  can_pdi_feedback: false,
-  can_invites: false,
-  can_audit: false,
-};
-
-export const RH_PERMISSION_MODULES: {
-  key: RhPermissionKey;
-  label: string;
-  description: string;
-}[] = [
-  {
-    key: 'can_employees',
-    label: 'Colaboradores e estrutura',
-    description:
-      'Gerenciar colaboradores, departamentos, cargos e competências.',
-  },
-  {
-    key: 'can_reviews',
-    label: 'Avaliações',
-    description: 'Criar e publicar ciclos, liberar resultados e acompanhar consolidados.',
-  },
-  {
-    key: 'can_recruitment',
-    label: 'Recrutamento',
-    description:
-      'Configurar etapas, criar vagas, gerenciar candidatos e contratar.',
-  },
-  {
-    key: 'can_pdi_feedback',
-    label: 'PDIs e feedbacks',
-    description: 'Moderar feedbacks e criar PDI para qualquer colaborador.',
-  },
-  {
-    key: 'can_invites',
-    label: 'Convites e acessos',
-    description:
-      'Enviar convites para novos colaboradores.',
-  },
-  {
-    key: 'can_audit',
-    label: 'Auditoria',
-    description: 'Ver histórico de ações no sistema e dados da empresa.',
-  },
-];
-
 // =============================================================
-// FT-9 — Permissoes por tela (view/edit) · granularidade maxima
-// Spec: docs/dev/21-ft-9-redesign-acessos.md
-// Convive com RhPermissions durante as fases de migracao.
+// ScreenPermissions — granularidade por tela da sidebar
+// Spec: docs/dev/21-ft-9-redesign-acessos.md §1.3.
 // =============================================================
 
 export type ScreenKey =
@@ -163,7 +95,7 @@ export const SCREEN_PERMISSION_MODULES: {
   },
 ];
 
-// Flatten: lista de todas as keys validas. Util para validacao e migration.
+// Flatten: lista de todas as keys validas. Util para validacao.
 export const ALL_SCREEN_PERMISSION_KEYS: ScreenPermissionKey[] = [
   'dashboard.view',
   'colaboradores.view', 'colaboradores.edit',
@@ -184,20 +116,16 @@ export const ALL_SCREEN_PERMISSION_KEYS: ScreenPermissionKey[] = [
 // =============================================================
 // Actor
 // =============================================================
-
-// Actor e um snapshot de quem esta executando uma acao.
-// E consumido em server actions e nas funcoes can* de cada feature.
+// Snapshot de quem esta executando uma acao. Consumido em server actions
+// e nas funcoes can* de cada feature.
 //
-// Durante Fase 1-3 da FT-9, rhPermissions e screenPermissions coexistem:
-//   rhPermissions: populado quando role === 'rh' (FT-8 legado).
-//   screenPermissions: populado quando role === 'user' ou 'rh' (FT-9).
-// A partir da Fase 4, rhPermissions e removido.
+// screenPermissions e populado apenas quando role === 'user'. Admin/Diretor
+// sao pacotes fechados e bypassam verificacoes em canDo.
 export type Actor = {
   userId: string;
   companyId: string;
   role: Role;
   employeeId: string | null;
   employeeStatus: 'active' | 'inactive' | 'terminated' | null;
-  rhPermissions: RhPermissions | null;
   screenPermissions: ScreenPermissions | null;
 };
