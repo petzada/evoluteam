@@ -4,6 +4,8 @@ import { getDepartments, getPositions } from '@/features/employees/queries';
 import { getEligibleEmployees } from '@/features/reviews/queries';
 import { ReviewCycleWizard } from '@/features/reviews/components/ReviewCycleWizard';
 import { PageHeader } from '@/components/PageHeader';
+import { loadActorRhPermissions } from '@/features/permissions/queries';
+import { canCreateCycle } from '@/features/reviews/permissions';
 
 export default async function NovaAvaliacaoPage() {
   const supabase = await createServerSupabaseClient();
@@ -16,7 +18,15 @@ export default async function NovaAvaliacaoPage() {
     .eq('id', user.id)
     .single();
   if (!profile?.company_id) redirect('/onboarding/criar-empresa');
-  if (profile.role !== 'admin_rh') redirect('/avaliacoes');
+
+  const actorRhPermissions = await loadActorRhPermissions(user.id, profile.role);
+  const actor = {
+    role: profile.role,
+    userId: user.id,
+    employeeId: null,
+    rhPermissions: actorRhPermissions,
+  };
+  if (!canCreateCycle(actor)) redirect('/avaliacoes');
 
   const [positions, departments, employees, { data: competencies }] = await Promise.all([
     getPositions(profile.company_id),

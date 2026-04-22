@@ -1,34 +1,25 @@
-'use server';
+﻿'use server';
 
 import { revalidatePath } from 'next/cache';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 import { logActivity } from '@/lib/activity';
-import { JobOpeningInputSchema, type JobOpeningInput, type JobOpeningStatus, JOB_OPENING_STATUS_LABELS } from '../schema';
+import { getActor } from '@/features/permissions/actor';
+import { canManageJobOpenings } from '../permissions';
+import {
+  JobOpeningInputSchema,
+  type JobOpeningInput,
+  type JobOpeningStatus,
+  JOB_OPENING_STATUS_LABELS,
+} from '../schema';
 import { buildPipelineSnapshot } from '../pipeline-snapshot';
-
-type Actor = { userId: string; companyId: string; role: 'admin_rh' | 'director' | 'user' };
-
-async function getActor(): Promise<Actor | null> {
-  const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('company_id, role')
-    .eq('id', user.id)
-    .single();
-  if (!profile?.company_id) return null;
-  return { userId: user.id, companyId: profile.company_id, role: profile.role as Actor['role'] };
-}
 
 export async function createJobOpening(input: JobOpeningInput) {
   const actor = await getActor();
-  if (!actor) return { error: 'Não autenticado.' };
-  if (actor.role !== 'admin_rh') return { error: 'Sem permissão.' };
+  if (!actor) return { error: 'Nao autenticado.' };
+  if (!canManageJobOpenings(actor)) return { error: 'Sem permissao.' };
 
   const parsed = JobOpeningInputSchema.safeParse(input);
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Dados inválidos.' };
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Dados invalidos.' };
   const v = parsed.data;
 
   const admin = createAdminSupabaseClient();
@@ -74,11 +65,11 @@ export async function createJobOpening(input: JobOpeningInput) {
 
 export async function updateJobOpening(id: string, input: JobOpeningInput) {
   const actor = await getActor();
-  if (!actor) return { error: 'Não autenticado.' };
-  if (actor.role !== 'admin_rh') return { error: 'Sem permissão.' };
+  if (!actor) return { error: 'Nao autenticado.' };
+  if (!canManageJobOpenings(actor)) return { error: 'Sem permissao.' };
 
   const parsed = JobOpeningInputSchema.safeParse(input);
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Dados inválidos.' };
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Dados invalidos.' };
   const v = parsed.data;
 
   const admin = createAdminSupabaseClient();
@@ -87,7 +78,7 @@ export async function updateJobOpening(id: string, input: JobOpeningInput) {
     .select('id, title, company_id')
     .eq('id', id)
     .maybeSingle();
-  if (!before || before.company_id !== actor.companyId) return { error: 'Vaga não encontrada.' };
+  if (!before || before.company_id !== actor.companyId) return { error: 'Vaga nao encontrada.' };
 
   const { error } = await admin
     .from('job_openings')
@@ -123,8 +114,8 @@ export async function updateJobOpening(id: string, input: JobOpeningInput) {
 
 export async function changeJobStatus(id: string, newStatus: JobOpeningStatus) {
   const actor = await getActor();
-  if (!actor) return { error: 'Não autenticado.' };
-  if (actor.role !== 'admin_rh') return { error: 'Sem permissão.' };
+  if (!actor) return { error: 'Nao autenticado.' };
+  if (!canManageJobOpenings(actor)) return { error: 'Sem permissao.' };
 
   const admin = createAdminSupabaseClient();
   const { data: before } = await admin
@@ -132,7 +123,7 @@ export async function changeJobStatus(id: string, newStatus: JobOpeningStatus) {
     .select('id, title, status, company_id')
     .eq('id', id)
     .maybeSingle();
-  if (!before || before.company_id !== actor.companyId) return { error: 'Vaga não encontrada.' };
+  if (!before || before.company_id !== actor.companyId) return { error: 'Vaga nao encontrada.' };
   if (before.status === newStatus) return { ok: true };
 
   const now = new Date().toISOString();
@@ -165,6 +156,6 @@ export async function changeJobStatus(id: string, newStatus: JobOpeningStatus) {
 }
 
 export async function archiveJobOpening(id: string) {
-  // Semanticamente = cancelar (não há delete; segue status terminal).
+  // Semanticamente = cancelar (nao ha delete; segue status terminal).
   return changeJobStatus(id, 'cancelled');
 }

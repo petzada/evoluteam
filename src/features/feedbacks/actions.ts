@@ -1,48 +1,13 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 import { logActivity } from '@/lib/activity';
 import { notify } from '@/lib/notifications';
+import { getActor } from '@/features/permissions/actor';
+import { hasAdminPower } from '@/features/permissions/permissions';
 import { FeedbackInputSchema, type FeedbackInput } from './schema';
 import { enforceVisibilityForType } from './permissions';
-
-type Ctx = {
-  userId: string;
-  companyId: string;
-  role: 'admin_rh' | 'director' | 'user';
-  employeeId: string | null;
-  employeeStatus: string | null;
-};
-
-async function getActor(): Promise<Ctx | null> {
-  const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('company_id, role')
-    .eq('id', user.id)
-    .single();
-  if (!profile?.company_id) return null;
-
-  const { data: emp } = await supabase
-    .from('employees')
-    .select('id, status')
-    .eq('user_id', user.id)
-    .eq('company_id', profile.company_id)
-    .maybeSingle();
-
-  return {
-    userId: user.id,
-    companyId: profile.company_id,
-    role: profile.role as Ctx['role'],
-    employeeId: emp?.id ?? null,
-    employeeStatus: emp?.status ?? null,
-  };
-}
 
 export async function sendFeedback(input: FeedbackInput) {
   const ctx = await getActor();
@@ -149,7 +114,7 @@ export async function markFeedbackAsRead(feedbackId: string) {
 export async function deleteFeedback(feedbackId: string) {
   const ctx = await getActor();
   if (!ctx) return { error: 'Não autenticado.' };
-  if (ctx.role !== 'admin_rh') return { error: 'Sem permissão.' };
+  if (!hasAdminPower(ctx, 'can_pdi_feedback')) return { error: 'Sem permissão.' };
 
   const admin = createAdminSupabaseClient();
   const now = new Date().toISOString();

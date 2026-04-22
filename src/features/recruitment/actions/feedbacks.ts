@@ -1,52 +1,25 @@
-'use server';
+﻿'use server';
 
 import { revalidatePath } from 'next/cache';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 import { logActivity } from '@/lib/activity';
+import { getActor } from '@/features/permissions/actor';
+import { canManageRecruitment } from '@/features/permissions/permissions';
+import { canGiveFeedback as canGiveRecruitmentFeedback } from '../permissions';
 import {
-  CandidateFeedbackInputSchema, type CandidateFeedbackInput,
+  CandidateFeedbackInputSchema,
+  type CandidateFeedbackInput,
   FEEDBACK_EDIT_WINDOW_MINUTES,
 } from '../schema';
 
-type Actor = {
-  userId: string;
-  companyId: string;
-  role: 'admin_rh' | 'director' | 'user';
-  employeeId: string | null;
-};
-
-async function getActor(): Promise<Actor | null> {
-  const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('company_id, role')
-    .eq('id', user.id)
-    .single();
-  if (!profile?.company_id) return null;
-  const { data: emp } = await supabase
-    .from('employees')
-    .select('id')
-    .eq('user_id', user.id)
-    .eq('company_id', profile.company_id)
-    .maybeSingle();
-  return {
-    userId: user.id,
-    companyId: profile.company_id,
-    role: profile.role as Actor['role'],
-    employeeId: emp?.id ?? null,
-  };
-}
-
 export async function createFeedback(applicationId: string, input: CandidateFeedbackInput) {
   const actor = await getActor();
-  if (!actor) return { error: 'Não autenticado.' };
-  if (!actor.employeeId) return { error: 'Usuário sem perfil de colaborador.' };
+  if (!actor) return { error: 'Nao autenticado.' };
+  if (!actor.employeeId) return { error: 'Usuario sem perfil de colaborador.' };
+  if (!canGiveRecruitmentFeedback(actor)) return { error: 'Sem permissao.' };
 
   const parsed = CandidateFeedbackInputSchema.safeParse(input);
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Dados inválidos.' };
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Dados invalidos.' };
 
   const admin = createAdminSupabaseClient();
   const { data: app } = await admin
@@ -59,11 +32,14 @@ export async function createFeedback(applicationId: string, input: CandidateFeed
     `)
     .eq('id', applicationId)
     .maybeSingle();
-  if (!app || app.company_id !== actor.companyId) return { error: 'Aplicação não encontrada.' };
+  if (!app || app.company_id !== actor.companyId) return { error: 'Aplicacao nao encontrada.' };
 
-  const isAdmin = actor.role === 'admin_rh';
-  const isManager = (app.job_opening as unknown as { hiring_manager_id: string | null } | null)?.hiring_manager_id === actor.employeeId;
-  if (!isAdmin && !isManager) return { error: 'Sem permissão.' };
+  const isAdminRecruitment = canManageRecruitment(actor);
+  const isDirector = actor.role === 'director';
+  const isManager =
+    (app.job_opening as unknown as { hiring_manager_id: string | null } | null)?.hiring_manager_id
+    === actor.employeeId;
+  if (!isAdminRecruitment && !isDirector && !isManager) return { error: 'Sem permissao.' };
 
   const { data, error } = await admin
     .from('candidate_feedbacks')
@@ -101,10 +77,10 @@ export async function createFeedback(applicationId: string, input: CandidateFeed
 
 export async function updateFeedback(id: string, input: CandidateFeedbackInput) {
   const actor = await getActor();
-  if (!actor) return { error: 'Não autenticado.' };
+  if (!actor) return { error: 'Nao autenticado.' };
 
   const parsed = CandidateFeedbackInputSchema.safeParse(input);
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Dados inválidos.' };
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Dados invalidos.' };
 
   const admin = createAdminSupabaseClient();
   const { data: fb } = await admin
@@ -112,14 +88,14 @@ export async function updateFeedback(id: string, input: CandidateFeedbackInput) 
     .select('id, author_id, created_at, deleted_at, company_id, application_id')
     .eq('id', id)
     .maybeSingle();
-  if (!fb || fb.company_id !== actor.companyId) return { error: 'Feedback não encontrado.' };
-  if (fb.deleted_at) return { error: 'Feedback já removido.' };
+  if (!fb || fb.company_id !== actor.companyId) return { error: 'Feedback nao encontrado.' };
+  if (fb.deleted_at) return { error: 'Feedback ja removido.' };
   if (fb.author_id !== actor.employeeId) return { error: 'Apenas o autor pode editar.' };
 
   const createdAt = new Date(fb.created_at).getTime();
   const limit = createdAt + FEEDBACK_EDIT_WINDOW_MINUTES * 60 * 1000;
   if (Date.now() > limit) {
-    return { error: `Janela de edição (${FEEDBACK_EDIT_WINDOW_MINUTES} min) encerrada.` };
+    return { error: `Janela de edicao (${FEEDBACK_EDIT_WINDOW_MINUTES} min) encerrada.` };
   }
 
   const { error } = await admin
@@ -146,7 +122,7 @@ export async function updateFeedback(id: string, input: CandidateFeedbackInput) 
 
 export async function deleteFeedback(id: string) {
   const actor = await getActor();
-  if (!actor) return { error: 'Não autenticado.' };
+  if (!actor) return { error: 'Nao autenticado.' };
 
   const admin = createAdminSupabaseClient();
   const { data: fb } = await admin
@@ -159,18 +135,18 @@ export async function deleteFeedback(id: string) {
     `)
     .eq('id', id)
     .maybeSingle();
-  if (!fb || fb.company_id !== actor.companyId) return { error: 'Feedback não encontrado.' };
+  if (!fb || fb.company_id !== actor.companyId) return { error: 'Feedback nao encontrado.' };
   if (fb.deleted_at) return { ok: true };
 
-  const isAdmin = actor.role === 'admin_rh';
+  const isAdminRecruitment = canManageRecruitment(actor);
   const isAuthor = fb.author_id === actor.employeeId;
-  if (!isAdmin && !isAuthor) return { error: 'Sem permissão.' };
+  if (!isAdminRecruitment && !isAuthor) return { error: 'Sem permissao.' };
 
-  if (isAuthor && !isAdmin) {
+  if (isAuthor && !isAdminRecruitment) {
     const createdAt = new Date(fb.created_at).getTime();
     const limit = createdAt + FEEDBACK_EDIT_WINDOW_MINUTES * 60 * 1000;
     if (Date.now() > limit) {
-      return { error: `Janela de deleção (${FEEDBACK_EDIT_WINDOW_MINUTES} min) encerrada.` };
+      return { error: `Janela de delecao (${FEEDBACK_EDIT_WINDOW_MINUTES} min) encerrada.` };
     }
   }
 
@@ -197,7 +173,7 @@ export async function deleteFeedback(id: string) {
       feedback_id: id,
       candidate_name: appInfo?.candidate?.name,
       job_title: appInfo?.job_opening?.title,
-      deleted_by_admin: isAdmin && !isAuthor,
+      deleted_by_admin: isAdminRecruitment && !isAuthor,
     },
   });
 

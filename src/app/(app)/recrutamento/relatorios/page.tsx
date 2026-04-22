@@ -1,12 +1,13 @@
 import { redirect } from 'next/navigation';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { loadActorRhPermissions } from '@/features/permissions/queries';
 import {
   getMetricsKpis, getFunnel, getOriginsBreakdown,
   getStageDurations, getStalledCandidates, getOverdueTasks,
   getJobsForFilter, getManagersForFilter,
   type MetricsFilter, type ViewerRole,
 } from '@/features/recruitment/queries/metrics';
-import { canAccessRecruitmentModule } from '@/features/recruitment/permissions';
+import { canAccessRecruitmentModule, canManageRecruitment } from '@/features/recruitment/permissions';
 import { RelatoriosDashboard } from '@/features/recruitment/components/RelatoriosDashboard';
 
 type SearchParams = Promise<{
@@ -66,13 +67,21 @@ export default async function RelatoriosPage({ searchParams }: { searchParams: S
     .eq('company_id', profile.company_id)
     .maybeSingle();
 
-  const actor = { role: profile.role, employeeId: employeeRow?.id ?? null };
+  const actorRhPermissions = await loadActorRhPermissions(user.id, profile.role);
+  const actor = {
+    role: profile.role,
+    employeeId: employeeRow?.id ?? null,
+    rhPermissions: actorRhPermissions,
+  };
   if (!canAccessRecruitmentModule(actor)) redirect('/dashboard');
 
   const period = resolvePeriod(sp);
-  const viewerRole = (actor.role === 'admin_rh' || actor.role === 'director' || actor.role === 'gestor')
-    ? actor.role as ViewerRole
-    : 'gestor';
+  const viewerRole: ViewerRole =
+    actor.role === 'director'
+      ? 'director'
+      : canManageRecruitment(actor)
+        ? 'admin_rh'
+        : 'gestor';
 
   const filter: MetricsFilter = {
     companyId: profile.company_id,

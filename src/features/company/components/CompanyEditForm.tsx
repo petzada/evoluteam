@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -13,9 +13,10 @@ import { updateCompany } from '../actions';
 
 interface Props {
   defaultValues: CompanyInput;
+  readOnly?: boolean;
 }
 
-export function CompanyEditForm({ defaultValues }: Props) {
+export function CompanyEditForm({ defaultValues, readOnly = false }: Props) {
   const [loading, setLoading] = useState(false);
 
   const form = useForm<CompanyInput>({
@@ -24,6 +25,8 @@ export function CompanyEditForm({ defaultValues }: Props) {
   });
 
   async function onSubmit(values: CompanyInput) {
+    if (readOnly) return;
+
     setLoading(true);
     const result = await updateCompany({
       name: values.name,
@@ -31,21 +34,29 @@ export function CompanyEditForm({ defaultValues }: Props) {
       segment: values.segment,
       teamSize: values.teamSize,
     });
+
     if (result?.error) {
       toast.error(result.error);
     } else {
       toast.success('Empresa atualizada!');
     }
+
     setLoading(false);
   }
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 max-w-lg">
+        {readOnly && (
+          <p className="rounded-md border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+            Voce tem acesso de auditoria nesta tela. Edicao de empresa e exclusiva de Administrador.
+          </p>
+        )}
+
         <FormField control={form.control} name="name" render={({ field }) => (
           <FormItem>
             <FormLabel>Nome da empresa *</FormLabel>
-            <FormControl><Input {...field} /></FormControl>
+            <FormControl><Input {...field} disabled={readOnly} /></FormControl>
             <FormMessage />
           </FormItem>
         )} />
@@ -53,7 +64,7 @@ export function CompanyEditForm({ defaultValues }: Props) {
         <FormField control={form.control} name="cnpj" render={({ field }) => (
           <FormItem>
             <FormLabel>CNPJ</FormLabel>
-            <FormControl><Input placeholder="00.000.000/0001-00" {...field} /></FormControl>
+            <FormControl><Input placeholder="00.000.000/0001-00" {...field} disabled={readOnly} /></FormControl>
             <FormMessage />
           </FormItem>
         )} />
@@ -61,7 +72,7 @@ export function CompanyEditForm({ defaultValues }: Props) {
         <FormField control={form.control} name="segment" render={({ field }) => (
           <FormItem>
             <FormLabel>Segmento *</FormLabel>
-            <Select onValueChange={field.onChange} value={field.value ?? ''}>
+            <Select onValueChange={field.onChange} value={field.value ?? ''} disabled={readOnly}>
               <FormControl>
                 <SelectTrigger><SelectValue /></SelectTrigger>
               </FormControl>
@@ -78,7 +89,7 @@ export function CompanyEditForm({ defaultValues }: Props) {
         <FormField control={form.control} name="teamSize" render={({ field }) => (
           <FormItem>
             <FormLabel>Tamanho do time *</FormLabel>
-            <Select onValueChange={field.onChange} value={field.value ?? ''}>
+            <Select onValueChange={field.onChange} value={field.value ?? ''} disabled={readOnly}>
               <FormControl>
                 <SelectTrigger><SelectValue /></SelectTrigger>
               </FormControl>
@@ -92,9 +103,11 @@ export function CompanyEditForm({ defaultValues }: Props) {
           </FormItem>
         )} />
 
-        <Button type="submit" disabled={loading}>
-          {loading ? 'Salvando…' : 'Salvar'}
-        </Button>
+        {!readOnly && (
+          <Button type="submit" disabled={loading}>
+            {loading ? 'Salvando...' : 'Salvar'}
+          </Button>
+        )}
       </form>
     </Form>
   );

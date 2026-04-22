@@ -1,6 +1,7 @@
 import { notFound, redirect } from 'next/navigation';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { getDepartments, getPositions } from '@/features/employees/queries';
+import { loadActorRhPermissions } from '@/features/permissions/queries';
 import {
   getJobOpeningById, listHiringManagerOptions,
 } from '@/features/recruitment/queries/jobOpenings';
@@ -13,7 +14,7 @@ import { countScorecardsByApplication, listScorecardsByJob } from '@/features/re
 import { getTaskStatesByApplication, listTasksByJob } from '@/features/recruitment/queries/tasks';
 import {
   canManageJobOpenings, canMoveApplication,
-  canGiveFeedback, canHireCandidate,
+  canGiveFeedback, canHireCandidate, canManageRecruitment,
 } from '@/features/recruitment/permissions';
 import { JobOpeningDetail } from '@/features/recruitment/components/JobOpeningDetail';
 import { BreadcrumbLabel } from '@/features/shell/components/BreadcrumbLabel';
@@ -41,7 +42,12 @@ export default async function VagaDetailPage({ params }: { params: Params }) {
     .eq('company_id', profile.company_id)
     .maybeSingle();
 
-  const actor = { role: profile.role, employeeId: employeeRow?.id ?? null };
+  const actorRhPermissions = await loadActorRhPermissions(user.id, profile.role);
+  const actor = {
+    role: profile.role,
+    employeeId: employeeRow?.id ?? null,
+    rhPermissions: actorRhPermissions,
+  };
 
   const job = await getJobOpeningById(id);
   if (!job) notFound();
@@ -84,7 +90,7 @@ export default async function VagaDetailPage({ params }: { params: Params }) {
         scorecards={scorecards}
         tasks={tasks}
         currentEmployeeId={actor.employeeId}
-        isAdmin={actor.role === 'admin_rh'}
+        isAdmin={canManageRecruitment(actor)}
         positions={positions}
         departments={departments}
         managers={managers}

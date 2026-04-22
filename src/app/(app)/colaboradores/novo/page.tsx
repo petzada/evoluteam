@@ -4,6 +4,8 @@ import {
   listEmployees, getPositions, getDepartments, getCompanyProfileRoles,
 } from '@/features/employees/queries';
 import { EmployeesList } from '@/features/employees/components/EmployeesList';
+import { loadActorRhPermissions } from '@/features/permissions/queries';
+import { hasAdminPower } from '@/features/permissions/permissions';
 
 export default async function ColaboradoresNovoPage() {
   const supabase = await createServerSupabaseClient();
@@ -17,7 +19,12 @@ export default async function ColaboradoresNovoPage() {
     .single();
 
   if (!profile?.company_id) redirect('/onboarding/criar-empresa');
-  if (profile.role !== 'admin_rh') redirect('/colaboradores');
+
+  const actorRhPermissions = await loadActorRhPermissions(user.id, profile.role);
+  const actor = { role: profile.role, rhPermissions: actorRhPermissions };
+  const canOpenNovo =
+    hasAdminPower(actor, 'can_employees') || hasAdminPower(actor, 'can_invites');
+  if (!canOpenNovo) redirect('/colaboradores');
 
   const [employees, positions, departments, profileRoles] = await Promise.all([
     listEmployees(profile.company_id),

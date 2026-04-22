@@ -1,6 +1,7 @@
 import { notFound, redirect } from 'next/navigation';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { createAdminSupabaseClient } from '@/lib/supabase/admin';
+import { loadActorRhPermissions } from '@/features/permissions/queries';
 import { getCandidateById } from '@/features/recruitment/queries/candidates';
 import {
   listApplicationsByCandidate,
@@ -11,7 +12,7 @@ import { listScorecardsByCandidate } from '@/features/recruitment/queries/scorec
 import { listTasksByCandidate } from '@/features/recruitment/queries/tasks';
 import { listHiringManagerOptions } from '@/features/recruitment/queries/jobOpenings';
 import {
-  canManageCandidates, canGiveFeedback,
+  canManageCandidates, canGiveFeedback, canManageRecruitment,
 } from '@/features/recruitment/permissions';
 import { CandidateProfile } from '@/features/recruitment/components/CandidateProfile';
 import { BreadcrumbLabel } from '@/features/shell/components/BreadcrumbLabel';
@@ -38,7 +39,12 @@ export default async function CandidatoPage({ params }: { params: Params }) {
     .eq('company_id', profile.company_id)
     .maybeSingle();
 
-  const actor = { role: profile.role, employeeId: employeeRow?.id ?? null };
+  const actorRhPermissions = await loadActorRhPermissions(user.id, profile.role);
+  const actor = {
+    role: profile.role,
+    employeeId: employeeRow?.id ?? null,
+    rhPermissions: actorRhPermissions,
+  };
 
   const candidate = await getCandidateById(id);
   if (!candidate) notFound();
@@ -90,7 +96,7 @@ export default async function CandidatoPage({ params }: { params: Params }) {
         canManage={canManageCandidates(actor)}
         canGiveFeedback={canGiveFeedback(actor)}
         currentEmployeeId={actor.employeeId}
-        isAdmin={actor.role === 'admin_rh'}
+        isAdmin={canManageRecruitment(actor)}
         applicationsOwnedByCurrentGestor={ownedByGestor}
         responsibleOptions={responsibleOptions}
       />

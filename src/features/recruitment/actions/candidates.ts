@@ -1,33 +1,19 @@
-'use server';
+﻿'use server';
 
 import { revalidatePath } from 'next/cache';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 import { logActivity } from '@/lib/activity';
+import { getActor } from '@/features/permissions/actor';
+import { canManageCandidates } from '../permissions';
 import { CandidateInputSchema, type CandidateInput } from '../schema';
-
-type Actor = { userId: string; companyId: string; role: 'admin_rh' | 'director' | 'user' };
-
-async function getActor(): Promise<Actor | null> {
-  const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('company_id, role')
-    .eq('id', user.id)
-    .single();
-  if (!profile?.company_id) return null;
-  return { userId: user.id, companyId: profile.company_id, role: profile.role as Actor['role'] };
-}
 
 export async function createCandidate(input: CandidateInput) {
   const actor = await getActor();
-  if (!actor) return { error: 'Não autenticado.' };
-  if (actor.role !== 'admin_rh') return { error: 'Sem permissão.' };
+  if (!actor) return { error: 'Nao autenticado.' };
+  if (!canManageCandidates(actor)) return { error: 'Sem permissao.' };
 
   const parsed = CandidateInputSchema.safeParse(input);
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Dados inválidos.' };
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Dados invalidos.' };
   const v = parsed.data;
 
   const admin = createAdminSupabaseClient();
@@ -40,7 +26,7 @@ export async function createCandidate(input: CandidateInput) {
     .eq('email', v.email)
     .maybeSingle();
   if (existing) {
-    return { error: 'Já existe um candidato com este e-mail.', existingId: existing.id };
+    return { error: 'Ja existe um candidato com este e-mail.', existingId: existing.id };
   }
 
   const { data, error } = await admin
@@ -77,11 +63,11 @@ export async function createCandidate(input: CandidateInput) {
 
 export async function updateCandidate(id: string, input: CandidateInput) {
   const actor = await getActor();
-  if (!actor) return { error: 'Não autenticado.' };
-  if (actor.role !== 'admin_rh') return { error: 'Sem permissão.' };
+  if (!actor) return { error: 'Nao autenticado.' };
+  if (!canManageCandidates(actor)) return { error: 'Sem permissao.' };
 
   const parsed = CandidateInputSchema.safeParse(input);
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Dados inválidos.' };
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Dados invalidos.' };
   const v = parsed.data;
 
   const admin = createAdminSupabaseClient();
@@ -90,7 +76,7 @@ export async function updateCandidate(id: string, input: CandidateInput) {
     .select('id, email, company_id')
     .eq('id', id)
     .maybeSingle();
-  if (!before || before.company_id !== actor.companyId) return { error: 'Candidato não encontrado.' };
+  if (!before || before.company_id !== actor.companyId) return { error: 'Candidato nao encontrado.' };
 
   // Verificar conflito se email mudou
   if (before.email !== v.email) {
@@ -101,7 +87,7 @@ export async function updateCandidate(id: string, input: CandidateInput) {
       .eq('email', v.email)
       .neq('id', id)
       .maybeSingle();
-    if (conflict) return { error: 'Já existe um candidato com este e-mail.', existingId: conflict.id };
+    if (conflict) return { error: 'Ja existe um candidato com este e-mail.', existingId: conflict.id };
   }
 
   const { error } = await admin
@@ -137,8 +123,8 @@ export async function updateCandidate(id: string, input: CandidateInput) {
 
 export async function archiveCandidate(id: string) {
   const actor = await getActor();
-  if (!actor) return { error: 'Não autenticado.' };
-  if (actor.role !== 'admin_rh') return { error: 'Sem permissão.' };
+  if (!actor) return { error: 'Nao autenticado.' };
+  if (!canManageCandidates(actor)) return { error: 'Sem permissao.' };
 
   const admin = createAdminSupabaseClient();
   const { data: before } = await admin
@@ -146,7 +132,7 @@ export async function archiveCandidate(id: string) {
     .select('id, name, company_id, archived_at')
     .eq('id', id)
     .maybeSingle();
-  if (!before || before.company_id !== actor.companyId) return { error: 'Candidato não encontrado.' };
+  if (!before || before.company_id !== actor.companyId) return { error: 'Candidato nao encontrado.' };
   if (before.archived_at) return { ok: true };
 
   const { error } = await admin

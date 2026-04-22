@@ -1,9 +1,10 @@
-'use server';
+﻿'use server';
 
 import { revalidatePath } from 'next/cache';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 import { logActivity } from '@/lib/activity';
+import { getActor } from '@/features/permissions/actor';
+import { canManageStages } from '../permissions';
 import {
   RecruitmentStageInputSchema,
   UpdateRecruitmentStageInputSchema,
@@ -11,32 +12,17 @@ import {
   type UpdateRecruitmentStageInput,
 } from '../schema';
 
-type Actor = { userId: string; companyId: string; role: 'admin_rh' | 'director' | 'user' };
-
-async function getActor(): Promise<Actor | null> {
-  const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('company_id, role')
-    .eq('id', user.id)
-    .single();
-  if (!profile?.company_id) return null;
-  return { userId: user.id, companyId: profile.company_id, role: profile.role as Actor['role'] };
-}
-
 export async function createRecruitmentStage(input: RecruitmentStageInput) {
   const actor = await getActor();
-  if (!actor) return { error: 'Não autenticado.' };
-  if (actor.role !== 'admin_rh') return { error: 'Sem permissão.' };
+  if (!actor) return { error: 'Nao autenticado.' };
+  if (!canManageStages(actor)) return { error: 'Sem permissao.' };
 
   const parsed = RecruitmentStageInputSchema.safeParse(input);
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Dados inválidos.' };
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Dados invalidos.' };
 
   const admin = createAdminSupabaseClient();
 
-  // Nova etapa é sempre intermediate e vai no final (antes do hired_terminal).
+  // Nova etapa e sempre intermediate e vai no final (antes do hired_terminal).
   // Position = max(intermediate) + 1.
   const { data: allStages } = await admin
     .from('recruitment_stages')
@@ -84,11 +70,11 @@ export async function createRecruitmentStage(input: RecruitmentStageInput) {
 
 export async function updateRecruitmentStage(id: string, input: UpdateRecruitmentStageInput) {
   const actor = await getActor();
-  if (!actor) return { error: 'Não autenticado.' };
-  if (actor.role !== 'admin_rh') return { error: 'Sem permissão.' };
+  if (!actor) return { error: 'Nao autenticado.' };
+  if (!canManageStages(actor)) return { error: 'Sem permissao.' };
 
   const parsed = UpdateRecruitmentStageInputSchema.safeParse(input);
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Dados inválidos.' };
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Dados invalidos.' };
 
   const admin = createAdminSupabaseClient();
   const { data: before } = await admin
@@ -96,11 +82,11 @@ export async function updateRecruitmentStage(id: string, input: UpdateRecruitmen
     .select('id, name, kind, notifies_hiring_manager, company_id')
     .eq('id', id)
     .maybeSingle();
-  if (!before || before.company_id !== actor.companyId) return { error: 'Etapa não encontrada.' };
+  if (!before || before.company_id !== actor.companyId) return { error: 'Etapa nao encontrada.' };
 
-  // Regra spec 14 §5.11: toggle notifies_hiring_manager só vale em intermediate.
+  // Regra spec 14 §5.11: toggle notifies_hiring_manager so vale em intermediate.
   if (parsed.data.notifiesHiringManager !== undefined && before.kind !== 'intermediate') {
-    return { error: 'Apenas etapas intermediárias podem notificar o gestor.' };
+    return { error: 'Apenas etapas intermediarias podem notificar o gestor.' };
   }
 
   const updates: {
@@ -140,8 +126,8 @@ export async function updateRecruitmentStage(id: string, input: UpdateRecruitmen
 
 export async function archiveRecruitmentStage(id: string) {
   const actor = await getActor();
-  if (!actor) return { error: 'Não autenticado.' };
-  if (actor.role !== 'admin_rh') return { error: 'Sem permissão.' };
+  if (!actor) return { error: 'Nao autenticado.' };
+  if (!canManageStages(actor)) return { error: 'Sem permissao.' };
 
   const admin = createAdminSupabaseClient();
   const { data: stage } = await admin
@@ -149,9 +135,9 @@ export async function archiveRecruitmentStage(id: string) {
     .select('id, name, kind, archived_at, company_id')
     .eq('id', id)
     .maybeSingle();
-  if (!stage || stage.company_id !== actor.companyId) return { error: 'Etapa não encontrada.' };
+  if (!stage || stage.company_id !== actor.companyId) return { error: 'Etapa nao encontrada.' };
   if (stage.kind === 'entry' || stage.kind === 'hired_terminal') {
-    return { error: 'Essa etapa é obrigatória e não pode ser arquivada.' };
+    return { error: 'Essa etapa e obrigatoria e nao pode ser arquivada.' };
   }
   if (stage.archived_at) return { ok: true };
 
@@ -177,13 +163,13 @@ export async function archiveRecruitmentStage(id: string) {
 /**
  * Reativa uma etapa arquivada (spec 14 §5.11).
  * Insere a etapa reativada no final da lista ativa (antes de
- * hired_terminal, se existir), seguindo a mesma lógica de posicionamento
+ * hired_terminal, se existir), seguindo a mesma logica de posicionamento
  * de createRecruitmentStage.
  */
 export async function reactivateRecruitmentStage(id: string) {
   const actor = await getActor();
-  if (!actor) return { error: 'Não autenticado.' };
-  if (actor.role !== 'admin_rh') return { error: 'Sem permissão.' };
+  if (!actor) return { error: 'Nao autenticado.' };
+  if (!canManageStages(actor)) return { error: 'Sem permissao.' };
 
   const admin = createAdminSupabaseClient();
   const { data: stage } = await admin
@@ -191,18 +177,18 @@ export async function reactivateRecruitmentStage(id: string) {
     .select('id, name, kind, archived_at, company_id')
     .eq('id', id)
     .maybeSingle();
-  if (!stage || stage.company_id !== actor.companyId) return { error: 'Etapa não encontrada.' };
+  if (!stage || stage.company_id !== actor.companyId) return { error: 'Etapa nao encontrada.' };
   if (!stage.archived_at) return { ok: true };
 
-  // Só intermediárias podem estar arquivadas (entry/hired_terminal não
-  // são arquiváveis pelo archiveRecruitmentStage), mas validamos aqui
+  // So intermediarias podem estar arquivadas (entry/hired_terminal nao
+  // sao arquivaveis pelo archiveRecruitmentStage), mas validamos aqui
   // por defesa caso o banco tenha dado arquivada "manual".
   if (stage.kind !== 'intermediate') {
-    return { error: 'Apenas etapas intermediárias podem ser reativadas.' };
+    return { error: 'Apenas etapas intermediarias podem ser reativadas.' };
   }
 
-  // Calcula nova posição: penúltima entre as ativas se existe
-  // hired_terminal, senão última.
+  // Calcula nova posicao: penultima entre as ativas se existe
+  // hired_terminal, senao ultima.
   const { data: allStages } = await admin
     .from('recruitment_stages')
     .select('id, position, kind, archived_at')
@@ -245,8 +231,8 @@ export async function reactivateRecruitmentStage(id: string) {
 
 export async function reorderRecruitmentStages(orderedIds: string[]) {
   const actor = await getActor();
-  if (!actor) return { error: 'Não autenticado.' };
-  if (actor.role !== 'admin_rh') return { error: 'Sem permissão.' };
+  if (!actor) return { error: 'Nao autenticado.' };
+  if (!canManageStages(actor)) return { error: 'Sem permissao.' };
 
   const admin = createAdminSupabaseClient();
   const { data: all } = await admin
@@ -256,18 +242,17 @@ export async function reorderRecruitmentStages(orderedIds: string[]) {
     .is('archived_at', null);
 
   const active = all ?? [];
-  if (active.length !== orderedIds.length) return { error: 'Lista de etapas inválida.' };
+  if (active.length !== orderedIds.length) return { error: 'Lista de etapas invalida.' };
 
-  // Validações: entry deve ser primeiro; hired_terminal deve ser último.
+  // Validacoes: entry deve ser primeiro; hired_terminal deve ser ultimo.
   const entry = active.find((s) => s.kind === 'entry');
   const hired = active.find((s) => s.kind === 'hired_terminal');
   if (entry && orderedIds[0] !== entry.id) return { error: 'A etapa inicial deve ser a primeira.' };
   if (hired && orderedIds[orderedIds.length - 1] !== hired.id) {
-    return { error: 'A etapa de contratação deve ser a última.' };
+    return { error: 'A etapa de contratacao deve ser a ultima.' };
   }
 
-  // Aplica novas posições (1..N) — em 2 passos pra evitar conflito de UNIQUE:
-  // passo 1 zera posições temporariamente em negativos
+  // Aplica novas posicoes (1..N) em 2 passos pra evitar conflito de UNIQUE.
   for (let i = 0; i < orderedIds.length; i += 1) {
     await admin
       .from('recruitment_stages')

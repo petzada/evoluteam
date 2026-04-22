@@ -1,4 +1,4 @@
-import { createServerClient } from '@supabase/ssr';
+﻿import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import type { Database } from '@/lib/supabase/types';
 
@@ -25,7 +25,7 @@ export async function proxy(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   const pathname = request.nextUrl.pathname;
 
-  // 1) Rotas estritamente públicas
+  // 1) Public routes
   const isPublicReset = pathname.startsWith('/reset-password');
   const isPublicInvite = pathname.startsWith('/convite');
   const isPublicAuth = pathname === '/login' || pathname === '/forgot-password';
@@ -40,14 +40,14 @@ export async function proxy(request: NextRequest) {
 
   if (isPublicSuspended) return response;
 
-  // 2) Rotas autenticadas: precisa session
+  // 2) Authenticated routes need session
   if (!user) {
     const url = new URL('/login', request.url);
     if (pathname !== '/') url.searchParams.set('continue', pathname);
     return NextResponse.redirect(url);
   }
 
-  // 3) Lookup de perfil (company, role, status do employee)
+  // 3) Profile lookup (company, role, employee status)
   const { data: profile } = await supabase
     .from('profiles')
     .select('company_id, role, company:companies(status)')
@@ -63,38 +63,31 @@ export async function proxy(request: NextRequest) {
         .maybeSingle()
     : { data: null };
 
-  // 4) Conta desligada → força logout
+  // 4) Terminated account -> force logout
   if (employee?.status === 'terminated') {
     await supabase.auth.signOut();
     return NextResponse.redirect(new URL('/login?error=conta_desligada', request.url));
   }
 
-  // 5) Empresa suspensa
+  // 5) Suspended company
   const company = profile?.company as { status: string } | null;
   if (company?.status === 'suspended') {
     return NextResponse.redirect(new URL('/conta-suspensa', request.url));
   }
 
-  // 6) Sem empresa: só pode ir para onboarding
+  // 6) Without company: can only access onboarding
   const hasCompany = !!profile?.company_id;
   if (!hasCompany) {
     if (pathname === '/onboarding/criar-empresa') return response;
     return NextResponse.redirect(new URL('/onboarding/criar-empresa', request.url));
   }
 
-  // 7) Com empresa tentando acessar onboarding
+  // 7) With company trying onboarding
   if (pathname.startsWith('/onboarding')) {
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
-  // 8) Proteção de role em /configuracoes (exceto /perfil)
-  if (pathname.startsWith('/configuracoes') && pathname !== '/configuracoes/perfil') {
-    if (profile?.role !== 'admin_rh') {
-      return new NextResponse('Forbidden', { status: 403 });
-    }
-  }
-
-  // 9) /dashboard: render happens in page.tsx (gerencial vs "Minha área")
+  // 8) Module-level authorization happens in page/server action layers.
   return response;
 }
 

@@ -19,7 +19,10 @@ export default async function EmpresaPage() {
     .single();
   if (!profile?.company_id) redirect('/onboarding/criar-empresa');
   const actorRhPermissions = await loadActorRhPermissions(user.id, profile.role);
-  if (!hasAdminPower({ role: profile.role, rhPermissions: actorRhPermissions }, 'can_employees')) {
+  const actorForGate = { role: profile.role, rhPermissions: actorRhPermissions };
+  const canEditCompany = hasAdminPower(actorForGate, 'can_employees');
+  const canReadCompany = canEditCompany || hasAdminPower(actorForGate, 'can_audit');
+  if (!canReadCompany) {
     redirect('/dashboard');
   }
 
@@ -28,7 +31,14 @@ export default async function EmpresaPage() {
 
   return (
     <div>
-      <PageHeader title="Empresa" description="Edite os dados da sua empresa." />
+      <PageHeader
+        title="Empresa"
+        description={
+          canEditCompany
+            ? 'Edite os dados da sua empresa.'
+            : 'Visualização somente leitura dos dados da empresa.'
+        }
+      />
       <Card>
         <CardContent>
           <CompanyEditForm
@@ -38,6 +48,7 @@ export default async function EmpresaPage() {
               segment: company.segment as Parameters<typeof CompanyEditForm>[0]['defaultValues']['segment'],
               teamSize: company.team_size as Parameters<typeof CompanyEditForm>[0]['defaultValues']['teamSize'],
             }}
+            readOnly={!canEditCompany}
           />
         </CardContent>
       </Card>

@@ -1,10 +1,11 @@
-'use server';
+﻿'use server';
 
 import { revalidatePath } from 'next/cache';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { getActor } from '@/features/permissions/actor';
 import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 import { logActivity } from '@/lib/activity';
 import { notify } from '@/lib/notifications';
+import { canManageApplications } from '../permissions';
 import {
   CandidateInputSchema, type CandidateInput,
   REJECTION_REASONS, WITHDRAWAL_REASONS,
@@ -12,37 +13,6 @@ import {
   type RejectionReason, type WithdrawalReason,
 } from '../schema';
 import type { PipelineSnapshotStage } from '../pipeline-snapshot';
-
-type Actor = {
-  userId: string;
-  companyId: string;
-  role: 'admin_rh' | 'director' | 'user';
-  employeeId: string | null;
-};
-
-async function getActor(): Promise<Actor | null> {
-  const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('company_id, role')
-    .eq('id', user.id)
-    .single();
-  if (!profile?.company_id) return null;
-  const { data: emp } = await supabase
-    .from('employees')
-    .select('id')
-    .eq('user_id', user.id)
-    .eq('company_id', profile.company_id)
-    .maybeSingle();
-  return {
-    userId: user.id,
-    companyId: profile.company_id,
-    role: profile.role as Actor['role'],
-    employeeId: emp?.id ?? null,
-  };
-}
 
 async function isHiringManagerOfJob(jobOpeningId: string, employeeId: string | null) {
   if (!employeeId) return false;
@@ -62,8 +32,8 @@ async function isHiringManagerOfJob(jobOpeningId: string, employeeId: string | n
  */
 export async function linkCandidateToJob(candidateId: string, jobOpeningId: string) {
   const actor = await getActor();
-  if (!actor) return { error: 'Não autenticado.' };
-  if (actor.role !== 'admin_rh') return { error: 'Sem permissão.' };
+  if (!actor) return { error: 'NÃ£o autenticado.' };
+  if (!canManageApplications(actor)) return { error: 'Sem permissÃ£o.' };
 
   const admin = createAdminSupabaseClient();
 
@@ -72,25 +42,25 @@ export async function linkCandidateToJob(candidateId: string, jobOpeningId: stri
     .select('id, title, company_id, hiring_manager_id, pipeline_snapshot')
     .eq('id', jobOpeningId)
     .maybeSingle();
-  if (!job || job.company_id !== actor.companyId) return { error: 'Vaga não encontrada.' };
+  if (!job || job.company_id !== actor.companyId) return { error: 'Vaga nÃ£o encontrada.' };
 
   const { data: candidate } = await admin
     .from('candidates')
     .select('id, name, company_id')
     .eq('id', candidateId)
     .maybeSingle();
-  if (!candidate || candidate.company_id !== actor.companyId) return { error: 'Candidato não encontrado.' };
+  if (!candidate || candidate.company_id !== actor.companyId) return { error: 'Candidato nÃ£o encontrado.' };
 
-  // Já existe aplicação nesta vaga?
+  // JÃ¡ existe aplicaÃ§Ã£o nesta vaga?
   const { data: existing } = await admin
     .from('job_applications')
     .select('id')
     .eq('job_opening_id', jobOpeningId)
     .eq('candidate_id', candidateId)
     .maybeSingle();
-  if (existing) return { error: 'Este candidato já está vinculado a esta vaga.' };
+  if (existing) return { error: 'Este candidato jÃ¡ estÃ¡ vinculado a esta vaga.' };
 
-  // Entry stage (do snapshot da vaga, não do funil global)
+  // Entry stage (do snapshot da vaga, nÃ£o do funil global)
   const snapshot = (job.pipeline_snapshot ?? []) as PipelineSnapshotStage[];
   const entryStage = snapshot.find((s) => s.kind === 'entry');
   if (!entryStage) return { error: 'Funil da vaga sem etapa de entrada.' };
@@ -138,15 +108,15 @@ export async function linkCandidateToJob(candidateId: string, jobOpeningId: stri
 }
 
 /**
- * Cria candidato novo + vincula à vaga numa única chamada.
+ * Cria candidato novo + vincula Ã  vaga numa Ãºnica chamada.
  */
 export async function createAndLinkCandidate(input: CandidateInput, jobOpeningId: string) {
   const actor = await getActor();
-  if (!actor) return { error: 'Não autenticado.' };
-  if (actor.role !== 'admin_rh') return { error: 'Sem permissão.' };
+  if (!actor) return { error: 'NÃ£o autenticado.' };
+  if (!canManageApplications(actor)) return { error: 'Sem permissÃ£o.' };
 
   const parsed = CandidateInputSchema.safeParse(input);
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Dados inválidos.' };
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Dados invÃ¡lidos.' };
   const v = parsed.data;
 
   const admin = createAdminSupabaseClient();
@@ -157,7 +127,7 @@ export async function createAndLinkCandidate(input: CandidateInput, jobOpeningId
     .select('id, title, company_id, pipeline_snapshot')
     .eq('id', jobOpeningId)
     .maybeSingle();
-  if (!job || job.company_id !== actor.companyId) return { error: 'Vaga não encontrada.' };
+  if (!job || job.company_id !== actor.companyId) return { error: 'Vaga nÃ£o encontrada.' };
 
   // Verificar conflito de email
   const { data: existingCand } = await admin
@@ -167,10 +137,10 @@ export async function createAndLinkCandidate(input: CandidateInput, jobOpeningId
     .eq('email', v.email)
     .maybeSingle();
   if (existingCand) {
-    return { error: 'Já existe um candidato com este e-mail. Use "Vincular existente" no sheet.', existingId: existingCand.id };
+    return { error: 'JÃ¡ existe um candidato com este e-mail. Use "Vincular existente" no sheet.', existingId: existingCand.id };
   }
 
-  // Entry stage (do snapshot da vaga, não do funil global)
+  // Entry stage (do snapshot da vaga, nÃ£o do funil global)
   const snapshot = (job.pipeline_snapshot ?? []) as PipelineSnapshotStage[];
   const entryStage = snapshot.find((s) => s.kind === 'entry');
   if (!entryStage) return { error: 'Funil da vaga sem etapa de entrada.' };
@@ -194,7 +164,7 @@ export async function createAndLinkCandidate(input: CandidateInput, jobOpeningId
     .single();
   if (candErr || !candidate) return { error: 'Falha ao criar candidato.' };
 
-  // Cria aplicação
+  // Cria aplicaÃ§Ã£o
   const { data: app, error: appErr } = await admin
     .from('job_applications')
     .insert({
@@ -208,9 +178,9 @@ export async function createAndLinkCandidate(input: CandidateInput, jobOpeningId
     .select('id')
     .single();
   if (appErr || !app) {
-    // rollback candidato se aplicação falhou
+    // rollback candidato se aplicaÃ§Ã£o falhou
     await admin.from('candidates').delete().eq('id', candidate.id);
-    return { error: 'Falha ao vincular candidato à vaga.' };
+    return { error: 'Falha ao vincular candidato Ã  vaga.' };
   }
 
   await admin.from('candidate_stage_history').insert({
@@ -251,14 +221,14 @@ export async function createAndLinkCandidate(input: CandidateInput, jobOpeningId
 /**
  * Move candidato entre etapas. Respeitando RLS (admin ou hiring_manager).
  *
- * Invariante do schema (spec 13 §4.5): status='hired' implica stage kind='hired_terminal'
- * e só é atingido via hireCandidate (que cria o employee atomicamente). Por isso esta
- * action recusa mover para hired_terminal — seria bypass do wizard. O Kanban intercepta
+ * Invariante do schema (spec 13 Â§4.5): status='hired' implica stage kind='hired_terminal'
+ * e sÃ³ Ã© atingido via hireCandidate (que cria o employee atomicamente). Por isso esta
+ * action recusa mover para hired_terminal â€” seria bypass do wizard. O Kanban intercepta
  * o drop antes de chamar aqui e abre o HireCandidateDialog.
  */
 export async function moveApplicationStage(applicationId: string, targetStageId: string) {
   const actor = await getActor();
-  if (!actor) return { error: 'Não autenticado.' };
+  if (!actor) return { error: 'NÃ£o autenticado.' };
 
   const admin = createAdminSupabaseClient();
   const { data: app } = await admin
@@ -270,18 +240,18 @@ export async function moveApplicationStage(applicationId: string, targetStageId:
     `)
     .eq('id', applicationId)
     .maybeSingle();
-  if (!app || app.company_id !== actor.companyId) return { error: 'Aplicação não encontrada.' };
+  if (!app || app.company_id !== actor.companyId) return { error: 'AplicaÃ§Ã£o nÃ£o encontrada.' };
 
   // Perm check
-  const isAdmin = actor.role === 'admin_rh';
+  const hasAdminRecruitment = canManageApplications(actor);
   const isManager = await isHiringManagerOfJob(app.job_opening_id, actor.employeeId);
-  if (!isAdmin && !isManager) return { error: 'Sem permissão.' };
+  if (!hasAdminRecruitment && !isManager) return { error: 'Sem permissÃ£o.' };
 
-  if (app.status !== 'in_progress') return { error: 'Aplicação não está ativa.' };
+  if (app.status !== 'in_progress') return { error: 'AplicaÃ§Ã£o nÃ£o estÃ¡ ativa.' };
   if (app.current_stage_id === targetStageId) return { ok: true };
 
-  // Funil congelado da vaga: snapshot é a única fonte de verdade pra
-  // validação e ordenação de etapas dessa aplicação.
+  // Funil congelado da vaga: snapshot Ã© a Ãºnica fonte de verdade pra
+  // validaÃ§Ã£o e ordenaÃ§Ã£o de etapas dessa aplicaÃ§Ã£o.
   const jobObj = app.job_opening as unknown as {
     title: string;
     hiring_manager_id: string | null;
@@ -289,7 +259,7 @@ export async function moveApplicationStage(applicationId: string, targetStageId:
   } | null;
   const snapshot = (jobObj?.pipeline_snapshot ?? []) as PipelineSnapshotStage[];
   const target = snapshot.find((s) => s.id === targetStageId);
-  if (!target) return { error: 'Etapa não pertence ao funil desta vaga.' };
+  if (!target) return { error: 'Etapa nÃ£o pertence ao funil desta vaga.' };
   if (target.kind === 'hired_terminal') {
     return {
       error: 'Para contratar use o assistente (drop em "Contratado" abre o wizard).',
@@ -309,10 +279,10 @@ export async function moveApplicationStage(applicationId: string, targetStageId:
     .eq('id', applicationId);
   if (updErr) return { error: 'Falha ao mover candidato.' };
 
-  // Se o usuário pulou etapas (diff de position > 1) no funil da vaga,
-  // preencher o histórico com entries sintéticas pra cada etapa
-  // intermediária, mantendo o funil de relatórios consistente. Entries
-  // sintéticas ficam fora do timeline do candidato e do cálculo de
+  // Se o usuÃ¡rio pulou etapas (diff de position > 1) no funil da vaga,
+  // preencher o histÃ³rico com entries sintÃ©ticas pra cada etapa
+  // intermediÃ¡ria, mantendo o funil de relatÃ³rios consistente. Entries
+  // sintÃ©ticas ficam fora do timeline do candidato e do cÃ¡lculo de
   // tempo mediano.
   const fromPos = fromStage?.position ?? null;
   const toPos = target.position;
@@ -343,7 +313,7 @@ export async function moveApplicationStage(applicationId: string, targetStageId:
       });
       prevStageId = s.id;
     });
-    // Entrada real da etapa de destino, não sintética.
+    // Entrada real da etapa de destino, nÃ£o sintÃ©tica.
     inserts.push({
       application_id: applicationId,
       from_stage_id: prevStageId,
@@ -354,7 +324,7 @@ export async function moveApplicationStage(applicationId: string, targetStageId:
     });
     await admin.from('candidate_stage_history').insert(inserts);
   } else {
-    // Movimento normal (1 etapa) — comportamento original
+    // Movimento normal (1 etapa) â€” comportamento original
     await admin.from('candidate_stage_history').insert({
       application_id: applicationId,
       from_stage_id: app.current_stage_id,
@@ -382,8 +352,8 @@ export async function moveApplicationStage(applicationId: string, targetStageId:
     },
   });
 
-  // Notificação: se a etapa destino tem notifies_hiring_manager=true e o actor
-  // não é o próprio gestor da vaga, notifica o hiring_manager (spec 14 §6.5, §9).
+  // NotificaÃ§Ã£o: se a etapa destino tem notifies_hiring_manager=true e o actor
+  // nÃ£o Ã© o prÃ³prio gestor da vaga, notifica o hiring_manager (spec 14 Â§6.5, Â§9).
   if (target.notifies_hiring_manager === true && hiringManagerId && actor.employeeId !== hiringManagerId) {
     const { data: mgr } = await admin
       .from('employees')
@@ -420,7 +390,7 @@ async function markArchived(
   },
 ) {
   const actor = await getActor();
-  if (!actor) return { error: 'Não autenticado.' };
+  if (!actor) return { error: 'NÃ£o autenticado.' };
 
   const admin = createAdminSupabaseClient();
   const { data: app } = await admin
@@ -432,12 +402,12 @@ async function markArchived(
     `)
     .eq('id', applicationId)
     .maybeSingle();
-  if (!app || app.company_id !== actor.companyId) return { error: 'Aplicação não encontrada.' };
+  if (!app || app.company_id !== actor.companyId) return { error: 'AplicaÃ§Ã£o nÃ£o encontrada.' };
 
-  const isAdmin = actor.role === 'admin_rh';
+  const hasAdminRecruitment = canManageApplications(actor);
   const isManager = await isHiringManagerOfJob(app.job_opening_id, actor.employeeId);
-  if (!isAdmin && !isManager) return { error: 'Sem permissão.' };
-  if (app.status !== 'in_progress') return { error: 'Aplicação não está ativa.' };
+  if (!hasAdminRecruitment && !isManager) return { error: 'Sem permissÃ£o.' };
+  if (app.status !== 'in_progress') return { error: 'AplicaÃ§Ã£o nÃ£o estÃ¡ ativa.' };
 
   const now = new Date().toISOString();
   const updatePayload =
@@ -472,7 +442,7 @@ async function markArchived(
     .from('job_applications')
     .update(updatePayload)
     .eq('id', applicationId);
-  if (updErr) return { error: 'Falha ao arquivar aplicação.' };
+  if (updErr) return { error: 'Falha ao arquivar aplicaÃ§Ã£o.' };
 
   await admin.from('candidate_stage_history').insert({
     application_id: applicationId,
@@ -526,7 +496,7 @@ export async function markApplicationWithdrawn(
   reason: WithdrawalReason,
   reasonOther: string | null,
 ) {
-  if (!WITHDRAWAL_REASONS.includes(reason)) return { error: 'Motivo inválido.' };
+  if (!WITHDRAWAL_REASONS.includes(reason)) return { error: 'Motivo invÃ¡lido.' };
   if (reason === 'outro' && !reasonOther?.trim()) return { error: 'Descreva o motivo "outro".' };
   return markArchived(applicationId, 'withdrawn', {
     withdrawal_reason: reason,
@@ -539,7 +509,7 @@ export async function markApplicationRejected(
   reason: RejectionReason,
   reasonOther: string | null,
 ) {
-  if (!REJECTION_REASONS.includes(reason)) return { error: 'Motivo inválido.' };
+  if (!REJECTION_REASONS.includes(reason)) return { error: 'Motivo invÃ¡lido.' };
   if (reason === 'outro' && !reasonOther?.trim()) return { error: 'Descreva o motivo "outro".' };
   return markArchived(applicationId, 'rejected', {
     rejection_reason: reason,
@@ -551,3 +521,4 @@ export async function markApplicationFrozen(applicationId: string, notes: string
   if (!notes?.trim()) return { error: 'Informe o motivo do congelamento.' };
   return markArchived(applicationId, 'frozen', { frozen_reason_notes: notes });
 }
+

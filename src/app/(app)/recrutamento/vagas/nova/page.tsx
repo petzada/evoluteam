@@ -1,6 +1,8 @@
-import { redirect } from 'next/navigation';
+﻿import { redirect } from 'next/navigation';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { getDepartments, getPositions } from '@/features/employees/queries';
+import { loadActorRhPermissions } from '@/features/permissions/queries';
+import { canManageJobOpenings } from '@/features/recruitment/permissions';
 import { listHiringManagerOptions } from '@/features/recruitment/queries/jobOpenings';
 import { NovaVagaClient } from './NovaVagaClient';
 
@@ -15,7 +17,21 @@ export default async function NovaVagaPage() {
     .eq('id', user.id)
     .single();
   if (!profile?.company_id) redirect('/onboarding/criar-empresa');
-  if (profile.role !== 'admin_rh') redirect('/recrutamento/vagas');
+
+  const { data: employeeRow } = await supabase
+    .from('employees')
+    .select('id')
+    .eq('user_id', user.id)
+    .eq('company_id', profile.company_id)
+    .maybeSingle();
+
+  const actorRhPermissions = await loadActorRhPermissions(user.id, profile.role);
+  const actor = {
+    role: profile.role,
+    employeeId: employeeRow?.id ?? null,
+    rhPermissions: actorRhPermissions,
+  };
+  if (!canManageJobOpenings(actor)) redirect('/recrutamento/vagas');
 
   const [departments, positions, managers] = await Promise.all([
     getDepartments(profile.company_id),

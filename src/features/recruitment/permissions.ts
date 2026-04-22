@@ -51,6 +51,14 @@ export function canViewAssignedJobOpenings(actor: RecruitmentActor): boolean {
 // Candidatos (candidates)
 // ============================================================
 
+/**
+ * Compat legado: alguns call sites ainda usam o nome antigo
+ * "canManageRecruitment" para gates administrativos do modulo.
+ */
+export function canManageRecruitment(actor: RecruitmentActor): boolean {
+  return hasAdminPower(actor, 'can_recruitment');
+}
+
 export function canManageCandidates(actor: RecruitmentActor): boolean {
   return hasAdminPower(actor, 'can_recruitment');
 }

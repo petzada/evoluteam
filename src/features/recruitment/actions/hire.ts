@@ -1,42 +1,12 @@
-'use server';
+﻿'use server';
 
 import { revalidatePath } from 'next/cache';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 import { logActivity } from '@/lib/activity';
+import { getActor } from '@/features/permissions/actor';
+import { canHireCandidate } from '../permissions';
 import { HireCandidateInputSchema, type HireCandidateInput } from '../schema';
 import type { PipelineSnapshotStage } from '../pipeline-snapshot';
-
-type Actor = {
-  userId: string;
-  companyId: string;
-  role: 'admin_rh' | 'director' | 'user';
-  employeeId: string | null;
-};
-
-async function getActor(): Promise<Actor | null> {
-  const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('company_id, role')
-    .eq('id', user.id)
-    .single();
-  if (!profile?.company_id) return null;
-  const { data: emp } = await supabase
-    .from('employees')
-    .select('id')
-    .eq('user_id', user.id)
-    .eq('company_id', profile.company_id)
-    .maybeSingle();
-  return {
-    userId: user.id,
-    companyId: profile.company_id,
-    role: profile.role as Actor['role'],
-    employeeId: emp?.id ?? null,
-  };
-}
 
 export type HireEligibility =
   | { ok: true }
@@ -54,14 +24,14 @@ export type HireEligibility =
   | { ok: false; reason: 'UNKNOWN'; message: string };
 
 /**
- * Checagem pre-wizard (Bloqueio A — decisão P20 = A).
+ * Checagem pre-wizard (Bloqueio A — decisao P20 = A).
  * Valida se candidato pode ser contratado.
  */
 export async function checkHireEligibility(applicationId: string): Promise<HireEligibility> {
   const actor = await getActor();
-  if (!actor) return { ok: false, reason: 'UNKNOWN', message: 'Não autenticado.' };
-  if (actor.role !== 'admin_rh') {
-    return { ok: false, reason: 'UNKNOWN', message: 'Sem permissão.' };
+  if (!actor) return { ok: false, reason: 'UNKNOWN', message: 'Nao autenticado.' };
+  if (!canHireCandidate(actor)) {
+    return { ok: false, reason: 'UNKNOWN', message: 'Sem permissao.' };
   }
 
   const admin = createAdminSupabaseClient();
@@ -74,10 +44,10 @@ export async function checkHireEligibility(applicationId: string): Promise<HireE
     .eq('id', applicationId)
     .maybeSingle();
   if (!app || app.company_id !== actor.companyId) {
-    return { ok: false, reason: 'UNKNOWN', message: 'Aplicação não encontrada.' };
+    return { ok: false, reason: 'UNKNOWN', message: 'Aplicacao nao encontrada.' };
   }
   if (app.status !== 'in_progress') {
-    return { ok: false, reason: 'UNKNOWN', message: 'Aplicação já finalizada.' };
+    return { ok: false, reason: 'UNKNOWN', message: 'Aplicacao ja finalizada.' };
   }
 
   const candidate = app.candidate as unknown as {
@@ -86,9 +56,9 @@ export async function checkHireEligibility(applicationId: string): Promise<HireE
     name: string;
     email: string;
   } | null;
-  if (!candidate) return { ok: false, reason: 'UNKNOWN', message: 'Candidato inválido.' };
+  if (!candidate) return { ok: false, reason: 'UNKNOWN', message: 'Candidato invalido.' };
 
-  // Bloqueio A — hired_employee_id já preenchido
+  // Bloqueio A — hired_employee_id ja preenchido
   if (candidate.hired_employee_id) {
     const { data: emp } = await admin
       .from('employees')
@@ -113,26 +83,26 @@ export type HireCandidateResult =
   | { ok: false; reason: 'OTHER'; message: string };
 
 /**
- * Server action transacional da contratação (decisão P17 + P19 + P20).
+ * Server action transacional da contratacao (decisao P17 + P19 + P20).
  */
 export async function hireCandidate(
   applicationId: string,
   input: HireCandidateInput,
 ): Promise<HireCandidateResult> {
   const actor = await getActor();
-  if (!actor) return { ok: false, reason: 'OTHER', message: 'Não autenticado.' };
-  if (actor.role !== 'admin_rh') return { ok: false, reason: 'OTHER', message: 'Sem permissão.' };
+  if (!actor) return { ok: false, reason: 'OTHER', message: 'Nao autenticado.' };
+  if (!canHireCandidate(actor)) return { ok: false, reason: 'OTHER', message: 'Sem permissao.' };
 
   const parsed = HireCandidateInputSchema.safeParse(input);
   if (!parsed.success) {
-    return { ok: false, reason: 'OTHER', message: parsed.error.issues[0]?.message ?? 'Dados inválidos.' };
+    return { ok: false, reason: 'OTHER', message: parsed.error.issues[0]?.message ?? 'Dados invalidos.' };
   }
   const v = parsed.data;
   const emailToUse = v.alternativeEmail?.trim() || v.email;
 
   const admin = createAdminSupabaseClient();
 
-  // Carrega dados completos da aplicação + candidato + vaga
+  // Carrega dados completos da aplicacao + candidato + vaga
   const { data: app } = await admin
     .from('job_applications')
     .select(`
@@ -143,18 +113,18 @@ export async function hireCandidate(
     .eq('id', applicationId)
     .maybeSingle();
   if (!app || app.company_id !== actor.companyId) {
-    return { ok: false, reason: 'OTHER', message: 'Aplicação não encontrada.' };
+    return { ok: false, reason: 'OTHER', message: 'Aplicacao nao encontrada.' };
   }
   if (app.status !== 'in_progress') {
-    return { ok: false, reason: 'OTHER', message: 'Aplicação já finalizada.' };
+    return { ok: false, reason: 'OTHER', message: 'Aplicacao ja finalizada.' };
   }
 
   const candidate = app.candidate as unknown as {
     id: string; hired_employee_id: string | null; name: string; email: string;
   } | null;
-  if (!candidate) return { ok: false, reason: 'OTHER', message: 'Candidato inválido.' };
+  if (!candidate) return { ok: false, reason: 'OTHER', message: 'Candidato invalido.' };
 
-  // Bloqueio A — hired_employee_id já preenchido (P20 = A)
+  // Bloqueio A — hired_employee_id ja preenchido (P20 = A)
   if (candidate.hired_employee_id) {
     return {
       ok: false,
@@ -166,7 +136,7 @@ export async function hireCandidate(
   // Bloqueio B — email conflita com colaborador existente
   const { data: conflictEmp } = await admin
     .from('employees')
-    .select(`id, full_name, department:departments(name)`)
+    .select('id, full_name, department:departments(name)')
     .eq('company_id', actor.companyId)
     .eq('email', emailToUse)
     .maybeSingle();
@@ -189,10 +159,10 @@ export async function hireCandidate(
   const snapshot = (jobObj?.pipeline_snapshot ?? []) as PipelineSnapshotStage[];
   const hiredStage = snapshot.find((s) => s.kind === 'hired_terminal');
   if (!hiredStage) {
-    return { ok: false, reason: 'OTHER', message: 'Funil da vaga sem etapa de contratação.' };
+    return { ok: false, reason: 'OTHER', message: 'Funil da vaga sem etapa de contratacao.' };
   }
 
-  // 1) Cria employee (user_id=null; convite é manual em Colaboradores)
+  // 1) Cria employee (user_id=null; convite e manual em Colaboradores)
   const { data: newEmp, error: empErr } = await admin
     .from('employees')
     .insert({
@@ -222,7 +192,7 @@ export async function hireCandidate(
     })
     .eq('id', candidate.id);
 
-  // 3) Atualiza aplicação pra hired + Contratado
+  // 3) Atualiza aplicacao pra hired + Contratado
   const now = new Date().toISOString();
   await admin
     .from('job_applications')
@@ -245,7 +215,7 @@ export async function hireCandidate(
 
   const jobTitle = (app.job_opening as unknown as { title: string } | null)?.title ?? '';
 
-  // 5) Outras aplicações ativas — arquivar como withdrawn (P19 checkbox)
+  // 5) Outras aplicacoes ativas — arquivar como withdrawn (P19 checkbox)
   let archivedCount = 0;
   if (v.archiveOtherApplications) {
     const { data: others } = await admin
@@ -270,7 +240,7 @@ export async function hireCandidate(
         to_stage_id: null,
         status_change: { from: 'in_progress', to: 'withdrawn' },
         reason_code: 'aceitou_outra_proposta',
-        reason_notes: `Arquivado automaticamente na contratação em ${jobTitle}.`,
+        reason_notes: `Arquivado automaticamente na contratacao em ${jobTitle}.`,
         changed_by: actor.userId,
       });
       await logActivity({

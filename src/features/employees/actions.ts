@@ -7,22 +7,28 @@ import { logActivity } from '@/lib/activity';
 import { notify } from '@/lib/notifications';
 import { sendEmail } from '@/lib/email';
 import { employeeInviteEmail } from '@/lib/emails/employee-invite';
+import { getActor } from '@/features/permissions/actor';
+import { canInviteAs, hasAdminPower } from '@/features/permissions/permissions';
+import type { Role } from '@/features/permissions/types';
 import type { EmployeeInput, TransferOption } from './schema';
 import { TransferOptionSchema } from './schema';
 import { validateManagerAssignment } from './validators';
 import type { TablesInsert, TablesUpdate } from '@/lib/supabase/types';
 
 async function getActorContext() {
-  const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('company_id, role')
-    .eq('id', user.id)
-    .single();
-  if (!profile?.company_id) return null;
-  return { user, profile: profile as { company_id: string; role: string }, supabase };
+  const actor = await getActor();
+  if (!actor) return null;
+
+  const canManageEmployees = hasAdminPower(actor, 'can_employees');
+  const canInviteUsers = hasAdminPower(actor, 'can_invites');
+
+  return {
+    actor,
+    user: { id: actor.userId },
+    profile: { company_id: actor.companyId, role: actor.role as string },
+    canManageEmployees,
+    canInviteUsers,
+  };
 }
 
 async function assertValidManager(
@@ -58,7 +64,7 @@ async function assertValidManager(
 export async function updateEmployee(employeeId: string, input: EmployeeInput) {
   const ctx = await getActorContext();
   if (!ctx) return { error: 'Não autenticado.' };
-  if (ctx.profile.role !== 'admin_rh') return { error: 'Sem permissão.' };
+  if (!ctx.canManageEmployees) return { error: 'Sem permissão.' };
 
   const managerError = await assertValidManager(
     employeeId,
@@ -86,7 +92,7 @@ export async function updateEmployee(employeeId: string, input: EmployeeInput) {
     hire_date: input.hireDate,
     updated_at: new Date().toISOString(),
   };
-  if (input.internalNotes !== undefined) {
+  if (ctx.canManageEmployees && input.internalNotes !== undefined) {
     update.internal_notes = input.internalNotes ?? null;
   }
 
@@ -99,14 +105,6 @@ export async function updateEmployee(employeeId: string, input: EmployeeInput) {
   if (updErr) {
     if (updErr.code === '23505') return { error: 'E-mail já cadastrado nesta empresa.' };
     return { error: 'Erro ao atualizar colaborador.' };
-  }
-
-  if (existing.user_id && existing.user_id !== ctx.user.id) {
-    await supabase
-      .from('profiles')
-      .update({ role: input.role })
-      .eq('id', existing.user_id)
-      .eq('company_id', ctx.profile.company_id);
   }
 
   await logActivity({
@@ -126,7 +124,16 @@ export async function updateEmployee(employeeId: string, input: EmployeeInput) {
 export async function createEmployee(input: EmployeeInput) {
   const ctx = await getActorContext();
   if (!ctx) return { error: 'Não autenticado.' };
-  if (ctx.profile.role !== 'admin_rh') return { error: 'Sem permissão.' };
+  if (!ctx.canManageEmployees && !ctx.canInviteUsers) return { error: 'Sem permissão.' };
+
+  if (!ctx.canManageEmployees) {
+    if (input.role !== 'user') {
+      return { error: 'RH com permissão de convites só pode convidar Colaborador.' };
+    }
+    if (!input.sendInvite) {
+      return { error: 'Sem permissão para criar colaborador sem convite.' };
+    }
+  }
 
   const managerError = await assertValidManager(
     null,
@@ -149,7 +156,7 @@ export async function createEmployee(input: EmployeeInput) {
     hire_date: input.hireDate,
     status: 'active',
   };
-  if (input.internalNotes) insert.internal_notes = input.internalNotes;
+  if (ctx.canManageEmployees && input.internalNotes) insert.internal_notes = input.internalNotes;
 
   const { data: employee, error: empErr } = await admin
     .from('employees')
@@ -171,7 +178,11 @@ export async function createEmployee(input: EmployeeInput) {
   });
 
   if (input.sendInvite) {
-    await sendInviteForEmployee(employee.id, input.email, input.role, ctx.user.id, companyId);
+    const inviteRole: Role = (ctx.canManageEmployees ? input.role : 'user') as Role;
+    if (!canInviteAs(ctx.actor, inviteRole)) {
+      return { error: 'Sem permissão para convidar com este papel.' };
+    }
+    await sendInviteForEmployee(employee.id, input.email, inviteRole, ctx.user.id, companyId);
   }
 
   revalidatePath('/colaboradores');
@@ -182,7 +193,7 @@ export async function createEmployee(input: EmployeeInput) {
 async function sendInviteForEmployee(
   employeeId: string,
   email: string,
-  role: string,
+  role: Role,
   invitedBy: string,
   companyId: string,
 ) {
@@ -217,10 +228,44 @@ async function sendInviteForEmployee(
 
 export async function resendInvite(employeeId: string) {
   const ctx = await getActorContext();
-  if (!ctx || ctx.profile.role !== 'admin_rh') return { error: 'Sem permissão.' };
+  if (!ctx || (!ctx.canManageEmployees && !ctx.canInviteUsers)) return { error: 'Sem permissão.' };
 
   const admin = createAdminSupabaseClient();
   const companyId = ctx.profile.company_id;
+
+  const { data: employee } = await admin
+    .from('employees')
+    .select('email, user_id')
+    .eq('id', employeeId)
+    .eq('company_id', companyId)
+    .maybeSingle();
+
+  if (!employee) return { error: 'Colaborador não encontrado.' };
+
+  let targetRole: Role = 'user';
+  if (employee.user_id) {
+    const { data: profile } = await admin
+      .from('profiles')
+      .select('role')
+      .eq('id', employee.user_id)
+      .eq('company_id', companyId)
+      .maybeSingle();
+    targetRole = (profile?.role as Role | undefined) ?? 'user';
+  } else {
+    const { data: latestInvite } = await admin
+      .from('invites')
+      .select('role')
+      .eq('employee_id', employeeId)
+      .eq('company_id', companyId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    targetRole = (latestInvite?.role as Role | undefined) ?? 'user';
+  }
+
+  if (!canInviteAs(ctx.actor, targetRole)) {
+    return { error: 'Sem permissão para reenviar convite deste perfil.' };
+  }
 
   await admin
     .from('invites')
@@ -229,21 +274,7 @@ export async function resendInvite(employeeId: string) {
     .is('accepted_at', null)
     .is('revoked_at', null);
 
-  const { data: employee } = await admin
-    .from('employees')
-    .select('email')
-    .eq('id', employeeId)
-    .single();
-
-  if (!employee) return { error: 'Colaborador não encontrado.' };
-
-  const { data: profile } = await admin
-    .from('profiles')
-    .select('role')
-    .eq('company_id', companyId)
-    .maybeSingle();
-
-  const result = await sendInviteForEmployee(employeeId, employee.email, profile?.role ?? 'user', ctx.user.id, companyId);
+  const result = await sendInviteForEmployee(employeeId, employee.email, targetRole, ctx.user.id, companyId);
 
   await logActivity({ companyId, actorUserId: ctx.user.id, action: 'invite.resent', entityType: 'employee', entityId: employeeId });
 
@@ -253,9 +284,21 @@ export async function resendInvite(employeeId: string) {
 
 export async function revokeInvite(inviteId: string) {
   const ctx = await getActorContext();
-  if (!ctx || ctx.profile.role !== 'admin_rh') return { error: 'Sem permissão.' };
+  if (!ctx || (!ctx.canManageEmployees && !ctx.canInviteUsers)) return { error: 'Sem permissão.' };
 
   const supabase = await createServerSupabaseClient();
+  const { data: invite } = await supabase
+    .from('invites')
+    .select('id, role, company_id')
+    .eq('id', inviteId)
+    .maybeSingle();
+  if (!invite || invite.company_id !== ctx.profile.company_id) {
+    return { error: 'Convite não encontrado.' };
+  }
+  if (!canInviteAs(ctx.actor, invite.role as Role)) {
+    return { error: 'Sem permissão para revogar este convite.' };
+  }
+
   await supabase
     .from('invites')
     .update({ revoked_at: new Date().toISOString() })
@@ -316,7 +359,7 @@ export async function deactivateEmployee(
   transferOption?: TransferOption,
 ) {
   const ctx = await getActorContext();
-  if (!ctx || ctx.profile.role !== 'admin_rh') return { error: 'Sem permissão.' };
+  if (!ctx || !ctx.canManageEmployees) return { error: 'Sem permissão.' };
 
   const supabase = await createServerSupabaseClient();
   const { data: emp } = await supabase
@@ -360,7 +403,7 @@ export async function deactivateEmployee(
 
 export async function reactivateEmployee(employeeId: string) {
   const ctx = await getActorContext();
-  if (!ctx || ctx.profile.role !== 'admin_rh') return { error: 'Sem permissão.' };
+  if (!ctx || !ctx.canManageEmployees) return { error: 'Sem permissão.' };
 
   const supabase = await createServerSupabaseClient();
   const { data: emp } = await supabase
@@ -397,7 +440,7 @@ export async function terminateEmployee(
   transferOption?: TransferOption,
 ) {
   const ctx = await getActorContext();
-  if (!ctx || ctx.profile.role !== 'admin_rh') return { error: 'Sem permissão.' };
+  if (!ctx || !ctx.canManageEmployees) return { error: 'Sem permissão.' };
 
   const admin = createAdminSupabaseClient();
   const { data: emp } = await admin
@@ -489,7 +532,7 @@ export async function acceptInvite(token: string, data: { fullName: string; pass
   await admin.from('profiles').insert({
     id: userId,
     company_id: invite.company_id,
-    role: invite.role as 'admin_rh' | 'director' | 'user',
+    role: invite.role as Role,
     full_name: data.fullName,
   });
 

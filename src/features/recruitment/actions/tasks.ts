@@ -1,45 +1,16 @@
-'use server';
+﻿'use server';
 
 import { revalidatePath } from 'next/cache';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 import { logActivity } from '@/lib/activity';
 import { notify } from '@/lib/notifications';
+import { getActor } from '@/features/permissions/actor';
+import { canManageRecruitment } from '@/features/permissions/permissions';
+import { canManageTasks as canManageRecruitmentTasks } from '../permissions';
 import { TaskInputSchema, type TaskInput } from '../schema';
 
-type Actor = {
-  userId: string;
-  companyId: string;
-  role: 'admin_rh' | 'director' | 'user';
-  employeeId: string | null;
-};
-
-async function getActor(): Promise<Actor | null> {
-  const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('company_id, role')
-    .eq('id', user.id)
-    .single();
-  if (!profile?.company_id) return null;
-  const { data: emp } = await supabase
-    .from('employees')
-    .select('id')
-    .eq('user_id', user.id)
-    .eq('company_id', profile.company_id)
-    .maybeSingle();
-  return {
-    userId: user.id,
-    companyId: profile.company_id,
-    role: profile.role as Actor['role'],
-    employeeId: emp?.id ?? null,
-  };
-}
-
 async function notifyTaskAssigned(
-  actor: Actor,
+  actor: NonNullable<Awaited<ReturnType<typeof getActor>>>,
   taskId: string,
   responsibleEmployeeId: string,
   title: string,
@@ -49,8 +20,9 @@ async function notifyTaskAssigned(
   applicationId: string,
   candidateId: string,
 ) {
-  // Não notifica se o responsável é o próprio criador
+  // Nao notifica se o responsavel e o proprio criador
   if (responsibleEmployeeId === actor.employeeId) return;
+
   const admin = createAdminSupabaseClient();
   const { data: resp } = await admin
     .from('employees')
@@ -58,12 +30,13 @@ async function notifyTaskAssigned(
     .eq('id', responsibleEmployeeId)
     .maybeSingle();
   if (!resp?.user_id) return;
+
   const when = dueDate ? `Prazo: ${dueDate}` : 'Sem prazo';
   await notify({
     companyId: actor.companyId,
     userId: resp.user_id,
     type: 'recruitment.task_assigned',
-    title: 'Tarefa atribuída a você',
+    title: 'Tarefa atribuida a voce',
     body: `Sobre ${candidateName} (${jobTitle}): "${title}". ${when}.`,
     linkUrl: `/recrutamento/candidatos/${candidateId}?app=${applicationId}#tasks`,
     entityType: 'candidate_task',
@@ -73,11 +46,12 @@ async function notifyTaskAssigned(
 
 export async function createTask(applicationId: string, input: TaskInput) {
   const actor = await getActor();
-  if (!actor) return { error: 'Não autenticado.' };
-  if (!actor.employeeId) return { error: 'Usuário sem perfil de colaborador.' };
+  if (!actor) return { error: 'Nao autenticado.' };
+  if (!actor.employeeId) return { error: 'Usuario sem perfil de colaborador.' };
+  if (!canManageRecruitmentTasks(actor)) return { error: 'Sem permissao.' };
 
   const parsed = TaskInputSchema.safeParse(input);
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Dados inválidos.' };
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Dados invalidos.' };
 
   const admin = createAdminSupabaseClient();
   const { data: app } = await admin
@@ -89,13 +63,13 @@ export async function createTask(applicationId: string, input: TaskInput) {
     `)
     .eq('id', applicationId)
     .maybeSingle();
-  if (!app || app.company_id !== actor.companyId) return { error: 'Aplicação não encontrada.' };
+  if (!app || app.company_id !== actor.companyId) return { error: 'Aplicacao nao encontrada.' };
 
-  const isAdmin = actor.role === 'admin_rh';
+  const isAdminRecruitment = canManageRecruitment(actor);
   const hiringManagerId =
     (app.job_opening as unknown as { hiring_manager_id: string | null } | null)?.hiring_manager_id;
   const isManager = hiringManagerId === actor.employeeId;
-  if (!isAdmin && !isManager) return { error: 'Sem permissão.' };
+  if (!isAdminRecruitment && !isManager) return { error: 'Sem permissao.' };
 
   const { data, error } = await admin
     .from('candidate_tasks')
@@ -129,9 +103,15 @@ export async function createTask(applicationId: string, input: TaskInput) {
   });
 
   await notifyTaskAssigned(
-    actor, data.id, parsed.data.responsible_id, parsed.data.title,
-    candidateName, jobTitle, parsed.data.due_date ?? null,
-    applicationId, app.candidate_id,
+    actor,
+    data.id,
+    parsed.data.responsible_id,
+    parsed.data.title,
+    candidateName,
+    jobTitle,
+    parsed.data.due_date ?? null,
+    applicationId,
+    app.candidate_id,
   );
 
   revalidatePath(`/recrutamento/candidatos/${app.candidate_id}`);
@@ -142,10 +122,10 @@ export async function createTask(applicationId: string, input: TaskInput) {
 
 export async function updateTask(id: string, input: TaskInput) {
   const actor = await getActor();
-  if (!actor) return { error: 'Não autenticado.' };
+  if (!actor) return { error: 'Nao autenticado.' };
 
   const parsed = TaskInputSchema.safeParse(input);
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Dados inválidos.' };
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Dados invalidos.' };
 
   const admin = createAdminSupabaseClient();
   const { data: task } = await admin
@@ -158,15 +138,15 @@ export async function updateTask(id: string, input: TaskInput) {
     `)
     .eq('id', id)
     .maybeSingle();
-  if (!task || task.company_id !== actor.companyId) return { error: 'Tarefa não encontrada.' };
+  if (!task || task.company_id !== actor.companyId) return { error: 'Tarefa nao encontrada.' };
 
-  const isAdmin = actor.role === 'admin_rh';
+  const isAdminRecruitment = canManageRecruitment(actor);
   const isCreator = task.created_by === actor.employeeId;
   const hiringManagerId =
     (task.application as unknown as { job_opening: { hiring_manager_id: string | null } | null } | null)
       ?.job_opening?.hiring_manager_id ?? null;
   const isManager = hiringManagerId === actor.employeeId;
-  if (!isAdmin && !isCreator && !isManager) return { error: 'Sem permissão.' };
+  if (!isAdminRecruitment && !isCreator && !isManager) return { error: 'Sem permissao.' };
 
   const { error } = await admin
     .from('candidate_tasks')
@@ -195,12 +175,18 @@ export async function updateTask(id: string, input: TaskInput) {
     metadata: { task_id: id, title: parsed.data.title },
   });
 
-  // Se responsable_id mudou, notifica o novo
+  // Se responsible_id mudou, notifica o novo
   if (parsed.data.responsible_id !== task.responsible_id && appInfo) {
     await notifyTaskAssigned(
-      actor, id, parsed.data.responsible_id, parsed.data.title,
-      appInfo.candidate?.name ?? '—', appInfo.job_opening?.title ?? '—',
-      parsed.data.due_date ?? null, task.application_id, appInfo.candidate_id,
+      actor,
+      id,
+      parsed.data.responsible_id,
+      parsed.data.title,
+      appInfo.candidate?.name ?? '—',
+      appInfo.job_opening?.title ?? '—',
+      parsed.data.due_date ?? null,
+      task.application_id,
+      appInfo.candidate_id,
     );
   }
 
@@ -222,7 +208,7 @@ export async function reopenTask(id: string) {
 
 async function toggleTask(id: string, complete: boolean) {
   const actor = await getActor();
-  if (!actor) return { error: 'Não autenticado.' };
+  if (!actor) return { error: 'Nao autenticado.' };
 
   const admin = createAdminSupabaseClient();
   const { data: task } = await admin
@@ -234,16 +220,18 @@ async function toggleTask(id: string, complete: boolean) {
     `)
     .eq('id', id)
     .maybeSingle();
-  if (!task || task.company_id !== actor.companyId) return { error: 'Tarefa não encontrada.' };
+  if (!task || task.company_id !== actor.companyId) return { error: 'Tarefa nao encontrada.' };
 
-  const isAdmin = actor.role === 'admin_rh';
+  const isAdminRecruitment = canManageRecruitment(actor);
   const isCreator = task.created_by === actor.employeeId;
   const isResponsible = task.responsible_id === actor.employeeId;
   const hiringManagerId =
     (task.application as unknown as { job_opening: { hiring_manager_id: string | null } | null } | null)
       ?.job_opening?.hiring_manager_id ?? null;
   const isManager = hiringManagerId === actor.employeeId;
-  if (!isAdmin && !isCreator && !isResponsible && !isManager) return { error: 'Sem permissão.' };
+  if (!isAdminRecruitment && !isCreator && !isResponsible && !isManager) {
+    return { error: 'Sem permissao.' };
+  }
 
   const { error } = await admin
     .from('candidate_tasks')
@@ -265,7 +253,8 @@ async function toggleTask(id: string, complete: boolean) {
   });
 
   const appInfo = task.application as unknown as {
-    candidate_id: string; job_opening_id: string;
+    candidate_id: string;
+    job_opening_id: string;
   } | null;
   if (appInfo) {
     revalidatePath(`/recrutamento/candidatos/${appInfo.candidate_id}`);
@@ -277,7 +266,7 @@ async function toggleTask(id: string, complete: boolean) {
 
 export async function deleteTask(id: string) {
   const actor = await getActor();
-  if (!actor) return { error: 'Não autenticado.' };
+  if (!actor) return { error: 'Nao autenticado.' };
 
   const admin = createAdminSupabaseClient();
   const { data: task } = await admin
@@ -289,15 +278,15 @@ export async function deleteTask(id: string) {
     `)
     .eq('id', id)
     .maybeSingle();
-  if (!task || task.company_id !== actor.companyId) return { error: 'Tarefa não encontrada.' };
+  if (!task || task.company_id !== actor.companyId) return { error: 'Tarefa nao encontrada.' };
 
-  const isAdmin = actor.role === 'admin_rh';
+  const isAdminRecruitment = canManageRecruitment(actor);
   const isCreator = task.created_by === actor.employeeId;
   const hiringManagerId =
     (task.application as unknown as { job_opening: { hiring_manager_id: string | null } | null } | null)
       ?.job_opening?.hiring_manager_id ?? null;
   const isManager = hiringManagerId === actor.employeeId;
-  if (!isAdmin && !isCreator && !isManager) {
+  if (!isAdminRecruitment && !isCreator && !isManager) {
     return { error: 'Apenas o criador, admin ou gestor da vaga podem excluir.' };
   }
 
@@ -317,7 +306,8 @@ export async function deleteTask(id: string) {
   });
 
   const appInfo = task.application as unknown as {
-    candidate_id: string; job_opening_id: string;
+    candidate_id: string;
+    job_opening_id: string;
   } | null;
   if (appInfo) {
     revalidatePath(`/recrutamento/candidatos/${appInfo.candidate_id}`);

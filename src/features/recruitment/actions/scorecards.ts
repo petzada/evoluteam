@@ -1,52 +1,25 @@
-'use server';
+﻿'use server';
 
 import { revalidatePath } from 'next/cache';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 import { logActivity } from '@/lib/activity';
+import { getActor } from '@/features/permissions/actor';
+import { canManageRecruitment } from '@/features/permissions/permissions';
+import { canSubmitScorecard } from '../permissions';
 import {
-  ScorecardInputSchema, type ScorecardInput,
+  ScorecardInputSchema,
+  type ScorecardInput,
   SCORECARD_EDIT_WINDOW_MINUTES,
 } from '../schema';
 
-type Actor = {
-  userId: string;
-  companyId: string;
-  role: 'admin_rh' | 'director' | 'user';
-  employeeId: string | null;
-};
-
-async function getActor(): Promise<Actor | null> {
-  const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('company_id, role')
-    .eq('id', user.id)
-    .single();
-  if (!profile?.company_id) return null;
-  const { data: emp } = await supabase
-    .from('employees')
-    .select('id')
-    .eq('user_id', user.id)
-    .eq('company_id', profile.company_id)
-    .maybeSingle();
-  return {
-    userId: user.id,
-    companyId: profile.company_id,
-    role: profile.role as Actor['role'],
-    employeeId: emp?.id ?? null,
-  };
-}
-
 export async function createScorecard(applicationId: string, input: ScorecardInput) {
   const actor = await getActor();
-  if (!actor) return { error: 'Não autenticado.' };
-  if (!actor.employeeId) return { error: 'Usuário sem perfil de colaborador.' };
+  if (!actor) return { error: 'Nao autenticado.' };
+  if (!actor.employeeId) return { error: 'Usuario sem perfil de colaborador.' };
+  if (!canSubmitScorecard(actor)) return { error: 'Sem permissao.' };
 
   const parsed = ScorecardInputSchema.safeParse(input);
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Dados inválidos.' };
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Dados invalidos.' };
 
   const admin = createAdminSupabaseClient();
   const { data: app } = await admin
@@ -59,13 +32,13 @@ export async function createScorecard(applicationId: string, input: ScorecardInp
     `)
     .eq('id', applicationId)
     .maybeSingle();
-  if (!app || app.company_id !== actor.companyId) return { error: 'Aplicação não encontrada.' };
+  if (!app || app.company_id !== actor.companyId) return { error: 'Aplicacao nao encontrada.' };
 
-  const isAdmin = actor.role === 'admin_rh';
+  const isAdminRecruitment = canManageRecruitment(actor);
   const hiringManagerId =
     (app.job_opening as unknown as { hiring_manager_id: string | null } | null)?.hiring_manager_id;
   const isManager = hiringManagerId === actor.employeeId;
-  if (!isAdmin && !isManager) return { error: 'Sem permissão.' };
+  if (!isAdminRecruitment && !isManager) return { error: 'Sem permissao.' };
 
   // Valida UNIQUE(application_id, stage_id, author_id)
   const { data: existing } = await admin
@@ -77,7 +50,7 @@ export async function createScorecard(applicationId: string, input: ScorecardInp
     .is('deleted_at', null)
     .maybeSingle();
   if (existing) {
-    return { error: 'Você já preencheu scorecard nesta etapa. Edite o existente.', existingId: existing.id };
+    return { error: 'Voce ja preencheu scorecard nesta etapa. Edite o existente.', existingId: existing.id };
   }
 
   const { data, error } = await admin
@@ -121,10 +94,10 @@ export async function createScorecard(applicationId: string, input: ScorecardInp
 
 export async function updateScorecard(id: string, input: ScorecardInput) {
   const actor = await getActor();
-  if (!actor) return { error: 'Não autenticado.' };
+  if (!actor) return { error: 'Nao autenticado.' };
 
   const parsed = ScorecardInputSchema.safeParse(input);
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Dados inválidos.' };
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Dados invalidos.' };
 
   const admin = createAdminSupabaseClient();
   const { data: sc } = await admin
@@ -132,14 +105,14 @@ export async function updateScorecard(id: string, input: ScorecardInput) {
     .select('id, author_id, created_at, deleted_at, company_id, application_id')
     .eq('id', id)
     .maybeSingle();
-  if (!sc || sc.company_id !== actor.companyId) return { error: 'Scorecard não encontrado.' };
-  if (sc.deleted_at) return { error: 'Scorecard já removido.' };
+  if (!sc || sc.company_id !== actor.companyId) return { error: 'Scorecard nao encontrado.' };
+  if (sc.deleted_at) return { error: 'Scorecard ja removido.' };
   if (sc.author_id !== actor.employeeId) return { error: 'Apenas o autor pode editar.' };
 
   const createdAt = new Date(sc.created_at).getTime();
   const limit = createdAt + SCORECARD_EDIT_WINDOW_MINUTES * 60 * 1000;
   if (Date.now() > limit) {
-    return { error: `Janela de edição (${SCORECARD_EDIT_WINDOW_MINUTES} min) encerrada.` };
+    return { error: `Janela de edicao (${SCORECARD_EDIT_WINDOW_MINUTES} min) encerrada.` };
   }
 
   const { error } = await admin
@@ -181,7 +154,7 @@ export async function updateScorecard(id: string, input: ScorecardInput) {
 
 export async function deleteScorecard(id: string) {
   const actor = await getActor();
-  if (!actor) return { error: 'Não autenticado.' };
+  if (!actor) return { error: 'Nao autenticado.' };
 
   const admin = createAdminSupabaseClient();
   const { data: sc } = await admin
@@ -194,18 +167,18 @@ export async function deleteScorecard(id: string) {
     `)
     .eq('id', id)
     .maybeSingle();
-  if (!sc || sc.company_id !== actor.companyId) return { error: 'Scorecard não encontrado.' };
+  if (!sc || sc.company_id !== actor.companyId) return { error: 'Scorecard nao encontrado.' };
   if (sc.deleted_at) return { ok: true };
 
-  const isAdmin = actor.role === 'admin_rh';
+  const isAdminRecruitment = canManageRecruitment(actor);
   const isAuthor = sc.author_id === actor.employeeId;
-  if (!isAdmin && !isAuthor) return { error: 'Sem permissão.' };
+  if (!isAdminRecruitment && !isAuthor) return { error: 'Sem permissao.' };
 
-  if (isAuthor && !isAdmin) {
+  if (isAuthor && !isAdminRecruitment) {
     const createdAt = new Date(sc.created_at).getTime();
     const limit = createdAt + SCORECARD_EDIT_WINDOW_MINUTES * 60 * 1000;
     if (Date.now() > limit) {
-      return { error: `Janela de deleção (${SCORECARD_EDIT_WINDOW_MINUTES} min) encerrada.` };
+      return { error: `Janela de delecao (${SCORECARD_EDIT_WINDOW_MINUTES} min) encerrada.` };
     }
   }
 
@@ -232,7 +205,7 @@ export async function deleteScorecard(id: string) {
       scorecard_id: id,
       candidate_name: appInfo?.candidate?.name,
       job_title: appInfo?.job_opening?.title,
-      deleted_by_admin: isAdmin && !isAuthor,
+      deleted_by_admin: isAdminRecruitment && !isAuthor,
     },
   });
 

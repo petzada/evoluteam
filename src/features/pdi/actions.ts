@@ -1,48 +1,19 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 import { logActivity } from '@/lib/activity';
 import { notify } from '@/lib/notifications';
+import { getActor } from '@/features/permissions/actor';
+import { hasAdminPower } from '@/features/permissions/permissions';
+import type { Actor } from '@/features/permissions/types';
 import {
   PdiInputSchema, PdiActionInputSchema, PdiActionStatusSchema, PdiCommentSchema,
   type PdiInput, type PdiActionInput, type PdiCommentInput,
   PDI_ACTION_STATUSES, type PdiActionStatus,
 } from './schema';
 
-type Ctx = {
-  userId: string;
-  companyId: string;
-  role: 'admin_rh' | 'director' | 'user';
-  employeeId: string | null;
-  employeeStatus: string | null;
-};
-
-async function getActor(): Promise<Ctx | null> {
-  const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('company_id, role')
-    .eq('id', user.id)
-    .single();
-  if (!profile?.company_id) return null;
-  const { data: emp } = await supabase
-    .from('employees')
-    .select('id, status')
-    .eq('user_id', user.id)
-    .eq('company_id', profile.company_id)
-    .maybeSingle();
-  return {
-    userId: user.id,
-    companyId: profile.company_id,
-    role: profile.role as Ctx['role'],
-    employeeId: emp?.id ?? null,
-    employeeStatus: emp?.status ?? null,
-  };
-}
+type Ctx = Actor;
 
 async function getActorEmployeeForManagerCheck(
   admin: ReturnType<typeof createAdminSupabaseClient>,
@@ -76,7 +47,7 @@ export async function createPdi(input: PdiInput) {
   const actorEmployeeId = await getActorEmployeeForManagerCheck(admin, ctx);
   const isManager = actorEmployeeId && target.manager_id === actorEmployeeId;
   const isSelf = actorEmployeeId && target.id === actorEmployeeId;
-  const isAdmin = ctx.role === 'admin_rh';
+  const isAdmin = hasAdminPower(ctx, 'can_pdi_feedback');
   if (!isAdmin && !isManager && !isSelf) {
     return { error: 'Sem permissão para criar PDI para este colaborador.' };
   }
@@ -175,7 +146,7 @@ export async function updatePdiHeader(planId: string, input: Partial<PdiInput>) 
   if (!plan || plan.company_id !== ctx.companyId || plan.deleted_at) {
     return { error: 'PDI não encontrado.' };
   }
-  if (ctx.role !== 'admin_rh' && plan.created_by !== ctx.userId) {
+  if (!hasAdminPower(ctx, 'can_pdi_feedback') && plan.created_by !== ctx.userId) {
     return { error: 'Sem permissão.' };
   }
 
@@ -219,7 +190,7 @@ export async function concludePdi(planId: string) {
   if (!plan || plan.company_id !== ctx.companyId || plan.deleted_at) {
     return { error: 'PDI não encontrado.' };
   }
-  if (ctx.role !== 'admin_rh' && plan.created_by !== ctx.userId) {
+  if (!hasAdminPower(ctx, 'can_pdi_feedback') && plan.created_by !== ctx.userId) {
     return { error: 'Sem permissão.' };
   }
   if (plan.status === 'concluido') return { ok: true };
@@ -287,7 +258,7 @@ export async function cancelPdi(planId: string) {
   if (!plan || plan.company_id !== ctx.companyId || plan.deleted_at) {
     return { error: 'PDI não encontrado.' };
   }
-  if (ctx.role !== 'admin_rh' && plan.created_by !== ctx.userId) {
+  if (!hasAdminPower(ctx, 'can_pdi_feedback') && plan.created_by !== ctx.userId) {
     return { error: 'Sem permissão.' };
   }
   if (plan.status === 'cancelado') return { ok: true };
@@ -317,7 +288,7 @@ export async function cancelPdi(planId: string) {
 export async function deletePdi(planId: string) {
   const ctx = await getActor();
   if (!ctx) return { error: 'Não autenticado.' };
-  if (ctx.role !== 'admin_rh') return { error: 'Sem permissão.' };
+  if (!hasAdminPower(ctx, 'can_pdi_feedback')) return { error: 'Sem permissão.' };
   const plan = await loadPlan(planId);
   if (!plan || plan.company_id !== ctx.companyId || plan.deleted_at) {
     return { error: 'PDI não encontrado.' };
@@ -351,7 +322,7 @@ export async function addAction(planId: string, input: PdiActionInput) {
   if (!plan || plan.company_id !== ctx.companyId || plan.deleted_at) {
     return { error: 'PDI não encontrado.' };
   }
-  if (ctx.role !== 'admin_rh' && plan.created_by !== ctx.userId) {
+  if (!hasAdminPower(ctx, 'can_pdi_feedback') && plan.created_by !== ctx.userId) {
     return { error: 'Sem permissão.' };
   }
 
@@ -425,7 +396,7 @@ export async function updateAction(actionId: string, input: PdiActionInput) {
   }
   const plan = await loadPlan(action.plan_id);
   if (!plan || plan.deleted_at) return { error: 'PDI não encontrado.' };
-  if (ctx.role !== 'admin_rh' && plan.created_by !== ctx.userId) {
+  if (!hasAdminPower(ctx, 'can_pdi_feedback') && plan.created_by !== ctx.userId) {
     return { error: 'Sem permissão.' };
   }
 
@@ -485,7 +456,7 @@ export async function updateActionStatus(actionId: string, status: PdiActionStat
   const plan = await loadPlan(action.plan_id);
   if (!plan || plan.deleted_at) return { error: 'PDI não encontrado.' };
 
-  const isAdmin = ctx.role === 'admin_rh';
+  const isAdmin = hasAdminPower(ctx, 'can_pdi_feedback');
   const isResponsible = ctx.employeeId && action.responsible_employee_id === ctx.employeeId;
   if (!isAdmin && !isResponsible) {
     return { error: 'Sem permissão para atualizar esta ação.' };
@@ -535,7 +506,7 @@ export async function removeAction(actionId: string) {
   }
   const plan = await loadPlan(action.plan_id);
   if (!plan || plan.deleted_at) return { error: 'PDI não encontrado.' };
-  if (ctx.role !== 'admin_rh' && plan.created_by !== ctx.userId) {
+  if (!hasAdminPower(ctx, 'can_pdi_feedback') && plan.created_by !== ctx.userId) {
     return { error: 'Sem permissão.' };
   }
 
@@ -553,7 +524,6 @@ export async function addComment(planId: string, input: PdiCommentInput) {
   const ctx = await getActor();
   if (!ctx) return { error: 'Não autenticado.' };
   if (!ctx.employeeId) return { error: 'Você precisa ser um colaborador para comentar.' };
-  if (ctx.role === 'director') return { error: 'Diretores não podem comentar.' };
 
   const plan = await loadPlan(planId);
   if (!plan || plan.company_id !== ctx.companyId || plan.deleted_at) {
@@ -595,7 +565,7 @@ export async function deleteComment(commentId: string) {
   }
 
   const isAuthor = ctx.employeeId && c.author_id === ctx.employeeId;
-  if (!isAuthor && ctx.role !== 'admin_rh') return { error: 'Sem permissão.' };
+  if (!isAuthor && !hasAdminPower(ctx, 'can_pdi_feedback')) return { error: 'Sem permissão.' };
 
   const { error } = await admin
     .from('development_plan_comments')

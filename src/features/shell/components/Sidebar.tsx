@@ -56,11 +56,15 @@ export function Sidebar({ role, rhPermissions, isOperationalOnly, footer }: Side
   const { collapsed } = useSidebar();
   const isAdmin = role === 'admin_rh';
   const actorForGate = { role, rhPermissions: rhPermissions ?? null };
+  const canReadCompanySettings =
+    hasAdminPower(actorForGate, 'can_employees')
+    || hasAdminPower(actorForGate, 'can_audit');
 
   // Filtra item por capacidade administrativa: admin_rh ve tudo;
   // adminOnly fica admin-only; permission usa o toggle correspondente.
   const isItemVisible = (item: NavItem): boolean => {
     if (item.adminOnly) return isAdmin;
+    if (item.href === '/configuracoes/empresa') return canReadCompanySettings;
     if (item.permission) return hasAdminPower(actorForGate, item.permission);
     return true;
   };

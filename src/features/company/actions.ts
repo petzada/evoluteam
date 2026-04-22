@@ -1,10 +1,12 @@
-'use server';
+﻿'use server';
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { logActivity } from '@/lib/activity';
+import { getActor } from '@/features/permissions/actor';
+import { hasAdminPower } from '@/features/permissions/permissions';
 import { SEED_POSITIONS, SEED_COMPETENCIES } from './schema';
 
 interface CreateCompanyInput {
@@ -15,7 +17,7 @@ interface CreateCompanyInput {
 export async function createCompany(input: CreateCompanyInput) {
   const serverClient = await createServerSupabaseClient();
   const { data: { user } } = await serverClient.auth.getUser();
-  if (!user) return { error: 'Não autenticado.' };
+  if (!user) return { error: 'Nao autenticado.' };
 
   const admin = createAdminSupabaseClient();
 
@@ -41,7 +43,8 @@ export async function createCompany(input: CreateCompanyInput) {
     const { data: dept } = await admin
       .from('departments')
       .insert({ company_id: companyId, name: input.profile.departmentName.trim() })
-      .select('id').single();
+      .select('id')
+      .single();
     departmentId = dept?.id ?? null;
   }
 
@@ -58,9 +61,9 @@ export async function createCompany(input: CreateCompanyInput) {
 
   // 5. Employee do admin
   const positionId =
-    positions?.find((p) => p.name === input.profile.positionId)?.id ??
-    positions?.find((p) => p.name === 'Administrativo/RH')?.id ??
-    positions?.[0]?.id;
+    positions?.find((p) => p.name === input.profile.positionId)?.id
+    ?? positions?.find((p) => p.name === 'Administrativo/RH')?.id
+    ?? positions?.[0]?.id;
 
   const { data: employee, error: empErr } = await admin
     .from('employees')
@@ -75,10 +78,11 @@ export async function createCompany(input: CreateCompanyInput) {
       hire_date: input.profile.hireDate,
       status: 'active',
     })
-    .select('id').single();
+    .select('id')
+    .single();
   if (empErr || !employee) return { error: 'Erro ao criar perfil de colaborador.' };
 
-  // 6. Profile (upsert — pode já existir da criação no Supabase)
+  // 6. Profile (upsert — pode ja existir da criacao no Supabase)
   await admin.from('profiles').upsert({
     id: user.id,
     company_id: companyId,
@@ -100,28 +104,35 @@ export async function createCompany(input: CreateCompanyInput) {
 }
 
 export async function updateCompany(data: {
-  name: string; cnpj?: string; segment: string; teamSize: string;
+  name: string;
+  cnpj?: string;
+  segment: string;
+  teamSize: string;
 }) {
+  const actor = await getActor();
+  if (!actor) return { error: 'Nao autenticado.' };
+  if (!hasAdminPower(actor, 'can_employees')) return { error: 'Sem permissao.' };
+
   const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: 'Não autenticado.' };
-
-  const { data: profile } = await supabase.from('profiles').select('company_id').eq('id', user.id).single();
-  if (!profile?.company_id) return { error: 'Empresa não encontrada.' };
-
   const { error } = await supabase
     .from('companies')
-    .update({ name: data.name, cnpj: data.cnpj ?? null, segment: data.segment, team_size: data.teamSize, updated_at: new Date().toISOString() })
-    .eq('id', profile.company_id);
+    .update({
+      name: data.name,
+      cnpj: data.cnpj ?? null,
+      segment: data.segment,
+      team_size: data.teamSize,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', actor.companyId);
 
   if (error) return { error: 'Erro ao salvar.' };
 
   await logActivity({
-    companyId: profile.company_id,
-    actorUserId: user.id,
+    companyId: actor.companyId,
+    actorUserId: actor.userId,
     action: 'company.updated',
     entityType: 'company',
-    entityId: profile.company_id,
+    entityId: actor.companyId,
   });
 
   revalidatePath('/configuracoes/empresa');

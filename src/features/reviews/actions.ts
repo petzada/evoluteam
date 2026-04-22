@@ -6,6 +6,9 @@ import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 import { logActivity } from '@/lib/activity';
 import { notify } from '@/lib/notifications';
 import { Resend } from 'resend';
+import { getActor } from '@/features/permissions/actor';
+import { hasAdminPower } from '@/features/permissions/permissions';
+import type { Actor } from '@/features/permissions/types';
 import {
   CycleBasicsSchema, CycleTypesSchema, ParticipantsSelectionSchema, FormInputSchema,
   type CycleBasicsInput, type CycleTypesInput, type ParticipantsSelection, type QuestionInput,
@@ -14,31 +17,14 @@ import type { TablesInsert, TablesUpdate } from '@/lib/supabase/types';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-type Ctx = {
-  userId: string;
-  companyId: string;
-  role: 'admin_rh' | 'director' | 'user';
-};
+type Ctx = Actor;
 
 async function getAdminContext(): Promise<Ctx | null> {
-  const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('company_id, role')
-    .eq('id', user.id)
-    .single();
-  if (!profile?.company_id) return null;
-  return {
-    userId: user.id,
-    companyId: profile.company_id,
-    role: profile.role as Ctx['role'],
-  };
+  return getActor();
 }
 
 function requireAdmin(ctx: Ctx | null): ctx is Ctx {
-  return ctx !== null && ctx.role === 'admin_rh';
+  return hasAdminPower(ctx, 'can_reviews');
 }
 
 async function ensureNotExpired(cycleId: string, companyId: string) {
