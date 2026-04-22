@@ -1,7 +1,8 @@
 import { notFound, redirect } from 'next/navigation';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { getActorContext } from '@/features/auth/context';
 import {
-  getAssignment, getAssignmentAnswers, getActorEmployeeId,
+  getAssignment, getAssignmentAnswers,
 } from '@/features/reviews/queries';
 import { getDirectReports } from '@/features/employees/queries';
 import { AssignmentResponder } from '@/features/reviews/components/AssignmentResponder';
@@ -13,25 +14,14 @@ export default async function ResponderPage({
   params: Promise<{ cycleId: string; assignmentId: string }>;
 }) {
   const { cycleId, assignmentId } = await params;
-
-  const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('company_id, role')
-    .eq('id', user.id)
-    .single();
-  if (!profile?.company_id) redirect('/onboarding/criar-empresa');
+  const ctx = await getActorContext();
 
   const assignment = await getAssignment(assignmentId);
   if (!assignment || assignment.cycle_id !== cycleId) notFound();
 
-  const actorEmployeeId = await getActorEmployeeId(user.id);
-
+  const actorEmployeeId = ctx.employee?.id ?? null;
   const isReviewer = actorEmployeeId && assignment.reviewer_id === actorEmployeeId;
-  const isAdmin = profile.role === 'admin_rh';
+  const isAdmin = ctx.profile.role === 'admin_rh';
   if (!isReviewer && !isAdmin) redirect(`/avaliacoes/${cycleId}`);
 
   if (assignment.status === 'cancelled' || assignment.status === 'submitted') {
@@ -48,6 +38,7 @@ export default async function ResponderPage({
     status: string; period_start?: string; period_end?: string;
   } | null;
 
+  const supabase = await createServerSupabaseClient();
   const { data: cycleRow } = await supabase
     .from('review_cycles')
     .select('period_start, period_end')
@@ -67,7 +58,7 @@ export default async function ResponderPage({
     supabase
       .from('competencies')
       .select('id, name')
-      .eq('company_id', profile.company_id),
+      .eq('company_id', ctx.profile.company_id),
     listFeedbacksForReviewee(assignment.reviewee_id, periodStart, periodEnd),
   ]);
 

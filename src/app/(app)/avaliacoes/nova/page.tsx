@@ -1,41 +1,31 @@
 import { redirect } from 'next/navigation';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { getActorContext } from '@/features/auth/context';
 import { getDepartments, getPositions } from '@/features/employees/queries';
 import { getEligibleEmployees } from '@/features/reviews/queries';
 import { ReviewCycleWizard } from '@/features/reviews/components/ReviewCycleWizard';
 import { PageHeader } from '@/components/PageHeader';
-import { loadActorGate } from '@/features/permissions/queries';
 import { canCreateCycle } from '@/features/reviews/permissions';
 
 export default async function NovaAvaliacaoPage() {
-  const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('company_id, role')
-    .eq('id', user.id)
-    .single();
-  if (!profile?.company_id) redirect('/onboarding/criar-empresa');
-
-  const gate = await loadActorGate(user.id, profile.role);
+  const ctx = await getActorContext();
   const actor = {
-    role: profile.role,
-    userId: user.id,
+    role: ctx.profile.role,
+    userId: ctx.user.id,
     employeeId: null,
-    ...gate,
+    ...ctx.gate,
   };
   if (!canCreateCycle(actor)) redirect('/avaliacoes');
 
+  const supabase = await createServerSupabaseClient();
   const [positions, departments, employees, { data: competencies }] = await Promise.all([
-    getPositions(profile.company_id),
-    getDepartments(profile.company_id),
-    getEligibleEmployees(profile.company_id),
+    getPositions(ctx.profile.company_id),
+    getDepartments(ctx.profile.company_id),
+    getEligibleEmployees(ctx.profile.company_id),
     supabase
       .from('competencies')
       .select('id, name')
-      .eq('company_id', profile.company_id)
+      .eq('company_id', ctx.profile.company_id)
       .eq('is_archived', false)
       .order('name'),
   ]);
