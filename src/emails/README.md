@@ -87,4 +87,4 @@ await sendEmail({
 
 ## Testes
 
-Use `toContain()` em strings do HTML renderizado, não snapshots cegos (whitespace muda entre upgrades do `@react-email/render`). Verifique: subject correto, href do CTA, preheader presente, variantes/fallbacks de conteúdo. Exemplo: `admin-welcome.test.tsx`.
+Use `toContain()` em strings do HTML renderizado, não snapshots cegos (whitespace muda entre upgrades do `@react-email/render`). Verifique: subject correto, href do CTA, preheader presente, variantes/fallbacks de conteúdo. Exemplo: `employee-invite.test.tsx`.

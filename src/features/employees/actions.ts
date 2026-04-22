@@ -558,7 +558,6 @@ export async function acceptInvite(token: string, data: { fullName: string; pass
     email: invite.email,
     password: data.password,
     email_confirm: true,
-    app_metadata: { source: 'invite' },
   });
   if (authErr || !newUser.user) return { error: 'Erro ao criar usuário.' };
 
