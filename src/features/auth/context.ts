@@ -15,7 +15,7 @@ export type ActorContext = {
     avatar_url: string | null;
     company: { name: string; status: string } | null;
   };
-  employee: { id: string; status: 'active' | 'inactive' | 'terminated' } | null;
+  employee: { id: string; status: 'active' | 'inactive' | 'terminated'; manager_id: string | null } | null;
   isManager: boolean;
   isHiringManager: boolean;
   gate: { screenPermissions: ScreenPermissions | null };
@@ -40,7 +40,7 @@ export const getActorContext = cache(async (): Promise<ActorContext> => {
 
   const { data: employee } = await supabase
     .from('employees')
-    .select('id, status')
+    .select('id, status, manager_id')
     .eq('user_id', user.id)
     .eq('company_id', profileRow.company_id)
     .maybeSingle();

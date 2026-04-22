@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { getEmployeeDescendants } from '@/features/employees/queries';
 import { canDo } from '@/features/permissions/permissions';
@@ -261,14 +262,36 @@ type QuestionMini = {
   type: string;
 };
 
-async function fetchCycleRatingInputs(scope: DashboardScope): Promise<{
+type CycleRatingInputs = {
   assignments: AssignmentMini[];
   revieweeDeptMap: Map<string, { deptId: string | null; deptName: string | null; fullName: string }>;
   answersByReviewee: Map<string, number[]>;
   answersByReviewee_Competency: Map<string, Map<string, number[]>>;
   answersByCompetency: Map<string, number[]>;
   competencyNames: Map<string, string>;
-} | null> {
+};
+
+function cycleRatingScopeKey(s: DashboardScope): string {
+  const ids = s.employeeIds === 'all'
+    ? 'all'
+    : [...s.employeeIds].sort().join(',');
+  return `${s.companyId}|${s.role}|${ids}|${s.departmentId ?? ''}|${s.cycleId ?? ''}`;
+}
+
+// Dedupe within the same request: dashboard calls this 3x (overall, per-dept, competencies).
+// React.cache keys by arguments using identity; we pass a stable serialized key as the
+// dedup identity plus the scope object for the implementation.
+const fetchCycleRatingInputsCached = cache(
+  async (_key: string, scope: DashboardScope): Promise<CycleRatingInputs | null> => {
+    return fetchCycleRatingInputsImpl(scope);
+  },
+);
+
+async function fetchCycleRatingInputs(scope: DashboardScope): Promise<CycleRatingInputs | null> {
+  return fetchCycleRatingInputsCached(cycleRatingScopeKey(scope), scope);
+}
+
+async function fetchCycleRatingInputsImpl(scope: DashboardScope): Promise<CycleRatingInputs | null> {
   const cycleIds = await resolveCycleIds(scope);
   if (!cycleIds || cycleIds.length === 0) return null;
 

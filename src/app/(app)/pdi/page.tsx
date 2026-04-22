@@ -1,6 +1,6 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { getActorContext } from '@/features/auth/context';
-import { getEmployeeByUserId, getEmployeeDescendants } from '@/features/employees/queries';
+import { getEmployeeDescendants } from '@/features/employees/queries';
 import { listMyPdis, listTeamPdis, listAllPdis } from '@/features/pdi/queries';
 import { PdisPage } from '@/features/pdi/components/PdisPage';
 import { canDo } from '@/features/permissions/permissions';
@@ -17,10 +17,8 @@ export default async function PdiRoute() {
   const canSeeAll = canDo(actorForGate, 'pdi', 'view');
   const companyId = ctx.profile.company_id;
   const actorEmployeeId = ctx.employee?.id ?? null;
+  const hasManager = !!ctx.employee?.manager_id;
 
-  const actorEmployee = actorEmployeeId
-    ? await getEmployeeByUserId(ctx.user.id)
-    : null;
   const descendants = actorEmployeeId ? await getEmployeeDescendants(actorEmployeeId) : [];
   const hasTeam = descendants.length > 0;
 
@@ -49,7 +47,6 @@ export default async function PdiRoute() {
       .order('created_at', { ascending: false }),
   ]);
 
-  const hasManager = !!actorEmployee?.manager_id;
   const canCreateAny = isAdmin || hasTeam || (!!actorEmployeeId && hasManager);
 
   return (
