@@ -32,21 +32,15 @@ export function NotificationBell({ userId, initialUnread, initialNotifications }
 
   const fetchState = useCallback(async () => {
     const supabase = createBrowserSupabaseClient();
-    const [{ count }, { data }] = await Promise.all([
-      supabase
-        .from('notifications')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', userId)
-        .is('read_at', null),
-      supabase
-        .from('notifications')
-        .select('id, type, title, body, link_url, read_at, created_at')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(20),
-    ]);
-    setUnread(count ?? 0);
-    setNotifications(data ?? []);
+    const { data } = await supabase
+      .from('notifications')
+      .select('id, type, title, body, link_url, read_at, created_at')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(20);
+    const rows = data ?? [];
+    setNotifications(rows);
+    setUnread(rows.filter((n) => n.read_at === null).length);
   }, [userId]);
 
   useEffect(() => {
