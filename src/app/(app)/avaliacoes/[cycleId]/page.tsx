@@ -3,9 +3,10 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 import {
   getCycle, getCycleParticipants, getCycleAssignments, getCycleForm,
 } from '@/features/reviews/queries';
-
 import { CycleDetail } from '@/features/reviews/components/CycleDetail';
 import { BreadcrumbLabel } from '@/features/shell/components/BreadcrumbLabel';
+import { canDo } from '@/features/permissions/permissions';
+import { loadActorGate } from '@/features/permissions/queries';
 
 function deriveCycleLabel(status: string, responseStart: string, responseEnd: string): string {
   if (status === 'draft') return 'Rascunho';
@@ -33,6 +34,9 @@ export default async function CycleDetailPage({
     .eq('id', user.id)
     .single();
   if (!profile?.company_id) redirect('/onboarding/criar-empresa');
+
+  const gate = await loadActorGate(user.id, profile.role);
+  const actor = { role: profile.role, ...gate };
 
   const cycle = await getCycle(cycleId);
   if (!cycle) notFound();
@@ -69,7 +73,7 @@ export default async function CycleDetailPage({
       assignments={assignments as unknown as Parameters<typeof CycleDetail>[0]['assignments']}
       questions={formData.questions as unknown as Parameters<typeof CycleDetail>[0]['questions']}
       competencies={competencies ?? []}
-      isAdmin={profile.role === 'admin_rh'}
+      isAdmin={canDo(actor, 'avaliacoes', 'edit')}
       deriveLabel={deriveCycleLabel(cycle.status, cycle.response_start, cycle.response_end)}
     />
     </>

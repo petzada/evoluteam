@@ -6,6 +6,8 @@ import {
 import { FeedbacksPage } from '@/features/feedbacks/components/FeedbacksPage';
 import { getEmployeeByUserId, getEmployeeDescendants } from '@/features/employees/queries';
 import { getEligibleEmployees } from '@/features/reviews/queries';
+import { canDo } from '@/features/permissions/permissions';
+import { loadActorGate } from '@/features/permissions/queries';
 
 export default async function FeedbacksRoute({
   searchParams,
@@ -23,6 +25,9 @@ export default async function FeedbacksRoute({
     .eq('id', user.id)
     .single();
   if (!profile?.company_id) redirect('/onboarding/criar-empresa');
+
+  const gate = await loadActorGate(user.id, profile.role);
+  const actor = { role: profile.role, ...gate };
 
   const actorEmployee = await getEmployeeByUserId(user.id);
   const currentEmployeeId = actorEmployee?.id ?? null;
@@ -54,7 +59,7 @@ export default async function FeedbacksRoute({
       employees={employees as Parameters<typeof FeedbacksPage>[0]['employees']}
       competencies={competencies ?? []}
       currentEmployeeId={currentEmployeeId}
-      isAdmin={profile.role === 'admin_rh'}
+      isAdmin={canDo(actor, 'feedbacks', 'edit')}
       initialOpenSheet={params.novo === '1'}
       unreadCount={unread}
     />

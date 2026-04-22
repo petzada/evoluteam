@@ -33,12 +33,30 @@ describe('canDo', () => {
     expect(canDo(adm, 'empresa', 'edit')).toBe(true);
   });
 
-  it('director passa em view de qualquer tela, nunca em edit', () => {
+  it('director passa em view de telas operacionais, nunca em edit', () => {
     const dir = baseActor({ role: 'director' });
     expect(canDo(dir, 'colaboradores', 'view')).toBe(true);
     expect(canDo(dir, 'pdi', 'view')).toBe(true);
+    expect(canDo(dir, 'avaliacoes', 'view')).toBe(true);
+    expect(canDo(dir, 'feedbacks', 'view')).toBe(true);
+    expect(canDo(dir, 'dashboard', 'view')).toBe(true);
+    expect(canDo(dir, 'recrutamento_vagas', 'view')).toBe(true);
     expect(canDo(dir, 'colaboradores', 'edit')).toBe(false);
     expect(canDo(dir, 'pdi', 'edit')).toBe(false);
+  });
+
+  // Director nao tem acesso a nenhuma tela de Configuracoes.
+  // Spec: permissoes.md linhas 40-43.
+  it.each([
+    'empresa',
+    'cargos',
+    'departamentos',
+    'competencias',
+    'auditoria',
+  ] as const)('director nao ve nem edita tela de Configuracoes: %s', (screen) => {
+    const dir = baseActor({ role: 'director' });
+    expect(canDo(dir, screen, 'view')).toBe(false);
+    expect(canDo(dir, screen, 'edit')).toBe(false);
   });
 
   it('user sem toggles nao passa em nada', () => {
@@ -57,6 +75,39 @@ describe('canDo', () => {
   it('null/undefined actor nao passa', () => {
     expect(canDo(null, 'colaboradores', 'view')).toBe(false);
     expect(canDo(undefined, 'colaboradores', 'view')).toBe(false);
+  });
+
+  // Matriz completa: cada tela com toggle isolado
+  it.each([
+    ['avaliacoes', 'view'],
+    ['avaliacoes', 'edit'],
+    ['feedbacks', 'view'],
+    ['feedbacks', 'edit'],
+    ['pdi', 'view'],
+    ['pdi', 'edit'],
+    ['recrutamento_vagas', 'view'],
+    ['recrutamento_vagas', 'edit'],
+    ['recrutamento_candidatos', 'view'],
+    ['recrutamento_candidatos', 'edit'],
+    ['recrutamento_etapas', 'view'],
+    ['recrutamento_etapas', 'edit'],
+    ['recrutamento_relatorios', 'view'],
+    ['empresa', 'view'],
+    ['empresa', 'edit'],
+    ['cargos', 'view'],
+    ['cargos', 'edit'],
+    ['departamentos', 'view'],
+    ['departamentos', 'edit'],
+    ['competencias', 'view'],
+    ['competencias', 'edit'],
+    ['auditoria', 'view'],
+    ['dashboard', 'view'],
+  ] as const)('user com %s.%s: passa apenas nessa chave especifica', (screen, action) => {
+    const key = `${screen}.${action}` as import('./types').ScreenPermissionKey;
+    const withToggle = userWith({ [key]: true } as ScreenPermissions);
+    const withoutToggle = userWith({});
+    expect(canDo(withToggle, screen, action)).toBe(true);
+    expect(canDo(withoutToggle, screen, action)).toBe(false);
   });
 });
 

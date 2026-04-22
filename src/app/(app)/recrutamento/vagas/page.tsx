@@ -3,7 +3,7 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { getDepartments, getPositions } from '@/features/employees/queries';
 import { loadActorGate } from '@/features/permissions/queries';
 import { listJobOpenings, listHiringManagerOptions } from '@/features/recruitment/queries/jobOpenings';
-import { canManageJobOpenings } from '@/features/recruitment/permissions';
+import { canManageJobOpenings, canViewAllJobOpenings, canViewAssignedJobOpenings } from '@/features/recruitment/permissions';
 import { JobOpeningsTable } from '@/features/recruitment/components/JobOpeningsTable';
 
 export default async function VagasPage() {
@@ -31,6 +31,10 @@ export default async function VagasPage() {
     employeeId: employeeRow?.id ?? null,
     ...gate,
   };
+
+  if (!canViewAllJobOpenings(actor) && !canViewAssignedJobOpenings(actor)) {
+    redirect('/dashboard');
+  }
 
   const [jobs, departments, positions, managers] = await Promise.all([
     listJobOpenings(profile.company_id),

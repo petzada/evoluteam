@@ -15,6 +15,7 @@ import { getTaskStatesByApplication, listTasksByJob } from '@/features/recruitme
 import {
   canManageJobOpenings, canMoveApplication,
   canGiveFeedback, canHireCandidate, canManageRecruitment,
+  canViewAllJobOpenings, canViewAssignedJobOpenings,
 } from '@/features/recruitment/permissions';
 import { JobOpeningDetail } from '@/features/recruitment/components/JobOpeningDetail';
 import { BreadcrumbLabel } from '@/features/shell/components/BreadcrumbLabel';
@@ -48,6 +49,10 @@ export default async function VagaDetailPage({ params }: { params: Params }) {
     employeeId: employeeRow?.id ?? null,
     ...gate,
   };
+
+  if (!canViewAllJobOpenings(actor) && !canViewAssignedJobOpenings(actor)) {
+    redirect('/dashboard');
+  }
 
   const job = await getJobOpeningById(id);
   if (!job) notFound();

@@ -77,6 +77,7 @@ export async function createFeedback(applicationId: string, input: CandidateFeed
 export async function updateFeedback(id: string, input: CandidateFeedbackInput) {
   const actor = await getActor();
   if (!actor) return { error: 'Nao autenticado.' };
+  if (!canGiveRecruitmentFeedback(actor)) return { error: 'Sem permissao.' };
 
   const parsed = CandidateFeedbackInputSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Dados invalidos.' };

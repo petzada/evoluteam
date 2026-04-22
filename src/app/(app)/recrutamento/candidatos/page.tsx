@@ -2,7 +2,7 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { loadActorGate } from '@/features/permissions/queries';
 import { listCandidates } from '@/features/recruitment/queries/candidates';
-import { canManageCandidates } from '@/features/recruitment/permissions';
+import { canManageCandidates, canViewAllCandidates, canViewAssignedCandidates } from '@/features/recruitment/permissions';
 import { CandidatesTable } from '@/features/recruitment/components/CandidatesTable';
 
 export default async function CandidatosPage() {
@@ -30,6 +30,10 @@ export default async function CandidatosPage() {
     employeeId: employeeRow?.id ?? null,
     ...gate,
   };
+
+  if (!canViewAllCandidates(actor) && !canViewAssignedCandidates(actor)) {
+    redirect('/dashboard');
+  }
 
   const candidates = await listCandidates(profile.company_id);
 

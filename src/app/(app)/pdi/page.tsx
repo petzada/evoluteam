@@ -18,11 +18,15 @@ export default async function PdiRoute() {
     .single();
   if (!profile?.company_id) redirect('/onboarding/criar-empresa');
 
-  const role = profile.role as 'admin_rh' | 'director' | 'user' | 'rh';
+  const role = profile.role as 'admin_rh' | 'director' | 'user';
   const gate = await loadActorGate(user.id, role);
+  const actorForGate = { role, ...gate };
   // Edit em PDI cobre admin_rh + user/rh com toggle. Diretor nao entra
   // (apenas view+comentarios; nao modera/deleta).
-  const isAdmin = canDo({ role, ...gate }, 'pdi', 'edit');
+  const isAdmin = canDo(actorForGate, 'pdi', 'edit');
+  // View em PDI cobre admin_rh, director e user/rh com toggle. Usado para
+  // liberar a aba "Todos" em modo leitura pro director.
+  const canSeeAll = canDo(actorForGate, 'pdi', 'view');
   const companyId = profile.company_id;
 
   const actorEmployee = await getEmployeeByUserId(user.id);
@@ -33,7 +37,7 @@ export default async function PdiRoute() {
   const [mine, team, all, { data: employees }, { data: competencies }, { data: cycles }] = await Promise.all([
     actorEmployeeId ? listMyPdis(actorEmployeeId) : Promise.resolve([]),
     hasTeam ? listTeamPdis(descendants) : Promise.resolve([]),
-    isAdmin ? listAllPdis(companyId) : Promise.resolve([]),
+    canSeeAll ? listAllPdis(companyId) : Promise.resolve([]),
     supabase
       .from('employees')
       .select('id, full_name, email, status, manager_id, position:positions(id, name)')
@@ -64,6 +68,7 @@ export default async function PdiRoute() {
       all={all}
       hasTeam={hasTeam}
       isAdmin={isAdmin}
+      canSeeAll={canSeeAll}
       canCreateAny={canCreateAny}
       actorEmployeeId={actorEmployeeId}
       employees={(employees ?? []) as Parameters<typeof PdisPage>[0]['employees']}

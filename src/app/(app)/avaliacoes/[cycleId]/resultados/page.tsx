@@ -3,6 +3,8 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { getCycle, listCycleResults, getActorDescendants, getActorEmployeeId } from '@/features/reviews/queries';
 import { getDepartments } from '@/features/employees/queries';
 import { CycleResults } from '@/features/reviews/components/CycleResults';
+import { canDo } from '@/features/permissions/permissions';
+import { loadActorGate } from '@/features/permissions/queries';
 
 export default async function ResultadosPage({
   params,
@@ -22,10 +24,13 @@ export default async function ResultadosPage({
     .single();
   if (!profile?.company_id) redirect('/onboarding/criar-empresa');
 
+  const gate = await loadActorGate(user.id, profile.role);
+  const actor = { role: profile.role, ...gate };
+
   const cycle = await getCycle(cycleId);
   if (!cycle) notFound();
 
-  const isAdmin = profile.role === 'admin_rh';
+  const isAdmin = canDo(actor, 'avaliacoes', 'edit');
   const isDirector = profile.role === 'director';
 
   const [rowsAll, departments, { data: managersRaw }, actorEmployeeId] = await Promise.all([

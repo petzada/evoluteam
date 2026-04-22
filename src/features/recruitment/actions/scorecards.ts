@@ -94,6 +94,7 @@ export async function createScorecard(applicationId: string, input: ScorecardInp
 export async function updateScorecard(id: string, input: ScorecardInput) {
   const actor = await getActor();
   if (!actor) return { error: 'Nao autenticado.' };
+  if (!canSubmitScorecard(actor)) return { error: 'Sem permissao.' };
 
   const parsed = ScorecardInputSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Dados invalidos.' };

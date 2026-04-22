@@ -17,11 +17,12 @@ export default async function CargosPage() {
     .single();
   if (!profile?.company_id) redirect('/onboarding/criar-empresa');
   const gate = await loadActorGate(user.id, profile.role);
-  if (!canDo({ role: profile.role, ...gate }, 'cargos', 'view')) {
+  const actor = { role: profile.role, ...gate };
+  if (!canDo(actor, 'cargos', 'view')) {
     redirect('/dashboard');
   }
 
   const items = await listPositionsWithCounts(profile.company_id);
 
-  return <TaxonomyList kind="position" items={items} />;
+  return <TaxonomyList kind="position" items={items} canEdit={canDo(actor, 'cargos', 'edit')} />;
 }

@@ -19,12 +19,24 @@ export type CanDoActor = {
   screenPermissions?: ScreenPermissions | null;
 };
 
+// Telas de Configuracoes: director nao tem acesso a nenhuma delas.
+// Spec: permissoes.md linhas 40-43 (director so visualiza dashboard/relatorios,
+// avaliacoes, feedbacks, pdi e colaboradores). Configuracoes nao e mencionado
+// no escopo do director.
+const DIRECTOR_BLOCKED_SCREENS: readonly ScreenKey[] = [
+  'empresa',
+  'cargos',
+  'departamentos',
+  'competencias',
+  'auditoria',
+];
+
 /**
  * Decide se um ator pode executar a acao (view ou edit) na tela informada.
  *
  * Regras:
  *   - admin_rh: tudo.
- *   - director: view em qualquer tela; edit em nenhuma.
+ *   - director: view em qualquer tela EXCETO Configuracoes; edit em nenhuma.
  *   - user: checa o toggle correspondente em screenPermissions.
  *   - demais roles: false.
  *
@@ -38,7 +50,11 @@ export function canDo(
 ): boolean {
   if (!actor) return false;
   if (actor.role === 'admin_rh') return true;
-  if (actor.role === 'director') return action === 'view';
+  if (actor.role === 'director') {
+    if (action === 'edit') return false;
+    if (DIRECTOR_BLOCKED_SCREENS.includes(screen)) return false;
+    return true;
+  }
   if (actor.role === 'user') {
     const key = `${screen}.${action}` as ScreenPermissionKey;
     return actor.screenPermissions?.[key] === true;

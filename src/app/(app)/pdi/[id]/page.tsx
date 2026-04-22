@@ -6,6 +6,8 @@ import {
 } from '@/features/pdi/queries';
 import { PdiDetail } from '@/features/pdi/components/PdiDetail';
 import { BreadcrumbLabel } from '@/features/shell/components/BreadcrumbLabel';
+import { canDo } from '@/features/permissions/permissions';
+import { loadActorGate } from '@/features/permissions/queries';
 
 export default async function PdiDetailRoute({
   params,
@@ -28,9 +30,10 @@ export default async function PdiDetailRoute({
   const plan = await getPdiDetail(id);
   if (!plan) notFound();
 
-  const role = profile.role as 'admin_rh' | 'director' | 'user';
-  const isAdmin = role === 'admin_rh';
-  const isDirector = role === 'director';
+  const gate = await loadActorGate(user.id, profile.role);
+  const actor = { role: profile.role, ...gate };
+  const isAdmin = canDo(actor, 'pdi', 'edit');
+  const isDirector = profile.role === 'director';
 
   const actorEmployee = await getEmployeeByUserId(user.id);
   const actorEmployeeId = actorEmployee?.id ?? null;

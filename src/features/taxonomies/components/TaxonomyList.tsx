@@ -37,6 +37,7 @@ type Row = {
 
 interface PropsBase {
   kind: Kind;
+  canEdit: boolean;
 }
 
 interface PropsDepartmentOrPosition extends PropsBase {
@@ -108,7 +109,7 @@ function normalizeItems(props: Props): Row[] {
 }
 
 export function TaxonomyList(props: Props) {
-  const { kind } = props;
+  const { kind, canEdit } = props;
   const copy = COPY[kind];
   const rows = useMemo(() => normalizeItems(props), [props]);
   const [search, setSearch] = useState('');
@@ -147,12 +148,12 @@ export function TaxonomyList(props: Props) {
       <PageHeader
         title={copy.title}
         description={copy.description}
-        actions={
+        actions={canEdit ? (
           <Button onClick={() => { setEditing(null); setSheetOpen(true); }}>
             <Plus className="mr-2 h-4 w-4" />
             Nov{kind === 'competency' ? 'a' : 'o'} {copy.singular}
           </Button>
-        }
+        ) : undefined}
       />
 
       <div className="flex items-center gap-3 mb-4">
@@ -183,13 +184,13 @@ export function TaxonomyList(props: Props) {
               <TableHead>Nome</TableHead>
               <TableHead className="w-48">{copy.usageColLabel}</TableHead>
               <TableHead className="w-32">Status</TableHead>
-              <TableHead className="w-12" />
+              {canEdit && <TableHead className="w-12" />}
             </TableRow>
           </TableHeader>
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} className="text-center text-sm text-muted-foreground py-10">
+                <TableCell colSpan={canEdit ? 4 : 3} className="text-center text-sm text-muted-foreground py-10">
                   Nenhum{kind === 'competency' ? 'a' : ''} {copy.singular} encontrad{kind === 'competency' ? 'a' : 'o'}.
                 </TableCell>
               </TableRow>
@@ -213,52 +214,54 @@ export function TaxonomyList(props: Props) {
                       {row.is_archived ? 'Arquivad' + (kind === 'competency' ? 'a' : 'o') : 'Ativ' + (kind === 'competency' ? 'a' : 'o')}
                     </Badge>
                   </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger className="flex h-8 w-8 items-center justify-center rounded-md hover:bg-muted transition-colors">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => { setEditing(row); setSheetOpen(true); }}>
-                          Editar
-                        </DropdownMenuItem>
-                        {row.is_archived ? (
-                          <DropdownMenuItem onClick={() => handleArchive(row, false)}>
-                            Desarquivar
+                  {canEdit && (
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger className="flex h-8 w-8 items-center justify-center rounded-md hover:bg-muted transition-colors">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => { setEditing(row); setSheetOpen(true); }}>
+                            Editar
                           </DropdownMenuItem>
-                        ) : (
-                          <DropdownMenuItem onClick={() => setArchiveTarget(row)}>
-                            Arquivar
-                          </DropdownMenuItem>
-                        )}
-                        <DropdownMenuSeparator />
-                        {row.usageCount > 0 ? (
-                          <Tooltip>
-                            <TooltipTrigger
-                              render={
-                                <DropdownMenuItem
-                                  disabled
-                                  className="text-destructive focus:text-destructive cursor-not-allowed opacity-50"
-                                >
-                                  Deletar
-                                </DropdownMenuItem>
-                              }
-                            />
-                            <TooltipContent side="left">
-                              {copy.deleteBlockedHint}
-                            </TooltipContent>
-                          </Tooltip>
-                        ) : (
-                          <DropdownMenuItem
-                            className="text-destructive focus:text-destructive"
-                            onClick={() => setDeleteTarget(row)}
-                          >
-                            Deletar
-                          </DropdownMenuItem>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
+                          {row.is_archived ? (
+                            <DropdownMenuItem onClick={() => handleArchive(row, false)}>
+                              Desarquivar
+                            </DropdownMenuItem>
+                          ) : (
+                            <DropdownMenuItem onClick={() => setArchiveTarget(row)}>
+                              Arquivar
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuSeparator />
+                          {row.usageCount > 0 ? (
+                            <Tooltip>
+                              <TooltipTrigger
+                                render={
+                                  <DropdownMenuItem
+                                    disabled
+                                    className="text-destructive focus:text-destructive cursor-not-allowed opacity-50"
+                                  >
+                                    Deletar
+                                  </DropdownMenuItem>
+                                }
+                              />
+                              <TooltipContent side="left">
+                                {copy.deleteBlockedHint}
+                              </TooltipContent>
+                            </Tooltip>
+                          ) : (
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onClick={() => setDeleteTarget(row)}
+                            >
+                              Deletar
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))
             )}
@@ -270,12 +273,14 @@ export function TaxonomyList(props: Props) {
         {activeCount} ativ{kind === 'competency' ? 'a' : 'o'}{activeCount === 1 ? '' : 's'} · {archivedCount} arquivad{kind === 'competency' ? 'a' : 'o'}{archivedCount === 1 ? '' : 's'}
       </p>
 
-      <TaxonomySheet
-        kind={kind}
-        open={sheetOpen}
-        onOpenChange={(o) => { setSheetOpen(o); if (!o) setEditing(null); }}
-        existing={editing}
-      />
+      {canEdit && (
+        <TaxonomySheet
+          kind={kind}
+          open={sheetOpen}
+          onOpenChange={(o) => { setSheetOpen(o); if (!o) setEditing(null); }}
+          existing={editing}
+        />
+      )}
 
       <ConfirmArchiveDialog
         open={!!archiveTarget}

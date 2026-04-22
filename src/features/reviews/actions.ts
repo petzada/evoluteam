@@ -834,7 +834,7 @@ async function syncDraftParticipants(
 async function getCommenterContext(): Promise<{
   userId: string;
   companyId: string;
-  role: 'admin_rh' | 'director' | 'user' | 'rh';
+  role: 'admin_rh' | 'director' | 'user';
   employeeId: string | null;
 } | null> {
   const supabase = await createServerSupabaseClient();
@@ -855,7 +855,7 @@ async function getCommenterContext(): Promise<{
   return {
     userId: user.id,
     companyId: profile.company_id,
-    role: profile.role as 'admin_rh' | 'director' | 'user' | 'rh',
+    role: profile.role as 'admin_rh' | 'director' | 'user',
     employeeId: emp?.id ?? null,
   };
 }

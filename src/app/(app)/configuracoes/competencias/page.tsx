@@ -17,11 +17,12 @@ export default async function CompetenciasPage() {
     .single();
   if (!profile?.company_id) redirect('/onboarding/criar-empresa');
   const gate = await loadActorGate(user.id, profile.role);
-  if (!canDo({ role: profile.role, ...gate }, 'competencias', 'view')) {
+  const actor = { role: profile.role, ...gate };
+  if (!canDo(actor, 'competencias', 'view')) {
     redirect('/dashboard');
   }
 
   const items = await listCompetenciesWithCounts(profile.company_id);
 
-  return <TaxonomyList kind="competency" items={items} />;
+  return <TaxonomyList kind="competency" items={items} canEdit={canDo(actor, 'competencias', 'edit')} />;
 }

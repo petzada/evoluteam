@@ -179,7 +179,7 @@ export default async function EmployeeProfilePage({
       activityLog={activityLog as Parameters<typeof EmployeeProfile>[0]['activityLog']}
       role={targetRole}
       lastSignInAt={lastSignInAt}
-      isAdmin={actorRole === 'admin_rh'}
+      isAdmin={canDo({ role: actorRole, ...gate }, 'colaboradores', 'edit')}
       isSelf={employee.user_id === user.id}
       canSeeInternalNotes={showInternalNotes}
       positions={positions}

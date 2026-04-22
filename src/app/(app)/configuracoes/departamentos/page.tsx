@@ -17,11 +17,12 @@ export default async function DepartamentosPage() {
     .single();
   if (!profile?.company_id) redirect('/onboarding/criar-empresa');
   const gate = await loadActorGate(user.id, profile.role);
-  if (!canDo({ role: profile.role, ...gate }, 'departamentos', 'view')) {
+  const actor = { role: profile.role, ...gate };
+  if (!canDo(actor, 'departamentos', 'view')) {
     redirect('/dashboard');
   }
 
   const items = await listDepartmentsWithCounts(profile.company_id);
 
-  return <TaxonomyList kind="department" items={items} />;
+  return <TaxonomyList kind="department" items={items} canEdit={canDo(actor, 'departamentos', 'edit')} />;
 }

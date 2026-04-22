@@ -13,6 +13,7 @@ import { listTasksByCandidate } from '@/features/recruitment/queries/tasks';
 import { listHiringManagerOptions } from '@/features/recruitment/queries/jobOpenings';
 import {
   canManageCandidates, canGiveFeedback, canManageRecruitment,
+  canViewAllCandidates, canViewAssignedJobOpenings,
 } from '@/features/recruitment/permissions';
 import { CandidateProfile } from '@/features/recruitment/components/CandidateProfile';
 import { BreadcrumbLabel } from '@/features/shell/components/BreadcrumbLabel';
@@ -45,6 +46,10 @@ export default async function CandidatoPage({ params }: { params: Params }) {
     employeeId: employeeRow?.id ?? null,
     ...gate,
   };
+
+  if (!canViewAllCandidates(actor) && !canViewAssignedJobOpenings(actor)) {
+    redirect('/dashboard');
+  }
 
   const candidate = await getCandidateById(id);
   if (!candidate) notFound();

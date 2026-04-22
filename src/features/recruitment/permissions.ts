@@ -1,13 +1,10 @@
 /**
  * Permissions do modulo Recrutamento.
  *
- * Nota sobre roles:
- * - O banco guarda role em ('admin_rh','director','user','rh').
- * - "gestor" e derivado: um user que e hiring_manager de alguma vaga.
- * - Na UI, tratamos como 5 papeis efetivos: admin_rh / director / rh / gestor / colaborador.
+ * Roles vigentes: 'admin_rh' | 'director' | 'user'.
+ * "gestor" e derivado: um user que e hiring_manager de alguma vaga.
  *
  * Spec original: docs/dev/13-ft-7-fundacao.md §5.1.
- * FT-8 (roles + toggles legados): docs/dev/19-ft-8-granularidade-rh.md §7.
  * FT-9 (granularidade por tela): docs/dev/21-ft-9-redesign-acessos.md §1.5.
  */
 
@@ -15,8 +12,8 @@ import { canDo } from '@/features/permissions/permissions';
 import type { ScreenPermissions } from '@/features/permissions/types';
 
 export interface RecruitmentActor {
-  role: string;                  // 'admin_rh' | 'director' | 'user'
-  employeeId: string | null;     // id em employees (null se user sem perfil de colaborador)
+  role: 'admin_rh' | 'director' | 'user' | string;
+  employeeId: string | null;
   screenPermissions?: ScreenPermissions | null;
 }
 
@@ -32,7 +29,7 @@ export function canAccessRecruitmentModule(actor: RecruitmentActor): boolean {
   if (canDo(actor, 'recrutamento_etapas', 'view')) return true;
   if (canDo(actor, 'recrutamento_relatorios', 'view')) return true;
   // user/rh comum que e hiring_manager tambem acessa (baseline contextual).
-  return (actor.role === 'user' || actor.role === 'rh') && !!actor.employeeId;
+  return actor.role === 'user' && !!actor.employeeId;
 }
 
 // ============================================================
@@ -49,7 +46,7 @@ export function canViewAllJobOpenings(actor: RecruitmentActor): boolean {
 
 /** Gestor so ve vagas proprias — a lista real e filtrada pela RLS. */
 export function canViewAssignedJobOpenings(actor: RecruitmentActor): boolean {
-  return (actor.role === 'user' || actor.role === 'rh') && !!actor.employeeId;
+  return actor.role === 'user' && !!actor.employeeId;
 }
 
 // ============================================================
@@ -73,6 +70,11 @@ export function canViewAllCandidates(actor: RecruitmentActor): boolean {
   return canDo(actor, 'recrutamento_candidatos', 'view');
 }
 
+/** Gestor/hiring_manager acessa a tela; RLS filtra para aplicacoes em suas vagas. */
+export function canViewAssignedCandidates(actor: RecruitmentActor): boolean {
+  return actor.role === 'user' && !!actor.employeeId;
+}
+
 // ============================================================
 // Aplicacoes (job_applications)
 // ============================================================
@@ -88,7 +90,7 @@ export function canManageApplications(actor: RecruitmentActor): boolean {
  */
 export function canMoveApplication(actor: RecruitmentActor): boolean {
   if (canDo(actor, 'recrutamento_candidatos', 'edit')) return true;
-  return (actor.role === 'user' || actor.role === 'rh') && !!actor.employeeId;
+  return actor.role === 'user' && !!actor.employeeId;
 }
 
 /** Disparar wizard de contratacao. */
@@ -104,20 +106,20 @@ export function canGiveFeedback(actor: RecruitmentActor): boolean {
   // Director tambem (FT-8 P4 B): opina em candidato mesmo sem ser HM.
   if (actor.role === 'director') return true;
   if (canDo(actor, 'recrutamento_candidatos', 'edit')) return true;
-  return (actor.role === 'user' || actor.role === 'rh') && !!actor.employeeId;
+  return actor.role === 'user' && !!actor.employeeId;
 }
 
 export function canSubmitScorecard(actor: RecruitmentActor): boolean {
   // Director NAO entra aqui (P4 B limita director a feedback — scorecard
   // tem nota e peso de decisao, fica com HM + admin/toggle).
   if (canDo(actor, 'recrutamento_candidatos', 'edit')) return true;
-  return (actor.role === 'user' || actor.role === 'rh') && !!actor.employeeId;
+  return actor.role === 'user' && !!actor.employeeId;
 }
 
 export function canManageTasks(actor: RecruitmentActor): boolean {
   // Director NAO entra aqui (task tem compromisso operacional; P4 B).
   if (canDo(actor, 'recrutamento_candidatos', 'edit')) return true;
-  return (actor.role === 'user' || actor.role === 'rh') && !!actor.employeeId;
+  return actor.role === 'user' && !!actor.employeeId;
 }
 
 // ============================================================

@@ -50,11 +50,12 @@ interface SidebarProps {
   role: string;
   screenPermissions?: ScreenPermissions | null;
   isOperationalOnly: boolean;
+  isHiringManager?: boolean;
   footer?: React.ReactNode;
 }
 
 export function Sidebar({
-  role, screenPermissions, isOperationalOnly, footer,
+  role, screenPermissions, isOperationalOnly, isHiringManager = false, footer,
 }: SidebarProps) {
   const pathname = usePathname();
   const { collapsed } = useSidebar();
@@ -66,11 +67,17 @@ export function Sidebar({
 
   // FT-9: item da sidebar aparece se canDo(tela, 'view') OR e baseline.
   // Baseline (sem screen definido): MAIN_NAV (colaboradores, avaliacoes, feedbacks,
-  // pdi) sempre aparece — conteudo baseline/proprio e visivel. Recrutamento
-  // tambem aparece no baseline se a pessoa tem employeeId (hiring_manager
-  // em potencial) — controlado pelo flag isOperationalOnly + gate isItemVisible.
+  // pdi) sempre aparece — conteudo baseline/proprio e visivel.
+  // Recrutamento (exceto Etapas): libera quando o user e hiring_manager de
+  // alguma vaga aberta, alem do caminho normal por toggle.
   const isItemVisible = (item: NavItem): boolean => {
     if (item.adminOnly) return isAdmin;
+    if (item.screen === 'recrutamento_etapas') {
+      return canDo(actorForGate, item.screen, 'view');
+    }
+    if (item.screen && item.screen.startsWith('recrutamento_')) {
+      return canDo(actorForGate, item.screen, 'view') || isHiringManager;
+    }
     if (item.screen) return canDo(actorForGate, item.screen, 'view');
     return true; // baseline
   };
@@ -166,7 +173,7 @@ export function Sidebar({
           <ul className="space-y-0.5">{MAIN_NAV.map(renderItem)}</ul>
         </div>
 
-        {!isOperationalOnly && showRecruitmentSection && (
+        {showRecruitmentSection && (
           <div>
             {!collapsed && (
               <p className="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/30">

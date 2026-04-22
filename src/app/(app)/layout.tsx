@@ -31,12 +31,21 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     .maybeSingle();
 
   let isManager = false;
+  let isHiringManager = false;
   if (actorEmployee?.id) {
-    const { count } = await supabase
-      .from('employees')
-      .select('*', { count: 'exact', head: true })
-      .eq('manager_id', actorEmployee.id);
-    isManager = (count ?? 0) > 0;
+    const [{ count: directReports }, { count: openJobs }] = await Promise.all([
+      supabase
+        .from('employees')
+        .select('*', { count: 'exact', head: true })
+        .eq('manager_id', actorEmployee.id),
+      supabase
+        .from('job_openings')
+        .select('id', { count: 'exact', head: true })
+        .eq('hiring_manager_id', actorEmployee.id)
+        .neq('status', 'closed'),
+    ]);
+    isManager = (directReports ?? 0) > 0;
+    isHiringManager = (openJobs ?? 0) > 0;
   }
 
   const gate = await loadActorGate(user.id, profile.role);
@@ -59,6 +68,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             role={profile.role}
             screenPermissions={gate.screenPermissions}
             isOperationalOnly={isOperationalOnly}
+            isHiringManager={isHiringManager}
             footer={
               <UserCard
                 fullName={profile.full_name}

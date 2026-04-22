@@ -381,7 +381,7 @@ export type ResultLeadershipComment = {
   updatedAt: string;
   authorEmployeeId: string;
   authorFullName: string;
-  authorRole: 'admin_rh' | 'director' | 'user' | 'rh' | null;
+  authorRole: 'admin_rh' | 'director' | 'user' | null;
   authorIsManagerOfReviewee: boolean;
 };
 

@@ -22,6 +22,7 @@ interface Props {
   all: PlanRow[];
   hasTeam: boolean;
   isAdmin: boolean;
+  canSeeAll: boolean;
   canCreateAny: boolean;
   actorEmployeeId: string | null;
   employees: EmployeeOption[];
@@ -41,7 +42,7 @@ function filterByPeriod(rows: PlanRow[], period: PeriodFilter) {
 }
 
 export function PdisPage({
-  mine, team, all, hasTeam, isAdmin, canCreateAny, actorEmployeeId,
+  mine, team, all, hasTeam, isAdmin, canSeeAll, canCreateAny, actorEmployeeId,
   employees, competencies, cycles,
 }: Props) {
   const searchParams = useSearchParams();
@@ -129,7 +130,7 @@ export function PdisPage({
         <TabsList>
           <TabsTrigger value="mine">Meus PDIs</TabsTrigger>
           {hasTeam && <TabsTrigger value="team">Minha equipe</TabsTrigger>}
-          {isAdmin && <TabsTrigger value="all">Todos</TabsTrigger>}
+          {canSeeAll && <TabsTrigger value="all">Todos</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="mine" className="mt-6">
@@ -146,17 +147,17 @@ export function PdisPage({
             <PdiList
               items={filteredTeam}
               emptyMessage="Nenhum PDI na sua equipe."
-              onCreate={() => setSheetOpen(true)}
+              onCreate={canCreateAny ? () => setSheetOpen(true) : undefined}
             />
           </TabsContent>
         )}
 
-        {isAdmin && (
+        {canSeeAll && (
           <TabsContent value="all" className="mt-6">
             <PdiList
               items={filteredAll}
               emptyMessage="Nenhum PDI registrado."
-              onCreate={() => setSheetOpen(true)}
+              onCreate={canCreateAny ? () => setSheetOpen(true) : undefined}
             />
           </TabsContent>
         )}

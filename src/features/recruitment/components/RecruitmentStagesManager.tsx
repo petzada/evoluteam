@@ -29,6 +29,7 @@ import {
 
 interface Props {
   stages: StageRow[];
+  canEdit: boolean;
 }
 
 const KIND_LABELS = {
@@ -37,7 +38,7 @@ const KIND_LABELS = {
   hired_terminal: 'Contratação',
 } as const;
 
-export function RecruitmentStagesManager({ stages: initialStages }: Props) {
+export function RecruitmentStagesManager({ stages: initialStages, canEdit }: Props) {
   const router = useRouter();
   const [stages, setStages] = useState<StageRow[]>(initialStages);
   useEffect(() => { setStages(initialStages); }, [initialStages]);
@@ -125,12 +126,14 @@ export function RecruitmentStagesManager({ stages: initialStages }: Props) {
     <div>
       <PageHeader
         title="Etapas de recrutamento"
-        description="Personalize as etapas do funil usado em vagas novas."
-        actions={
+        description={canEdit
+          ? 'Personalize as etapas do funil usado em vagas novas.'
+          : 'Visualização das etapas do funil de recrutamento.'}
+        actions={canEdit ? (
           <Button onClick={() => setCreateOpen(true)}>
             <Plus className="mr-2 h-4 w-4" /> Nova etapa
           </Button>
-        }
+        ) : undefined}
       />
 
       <div className="mb-4 flex items-start gap-2 rounded-md border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
@@ -151,6 +154,7 @@ export function RecruitmentStagesManager({ stages: initialStages }: Props) {
                   stage={stage}
                   isEditing={editingId === stage.id}
                   editingName={editingName}
+                  canEdit={canEdit}
                   onStartEdit={() => { setEditingId(stage.id); setEditingName(stage.name); }}
                   onChangeEditingName={setEditingName}
                   onSaveEdit={() => onSaveEdit(stage.id)}
@@ -172,15 +176,17 @@ export function RecruitmentStagesManager({ stages: initialStages }: Props) {
               <li key={stage.id} className="flex items-center gap-3 px-4 py-3">
                 <span className="text-sm font-medium text-muted-foreground">{stage.name}</span>
                 <Badge variant="outline" className="text-xs">{KIND_LABELS[stage.kind]}</Badge>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="ml-auto"
-                  onClick={() => onReactivate(stage.id)}
-                >
-                  <RotateCcw className="mr-2 h-3.5 w-3.5" />
-                  Reativar
-                </Button>
+                {canEdit && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="ml-auto"
+                    onClick={() => onReactivate(stage.id)}
+                  >
+                    <RotateCcw className="mr-2 h-3.5 w-3.5" />
+                    Reativar
+                  </Button>
+                )}
               </li>
             ))}
           </ul>
@@ -215,6 +221,7 @@ interface StageItemProps {
   stage: StageRow;
   isEditing: boolean;
   editingName: string;
+  canEdit: boolean;
   onStartEdit: () => void;
   onChangeEditingName: (s: string) => void;
   onSaveEdit: () => void;
@@ -224,7 +231,7 @@ interface StageItemProps {
 }
 
 function StageRowItem({
-  stage, isEditing, editingName, onStartEdit, onChangeEditingName, onSaveEdit, onCancelEdit, onArchive, onToggleNotify,
+  stage, isEditing, editingName, canEdit, onStartEdit, onChangeEditingName, onSaveEdit, onCancelEdit, onArchive, onToggleNotify,
 }: StageItemProps) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: stage.id });
   const style = {
@@ -232,20 +239,21 @@ function StageRowItem({
     transition,
   };
   const isFixed = stage.kind === 'entry' || stage.kind === 'hired_terminal';
+  const dragDisabled = isFixed || !canEdit;
   return (
     <li ref={setNodeRef} style={style} className="flex items-center gap-3 px-4 py-3 bg-card">
       <button
         type="button"
-        {...attributes}
-        {...listeners}
-        disabled={isFixed}
+        {...(canEdit ? attributes : {})}
+        {...(canEdit ? listeners : {})}
+        disabled={dragDisabled}
         className="text-muted-foreground disabled:opacity-30 cursor-grab active:cursor-grabbing"
         aria-label="Reordenar"
       >
         <GripVertical className="h-4 w-4" />
       </button>
       <span className="text-xs text-muted-foreground tabular-nums w-6">{stage.position}</span>
-      {isEditing ? (
+      {isEditing && canEdit ? (
         <div className="flex-1 flex items-center gap-2">
           <Input
             value={editingName}
@@ -268,22 +276,24 @@ function StageRowItem({
           <span className="text-sm font-medium flex-1">{stage.name}</span>
           <Badge variant="outline" className="text-[10px]">{KIND_LABELS[stage.kind]}</Badge>
           <label
-            className={`flex items-center gap-1.5 text-xs text-muted-foreground ${isFixed ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
+            className={`flex items-center gap-1.5 text-xs text-muted-foreground ${isFixed || !canEdit ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
             title={isFixed ? 'Apenas etapas intermediárias podem notificar o gestor.' : 'Notifica o gestor da vaga quando candidato entra nesta etapa.'}
           >
             <input
               type="checkbox"
               className="h-3.5 w-3.5 accent-primary"
               checked={stage.notifies_hiring_manager}
-              disabled={isFixed}
+              disabled={isFixed || !canEdit}
               onChange={(e) => onToggleNotify(e.target.checked)}
             />
             Notifica gestor
           </label>
-          <Button size="icon" variant="ghost" onClick={onStartEdit} aria-label="Renomear">
-            <Pencil className="h-3.5 w-3.5" />
-          </Button>
-          {!isFixed && (
+          {canEdit && (
+            <Button size="icon" variant="ghost" onClick={onStartEdit} aria-label="Renomear">
+              <Pencil className="h-3.5 w-3.5" />
+            </Button>
+          )}
+          {canEdit && !isFixed && (
             <Button size="icon" variant="ghost" onClick={onArchive} aria-label="Arquivar">
               <Archive className="h-3.5 w-3.5" />
             </Button>
