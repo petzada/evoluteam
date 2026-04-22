@@ -26,13 +26,11 @@ coverage/
 # Build artifacts
 tsconfig.tsbuildinfo
 
-# Claude Code — allowlist local e planos internos (pessoais, não commitar)
-.claude/settings.local.json
-.claude/.plans/
-
-# Brainstorm artifacts (Visual Companion)
-.superpowers/brainstorm/*/state/
-.superpowers/brainstorm/*/content/
+# Claude Code — ferramental local (skills, agents, plans). Nada disso é código da app.
+.claude/
+.agents/
+.superpowers/
+skills-lock.json
 
 # Supabase CLI cache
 supabase/.temp/

@@ -1,0 +1,41 @@
+# Arquivos excluidos do build context da Railway.
+# Mantem no repo (GitHub) mas nao envia ao deploy — reduz tamanho e tempo de build.
+
+# Documentacao (nao roda em runtime)
+docs/
+*.md
+
+# Scripts de dev / utilidades locais
+scripts/
+
+# Supabase CLI (migrations rodam via CLI separado, nao pelo app)
+supabase/
+
+# Testes (nao entram no bundle de producao)
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+vitest.config.ts
+
+# Ferramental Claude Code (ja fora do git, redundancia defensiva)
+.claude/
+.agents/
+.superpowers/
+skills-lock.json
+
+# Git / caches / env
+.git/
+.gitignore
+.env.example
+.next/
+node_modules/
+tsconfig.tsbuildinfo
+coverage/
+
+# Editor / OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
