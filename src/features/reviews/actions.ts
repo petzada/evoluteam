@@ -5,7 +5,8 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 import { logActivity } from '@/lib/activity';
 import { notify } from '@/lib/notifications';
-import { Resend } from 'resend';
+import { sendEmail } from '@/lib/email';
+import { renderReviewReminder } from '@/emails/review-reminder';
 import { getActor } from '@/features/permissions/actor';
 import { canDo } from '@/features/permissions/permissions';
 import type { Actor } from '@/features/permissions/types';
@@ -14,8 +15,6 @@ import {
   type CycleBasicsInput, type CycleTypesInput, type ParticipantsSelection, type QuestionInput,
 } from './schema';
 import type { TablesInsert, TablesUpdate } from '@/lib/supabase/types';
-
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 type Ctx = Actor;
 
@@ -613,36 +612,46 @@ export async function sendReminders(cycleId: string, reviewerEmployeeId?: string
   const admin = createAdminSupabaseClient();
   let query = admin
     .from('review_assignments')
-    .select(`id, reviewer_id, reviewer:employees!reviewer_id(id, full_name, email, user_id), cycle:review_cycles!cycle_id(name)`)
+    .select(`
+      id, reviewer_id,
+      reviewer:employees!reviewer_id(id, full_name, email),
+      cycle:review_cycles!cycle_id(name, response_end)
+    `)
     .eq('cycle_id', cycleId)
     .in('status', ['pending', 'in_progress']);
   if (reviewerEmployeeId) query = query.eq('reviewer_id', reviewerEmployeeId);
   const { data: rows } = await query;
+
+  const counts = new Map<string, number>();
+  for (const row of rows ?? []) {
+    if (row.reviewer_id) {
+      counts.set(row.reviewer_id, (counts.get(row.reviewer_id) ?? 0) + 1);
+    }
+  }
 
   const origin = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
   let sent = 0;
   let failed = 0;
   const seen = new Set<string>();
   for (const row of rows ?? []) {
-    const rev = row.reviewer as unknown as { email: string; full_name: string; user_id: string | null } | null;
-    const cyc = row.cycle as unknown as { name: string } | null;
+    const rev = row.reviewer as unknown as { id: string; email: string; full_name: string } | null;
+    const cyc = row.cycle as unknown as { name: string; response_end: string } | null;
     if (!rev || !rev.email || seen.has(rev.email)) continue;
     seen.add(rev.email);
-    try {
-      await resend.emails.send({
-        from: 'Evoluteam <marcio@marct.co>',
-        to: rev.email,
-        subject: `Lembrete: você tem avaliações pendentes`,
-        html: `
-          <p>Olá ${rev.full_name},</p>
-          <p>Você ainda tem avaliações pendentes no ciclo "${cyc?.name ?? ''}".</p>
-          <p><a href="${origin}/avaliacoes">Abrir avaliações</a></p>
-        `,
-      });
-      sent += 1;
-    } catch {
-      failed += 1;
-    }
+
+    const result = await sendEmail({
+      to: rev.email,
+      ...(await renderReviewReminder({
+        reviewerName: rev.full_name,
+        cycleName: cyc?.name,
+        pendingCount: counts.get(rev.id) ?? 1,
+        responseEnd: cyc?.response_end ? new Date(cyc.response_end) : undefined,
+        cycleUrl: `${origin}/avaliacoes/${cycleId}`,
+      })),
+    });
+
+    if (result.ok) sent += 1;
+    else failed += 1;
   }
 
   await logActivity({
