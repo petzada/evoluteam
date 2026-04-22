@@ -4,6 +4,8 @@ import {
   canDo,
   canGrantScreenPermissions,
   canInviteAs,
+  getDisabledGrantPermissionKeys,
+  normalizeScreenPermissions,
 } from './permissions';
 import { type Actor, type ScreenPermissions } from './types';
 
@@ -72,6 +74,12 @@ describe('canDo', () => {
     expect(canDo(actor, 'avaliacoes', 'edit')).toBe(false);
   });
 
+  it('trata edit como view quando o JSON chega sem a chave view', () => {
+    const actor = userWith({ 'pdi.edit': true });
+    expect(canDo(actor, 'pdi', 'view')).toBe(true);
+    expect(canDo(actor, 'pdi', 'edit')).toBe(true);
+  });
+
   it('null/undefined actor nao passa', () => {
     expect(canDo(null, 'colaboradores', 'view')).toBe(false);
     expect(canDo(undefined, 'colaboradores', 'view')).toBe(false);
@@ -133,6 +141,16 @@ describe('canGrantScreenPermissions (escalacao restrita)', () => {
     expect(canGrantScreenPermissions(actor, { 'auditoria.view': true })).toBe(false);
   });
 
+  it('normaliza edit=>view antes de validar subset', () => {
+    const actor = userWith({
+      'colaboradores.view': true,
+      'colaboradores.edit': true,
+      'pdi.edit': true,
+    });
+    expect(canGrantScreenPermissions(actor, { 'pdi.edit': true })).toBe(true);
+    expect(canGrantScreenPermissions(actor, { 'avaliacoes.edit': true })).toBe(false);
+  });
+
   it('user sem colaboradores.edit nao concede nada', () => {
     const actor = userWith({ 'colaboradores.view': true });
     expect(canGrantScreenPermissions(actor, { 'colaboradores.view': true })).toBe(false);
@@ -142,6 +160,32 @@ describe('canGrantScreenPermissions (escalacao restrita)', () => {
     expect(
       canGrantScreenPermissions(baseActor({ role: 'director' }), { 'pdi.view': true }),
     ).toBe(false);
+  });
+});
+
+describe('normalizeScreenPermissions / getDisabledGrantPermissionKeys', () => {
+  it('remove false e auto-marca view quando edit=true', () => {
+    expect(normalizeScreenPermissions({
+      'pdi.edit': true,
+      'feedbacks.view': false,
+    })).toEqual({
+      'pdi.view': true,
+      'pdi.edit': true,
+    });
+  });
+
+  it('considera chaves ausentes como bloqueadas para concessao', () => {
+    const disabled = getDisabledGrantPermissionKeys({
+      'colaboradores.view': true,
+      'colaboradores.edit': true,
+      'pdi.edit': true,
+    });
+    expect(disabled).not.toContain('colaboradores.view');
+    expect(disabled).not.toContain('colaboradores.edit');
+    expect(disabled).not.toContain('pdi.view');
+    expect(disabled).not.toContain('pdi.edit');
+    expect(disabled).toContain('avaliacoes.view');
+    expect(disabled).toContain('auditoria.view');
   });
 });
 

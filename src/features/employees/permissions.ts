@@ -25,7 +25,7 @@ export function canChangeSelfRole(actor: Actor, target: Target): boolean {
 export function canSeeInternalNotes(
   actor: { role: string; screenPermissions?: ScreenPermissions | null },
 ): boolean {
-  return canDo(actor, 'colaboradores', 'edit');
+  return actor.role === 'admin_rh';
 }
 
 export function canEditEmployee(actor: Actor): boolean {

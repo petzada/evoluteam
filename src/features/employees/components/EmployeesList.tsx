@@ -27,6 +27,7 @@ import { resendInvite, revokeInvite } from '../actions';
 import { EmptyState } from '@/components/EmptyState';
 import { PageHeader } from '@/components/PageHeader';
 import { formatDate } from '@/lib/date';
+import type { ScreenPermissions } from '@/features/permissions/types';
 
 type Invite = {
   id: string;
@@ -59,7 +60,9 @@ interface Props {
   positions: Position[];
   departments: Department[];
   currentUserId: string;
-  isAdmin: boolean;
+  canManageEmployees: boolean;
+  actorIsAdmin: boolean;
+  actorScreenPermissions?: ScreenPermissions | null;
   profileRoles: Record<string, 'admin_rh' | 'director' | 'user'>;
   openSheet?: boolean;
   editingEmployee?: ExistingEmployee | null;
@@ -152,7 +155,9 @@ export function EmployeesList({
   positions,
   departments,
   currentUserId,
-  isAdmin,
+  canManageEmployees,
+  actorIsAdmin,
+  actorScreenPermissions,
   profileRoles,
   openSheet = false,
   editingEmployee = null,
@@ -326,7 +331,7 @@ export function EmployeesList({
         title="Colaboradores"
         description="Ficha de RH + gerenciamento de acesso ao sistema."
         actions={
-          isAdmin && (
+          canManageEmployees && (
             <>
               <Tooltip>
                 <TooltipTrigger
@@ -456,7 +461,7 @@ export function EmployeesList({
                 ? 'Tente outros filtros.'
                 : 'Adicione o primeiro colaborador.'
             }
-            action={isAdmin ? (
+            action={canManageEmployees ? (
               <Button onClick={openCreate}>
                 <UserPlus className="mr-2 h-4 w-4" />
                 Novo colaborador
@@ -477,7 +482,7 @@ export function EmployeesList({
                   {columns.admission && <TableHead>Admissão</TableHead>}
                   {columns.phone && <TableHead>Telefone</TableHead>}
                   <TableHead>Status</TableHead>
-                  {isAdmin && <TableHead className="w-12" />}
+                  {canManageEmployees && <TableHead className="w-12" />}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -530,7 +535,7 @@ export function EmployeesList({
                           {STATUS_LABELS[status]}
                         </Badge>
                       </TableCell>
-                      {isAdmin && (
+                      {canManageEmployees && (
                         <TableCell onClick={(e) => e.stopPropagation()}>
                           <DropdownMenu>
                             <DropdownMenuTrigger className="flex h-8 w-8 items-center justify-center rounded-md hover:bg-muted transition-colors">
@@ -607,7 +612,9 @@ export function EmployeesList({
         departments={departments}
         managers={potentialManagers}
         employee={editing}
-        isAdmin={isAdmin}
+        canManageEmployees={canManageEmployees}
+        actorIsAdmin={actorIsAdmin}
+        actorScreenPermissions={actorScreenPermissions}
       />
 
       <ConfirmStatusDialog

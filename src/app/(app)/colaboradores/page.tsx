@@ -70,7 +70,9 @@ export default async function ColaboradoresPage({
       positions={positions}
       departments={departments}
       currentUserId={user.id}
-      isAdmin={canDo(actorForGate, 'colaboradores', 'edit')}
+      canManageEmployees={canDo(actorForGate, 'colaboradores', 'edit')}
+      actorIsAdmin={profile.role === 'admin_rh'}
+      actorScreenPermissions={gate.screenPermissions}
       profileRoles={profileRoles}
       initialStatusFilter={params.status ?? null}
       specialFilter={filter}

@@ -10,10 +10,13 @@ import {
 import { listFeedbacksByCandidate } from '@/features/recruitment/queries/feedbacks';
 import { listScorecardsByCandidate } from '@/features/recruitment/queries/scorecards';
 import { listTasksByCandidate } from '@/features/recruitment/queries/tasks';
-import { listHiringManagerOptions } from '@/features/recruitment/queries/jobOpenings';
+import {
+  hasOpenJobAsHiringManager,
+  listHiringManagerOptions,
+} from '@/features/recruitment/queries/jobOpenings';
 import {
   canManageCandidates, canGiveFeedback, canManageRecruitment,
-  canViewAllCandidates, canViewAssignedJobOpenings,
+  canViewAllCandidates, canViewAssignedCandidates,
 } from '@/features/recruitment/permissions';
 import { CandidateProfile } from '@/features/recruitment/components/CandidateProfile';
 import { BreadcrumbLabel } from '@/features/shell/components/BreadcrumbLabel';
@@ -40,14 +43,18 @@ export default async function CandidatoPage({ params }: { params: Params }) {
     .eq('company_id', profile.company_id)
     .maybeSingle();
 
-  const gate = await loadActorGate(user.id, profile.role);
+  const [gate, isHiringManager] = await Promise.all([
+    loadActorGate(user.id, profile.role),
+    hasOpenJobAsHiringManager(profile.company_id, employeeRow?.id ?? null),
+  ]);
   const actor = {
     role: profile.role,
     employeeId: employeeRow?.id ?? null,
+    isHiringManager,
     ...gate,
   };
 
-  if (!canViewAllCandidates(actor) && !canViewAssignedJobOpenings(actor)) {
+  if (!canViewAllCandidates(actor) && !canViewAssignedCandidates(actor)) {
     redirect('/dashboard');
   }
 

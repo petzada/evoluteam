@@ -1,6 +1,7 @@
 ﻿import { redirect } from 'next/navigation';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { loadActorGate } from '@/features/permissions/queries';
+import { hasOpenJobAsHiringManager } from '@/features/recruitment/queries/jobOpenings';
 import { listCandidates } from '@/features/recruitment/queries/candidates';
 import { canManageCandidates, canViewAllCandidates, canViewAssignedCandidates } from '@/features/recruitment/permissions';
 import { CandidatesTable } from '@/features/recruitment/components/CandidatesTable';
@@ -24,10 +25,14 @@ export default async function CandidatosPage() {
     .eq('company_id', profile.company_id)
     .maybeSingle();
 
-  const gate = await loadActorGate(user.id, profile.role);
+  const [gate, isHiringManager] = await Promise.all([
+    loadActorGate(user.id, profile.role),
+    hasOpenJobAsHiringManager(profile.company_id, employeeRow?.id ?? null),
+  ]);
   const actor = {
     role: profile.role,
     employeeId: employeeRow?.id ?? null,
+    isHiringManager,
     ...gate,
   };
 

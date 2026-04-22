@@ -93,3 +93,18 @@ export async function listHiringManagerOptions(companyId: string): Promise<Hirin
     .order('full_name', { ascending: true });
   return (data ?? []) as HiringManagerOption[];
 }
+
+export async function hasOpenJobAsHiringManager(
+  companyId: string,
+  employeeId: string | null,
+): Promise<boolean> {
+  if (!employeeId) return false;
+  const supabase = await createServerSupabaseClient();
+  const { count } = await supabase
+    .from('job_openings')
+    .select('id', { count: 'exact', head: true })
+    .eq('company_id', companyId)
+    .eq('hiring_manager_id', employeeId)
+    .neq('status', 'closed');
+  return (count ?? 0) > 0;
+}

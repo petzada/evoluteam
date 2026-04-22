@@ -47,6 +47,10 @@ describe('employees/permissions', () => {
       expect(canSeeInternalNotes({ role: 'admin_rh' })).toBe(true);
       expect(canSeeInternalNotes({ role: 'director' })).toBe(false);
       expect(canSeeInternalNotes({ role: 'user' })).toBe(false);
+      expect(canSeeInternalNotes({
+        role: 'user',
+        screenPermissions: { 'colaboradores.edit': true },
+      })).toBe(false);
     });
   });
 

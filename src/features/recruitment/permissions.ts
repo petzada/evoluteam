@@ -14,7 +14,12 @@ import type { ScreenPermissions } from '@/features/permissions/types';
 export interface RecruitmentActor {
   role: 'admin_rh' | 'director' | 'user' | string;
   employeeId: string | null;
+  isHiringManager?: boolean;
   screenPermissions?: ScreenPermissions | null;
+}
+
+function isHiringManager(actor: RecruitmentActor): boolean {
+  return actor.role === 'user' && actor.isHiringManager === true;
 }
 
 // ============================================================
@@ -28,8 +33,8 @@ export function canAccessRecruitmentModule(actor: RecruitmentActor): boolean {
   if (canDo(actor, 'recrutamento_candidatos', 'view')) return true;
   if (canDo(actor, 'recrutamento_etapas', 'view')) return true;
   if (canDo(actor, 'recrutamento_relatorios', 'view')) return true;
-  // user/rh comum que e hiring_manager tambem acessa (baseline contextual).
-  return actor.role === 'user' && !!actor.employeeId;
+  // user comum que e hiring_manager tambem acessa (baseline contextual).
+  return isHiringManager(actor);
 }
 
 // ============================================================
@@ -46,7 +51,7 @@ export function canViewAllJobOpenings(actor: RecruitmentActor): boolean {
 
 /** Gestor so ve vagas proprias — a lista real e filtrada pela RLS. */
 export function canViewAssignedJobOpenings(actor: RecruitmentActor): boolean {
-  return actor.role === 'user' && !!actor.employeeId;
+  return isHiringManager(actor);
 }
 
 // ============================================================
@@ -72,7 +77,7 @@ export function canViewAllCandidates(actor: RecruitmentActor): boolean {
 
 /** Gestor/hiring_manager acessa a tela; RLS filtra para aplicacoes em suas vagas. */
 export function canViewAssignedCandidates(actor: RecruitmentActor): boolean {
-  return actor.role === 'user' && !!actor.employeeId;
+  return isHiringManager(actor);
 }
 
 // ============================================================
@@ -90,7 +95,7 @@ export function canManageApplications(actor: RecruitmentActor): boolean {
  */
 export function canMoveApplication(actor: RecruitmentActor): boolean {
   if (canDo(actor, 'recrutamento_candidatos', 'edit')) return true;
-  return actor.role === 'user' && !!actor.employeeId;
+  return isHiringManager(actor);
 }
 
 /** Disparar wizard de contratacao. */
@@ -106,20 +111,20 @@ export function canGiveFeedback(actor: RecruitmentActor): boolean {
   // Director tambem (FT-8 P4 B): opina em candidato mesmo sem ser HM.
   if (actor.role === 'director') return true;
   if (canDo(actor, 'recrutamento_candidatos', 'edit')) return true;
-  return actor.role === 'user' && !!actor.employeeId;
+  return isHiringManager(actor);
 }
 
 export function canSubmitScorecard(actor: RecruitmentActor): boolean {
   // Director NAO entra aqui (P4 B limita director a feedback — scorecard
   // tem nota e peso de decisao, fica com HM + admin/toggle).
   if (canDo(actor, 'recrutamento_candidatos', 'edit')) return true;
-  return actor.role === 'user' && !!actor.employeeId;
+  return isHiringManager(actor);
 }
 
 export function canManageTasks(actor: RecruitmentActor): boolean {
   // Director NAO entra aqui (task tem compromisso operacional; P4 B).
   if (canDo(actor, 'recrutamento_candidatos', 'edit')) return true;
-  return actor.role === 'user' && !!actor.employeeId;
+  return isHiringManager(actor);
 }
 
 // ============================================================
@@ -136,4 +141,10 @@ export function canManageStages(actor: RecruitmentActor): boolean {
 
 export function canViewMetrics(actor: RecruitmentActor): boolean {
   return canAccessRecruitmentModule(actor);
+}
+
+export function canViewRecruitmentReportsGlobally(actor: RecruitmentActor): boolean {
+  if (actor.role === 'admin_rh' || actor.role === 'director') return true;
+  if (canDo(actor, 'recrutamento_relatorios', 'view')) return true;
+  return canManageRecruitment(actor);
 }

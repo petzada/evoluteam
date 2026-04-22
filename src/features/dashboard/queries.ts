@@ -1,7 +1,9 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { getEmployeeDescendants } from '@/features/employees/queries';
+import { canDo } from '@/features/permissions/permissions';
+import type { ScreenPermissions } from '@/features/permissions/types';
 
-export type ScopeRole = 'admin_rh' | 'director' | 'gestor';
+export type ScopeRole = 'admin_rh' | 'director' | 'global' | 'gestor';
 
 export type DashboardScope = {
   companyId: string;
@@ -15,13 +17,23 @@ export type ScopeInput = {
   companyId: string;
   role: 'admin_rh' | 'director' | 'user' | string;
   actorEmployeeId: string | null;
+  screenPermissions?: ScreenPermissions | null;
   departmentId?: string | null;
   cycleId?: string | null;
 };
 
-export function resolveScopeRole(input: Pick<ScopeInput, 'role' | 'actorEmployeeId'>): ScopeRole | null {
+export function resolveScopeRole(
+  input: Pick<ScopeInput, 'role' | 'actorEmployeeId' | 'screenPermissions'>,
+): ScopeRole | null {
   if (input.role === 'admin_rh') return 'admin_rh';
   if (input.role === 'director') return 'director';
+  if (canDo(
+    { role: input.role, screenPermissions: input.screenPermissions ?? null },
+    'dashboard',
+    'view',
+  )) {
+    return 'global';
+  }
   return 'gestor';
 }
 

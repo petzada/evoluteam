@@ -614,7 +614,9 @@ export function EmployeeProfile({
         departments={departments}
         managers={managers}
         employee={existing}
-        isAdmin={isAdmin}
+        canManageEmployees={isAdmin}
+        actorIsAdmin={actorIsAdmin}
+        actorScreenPermissions={actorScreenPermissions}
       />
 
       <PdiSheet

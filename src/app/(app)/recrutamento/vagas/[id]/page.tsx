@@ -3,7 +3,9 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { getDepartments, getPositions } from '@/features/employees/queries';
 import { loadActorGate } from '@/features/permissions/queries';
 import {
-  getJobOpeningById, listHiringManagerOptions,
+  getJobOpeningById,
+  hasOpenJobAsHiringManager,
+  listHiringManagerOptions,
 } from '@/features/recruitment/queries/jobOpenings';
 import {
   listActiveApplicationsByJob,
@@ -43,10 +45,14 @@ export default async function VagaDetailPage({ params }: { params: Params }) {
     .eq('company_id', profile.company_id)
     .maybeSingle();
 
-  const gate = await loadActorGate(user.id, profile.role);
+  const [gate, isHiringManager] = await Promise.all([
+    loadActorGate(user.id, profile.role),
+    hasOpenJobAsHiringManager(profile.company_id, employeeRow?.id ?? null),
+  ]);
   const actor = {
     role: profile.role,
     employeeId: employeeRow?.id ?? null,
+    isHiringManager,
     ...gate,
   };
 
@@ -56,6 +62,10 @@ export default async function VagaDetailPage({ params }: { params: Params }) {
 
   const job = await getJobOpeningById(id);
   if (!job) notFound();
+  const actorForJob = {
+    ...actor,
+    isHiringManager: actor.employeeId === job.hiring_manager_id,
+  };
 
   const [active, archived, positions, departments, managers] = await Promise.all([
     listActiveApplicationsByJob(id),
@@ -84,9 +94,9 @@ export default async function VagaDetailPage({ params }: { params: Params }) {
         stages={stages}
         activeApplications={active}
         archivedApplications={archived}
-        canManage={canManageJobOpenings(actor)}
-        canMove={canMoveApplication(actor)}
-        canGiveFeedback={canGiveFeedback(actor)}
+        canManage={canManageJobOpenings(actorForJob)}
+        canMove={canMoveApplication(actorForJob)}
+        canGiveFeedback={canGiveFeedback(actorForJob)}
         canHire={canHireCandidate(actor)}
         feedbackCounts={feedbackCounts}
         scorecardCounts={scorecardCounts}

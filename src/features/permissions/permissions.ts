@@ -9,6 +9,7 @@ import type {
   ScreenPermissionKey,
   ScreenPermissions,
 } from './types';
+import { ALL_SCREEN_PERMISSION_KEYS } from './types';
 
 // Assinatura minima que canDo precisa saber sobre o actor. Usar um tipo
 // estrutural permite que qualquer Actor local (dos modulos existentes) seja
@@ -30,6 +31,50 @@ const DIRECTOR_BLOCKED_SCREENS: readonly ScreenKey[] = [
   'competencias',
   'auditoria',
 ];
+
+const ALL_SCREEN_PERMISSION_KEYS_SET = new Set<ScreenPermissionKey>(ALL_SCREEN_PERMISSION_KEYS);
+
+function editKeyFor(screen: ScreenKey): ScreenPermissionKey | null {
+  const key = `${screen}.edit` as ScreenPermissionKey;
+  return ALL_SCREEN_PERMISSION_KEYS_SET.has(key) ? key : null;
+}
+
+/**
+ * Normaliza o JSON compacto de toggles antes de persistir/comparar:
+ * - remove chaves false/invalidas;
+ * - garante o invariante edit => view.
+ */
+export function normalizeScreenPermissions(
+  permissions: ScreenPermissions | null | undefined,
+): ScreenPermissions {
+  const out: ScreenPermissions = {};
+  if (!permissions) return out;
+
+  for (const [key, value] of Object.entries(permissions) as [ScreenPermissionKey, boolean][]) {
+    if (value !== true || !ALL_SCREEN_PERMISSION_KEYS_SET.has(key)) continue;
+    out[key] = true;
+    if (key.endsWith('.edit')) {
+      const screen = key.slice(0, -'.edit'.length) as ScreenKey;
+      const viewKey = `${screen}.view` as ScreenPermissionKey;
+      if (ALL_SCREEN_PERMISSION_KEYS_SET.has(viewKey)) {
+        out[viewKey] = true;
+      }
+    }
+  }
+
+  return out;
+}
+
+/**
+ * Lista todos os toggles que um actor nao-admin nao pode conceder. Como o
+ * JSON e compacto, chave ausente significa false e deve ficar desabilitada.
+ */
+export function getDisabledGrantPermissionKeys(
+  actorScreenPermissions: ScreenPermissions | null | undefined,
+): ScreenPermissionKey[] {
+  const own = normalizeScreenPermissions(actorScreenPermissions);
+  return ALL_SCREEN_PERMISSION_KEYS.filter((key) => own[key] !== true);
+}
 
 /**
  * Decide se um ator pode executar a acao (view ou edit) na tela informada.
@@ -57,7 +102,12 @@ export function canDo(
   }
   if (actor.role === 'user') {
     const key = `${screen}.${action}` as ScreenPermissionKey;
-    return actor.screenPermissions?.[key] === true;
+    if (actor.screenPermissions?.[key] === true) return true;
+    if (action === 'view') {
+      const editKey = editKeyFor(screen);
+      if (editKey && actor.screenPermissions?.[editKey] === true) return true;
+    }
+    return false;
   }
   return false;
 }
@@ -79,8 +129,9 @@ export function canGrantScreenPermissions(
 
   if (!canDo(actor, 'colaboradores', 'edit')) return false;
 
-  const own = actor.screenPermissions ?? {};
-  for (const [key, value] of Object.entries(newPerms) as [ScreenPermissionKey, boolean][]) {
+  const own = normalizeScreenPermissions(actor.screenPermissions);
+  const requested = normalizeScreenPermissions(newPerms);
+  for (const [key, value] of Object.entries(requested) as [ScreenPermissionKey, boolean][]) {
     if (value === true && own[key] !== true) return false;
   }
   return true;

@@ -10,6 +10,7 @@ import { PageHeader } from '@/components/PageHeader';
 import { EmptyState } from '@/components/EmptyState';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { getDepartments } from '@/features/employees/queries';
+import { loadActorGate } from '@/features/permissions/queries';
 import {
   buildScope,
   listCycleOptions,
@@ -71,10 +72,12 @@ export default async function DashboardPage({
     isManager = (count ?? 0) > 0;
   }
 
+  const gate = await loadActorGate(user.id, profile.role);
   const actor = {
     role: profile.role,
     employeeId: employeeRow?.id ?? null,
     isManager,
+    ...gate,
   };
 
   if (!canAccessDashboard(actor)) {
@@ -117,6 +120,7 @@ export default async function DashboardPage({
     companyId: profile.company_id,
     role: profile.role,
     actorEmployeeId: employeeRow?.id ?? null,
+    screenPermissions: gate.screenPermissions,
     departmentId: selectedDeptId,
     cycleId: defaultCycleId,
   });

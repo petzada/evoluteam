@@ -9,6 +9,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { updateUserAccess } from '../actions';
+import { getDisabledGrantPermissionKeys } from '../permissions';
 import {
   EMPTY_SCREEN_PERMISSIONS,
   type Role,
@@ -55,12 +56,8 @@ export function AccessForm({
   // Escalacao restrita: actor nao-admin so concede permissoes que ele proprio
   // tem marcadas. Toggles nao possuidos aparecem desabilitados.
   const disabledPermissionKeys: ScreenPermissionKey[] = (() => {
-    if (actorIsAdmin || !actorScreenPermissions) return [];
-    const blocked: ScreenPermissionKey[] = [];
-    for (const [key, value] of Object.entries(actorScreenPermissions) as [ScreenPermissionKey, boolean][]) {
-      if (value !== true) blocked.push(key);
-    }
-    return blocked;
+    if (actorIsAdmin) return [];
+    return getDisabledGrantPermissionKeys(actorScreenPermissions);
   })();
 
   const dirty =

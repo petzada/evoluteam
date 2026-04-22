@@ -22,8 +22,9 @@ export default async function ColaboradoresNovoPage() {
 
   const gate = await loadActorGate(user.id, profile.role);
   const actor = { role: profile.role, ...gate };
+  const canManageEmployees = canDo(actor, 'colaboradores', 'edit');
   // FT-9: convite unificado com colaboradores.edit.
-  if (!canDo(actor, 'colaboradores', 'edit')) redirect('/colaboradores');
+  if (!canManageEmployees) redirect('/colaboradores');
 
   const [employees, positions, departments, profileRoles] = await Promise.all([
     listEmployees(profile.company_id),
@@ -38,7 +39,9 @@ export default async function ColaboradoresNovoPage() {
       positions={positions}
       departments={departments}
       currentUserId={user.id}
-      isAdmin
+      canManageEmployees
+      actorIsAdmin={profile.role === 'admin_rh'}
+      actorScreenPermissions={gate.screenPermissions}
       profileRoles={profileRoles}
       openSheet
     />

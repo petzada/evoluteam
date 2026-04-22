@@ -21,6 +21,13 @@ describe('dashboard/queries resolveScopeRole', () => {
   it('user → gestor', () => {
     expect(resolveScopeRole({ role: 'user', actorEmployeeId: 'e1' })).toBe('gestor');
   });
+  it('user com dashboard.view vira global', () => {
+    expect(resolveScopeRole({
+      role: 'user',
+      actorEmployeeId: 'e1',
+      screenPermissions: { 'dashboard.view': true },
+    })).toBe('global');
+  });
 });
 
 describe('dashboard/queries buildScope', () => {
@@ -52,6 +59,22 @@ describe('dashboard/queries buildScope', () => {
     expect(scope?.employeeIds).toBe('all');
     expect(scope?.departmentId).toBe('d2');
     expect(scope?.cycleId).toBeNull();
+    expect(getEmployeeDescendants).not.toHaveBeenCalled();
+  });
+
+  it('user com dashboard.view: escopo employeeIds = "all"', async () => {
+    const scope = await buildScope({
+      companyId: 'c1', role: 'user', actorEmployeeId: 'e-viewer',
+      screenPermissions: { 'dashboard.view': true },
+      departmentId: null, cycleId: 'cy1',
+    });
+    expect(scope).toEqual({
+      companyId: 'c1',
+      role: 'global',
+      employeeIds: 'all',
+      departmentId: null,
+      cycleId: 'cy1',
+    });
     expect(getEmployeeDescendants).not.toHaveBeenCalled();
   });
 

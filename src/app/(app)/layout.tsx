@@ -8,6 +8,7 @@ import { SidebarProvider } from '@/features/shell/SidebarContext';
 import { BreadcrumbProvider } from '@/features/shell/BreadcrumbContext';
 import { canAccessDashboard } from '@/features/dashboard/permissions';
 import { loadActorGate } from '@/features/permissions/queries';
+import { hasOpenJobAsHiringManager } from '@/features/recruitment/queries/jobOpenings';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createServerSupabaseClient();
@@ -16,11 +17,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('role, full_name, avatar_url, company:companies(name)')
+    .select('role, company_id, full_name, avatar_url, company:companies(name)')
     .eq('id', user.id)
     .single();
 
   if (!profile) redirect('/login');
+  if (!profile.company_id) redirect('/onboarding/criar-empresa');
 
   const company = profile.company as { name: string } | null;
 
@@ -33,19 +35,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   let isManager = false;
   let isHiringManager = false;
   if (actorEmployee?.id) {
-    const [{ count: directReports }, { count: openJobs }] = await Promise.all([
+    const [{ count: directReports }, hasOpenJob] = await Promise.all([
       supabase
         .from('employees')
         .select('*', { count: 'exact', head: true })
         .eq('manager_id', actorEmployee.id),
-      supabase
-        .from('job_openings')
-        .select('id', { count: 'exact', head: true })
-        .eq('hiring_manager_id', actorEmployee.id)
-        .neq('status', 'closed'),
+      hasOpenJobAsHiringManager(profile.company_id, actorEmployee.id),
     ]);
     isManager = (directReports ?? 0) > 0;
-    isHiringManager = (openJobs ?? 0) > 0;
+    isHiringManager = hasOpenJob;
   }
 
   const gate = await loadActorGate(user.id, profile.role);

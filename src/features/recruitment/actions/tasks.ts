@@ -47,7 +47,6 @@ export async function createTask(applicationId: string, input: TaskInput) {
   const actor = await getActor();
   if (!actor) return { error: 'Nao autenticado.' };
   if (!actor.employeeId) return { error: 'Usuario sem perfil de colaborador.' };
-  if (!canManageRecruitmentTasks(actor)) return { error: 'Sem permissao.' };
 
   const parsed = TaskInputSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Dados invalidos.' };
@@ -68,6 +67,9 @@ export async function createTask(applicationId: string, input: TaskInput) {
   const hiringManagerId =
     (app.job_opening as unknown as { hiring_manager_id: string | null } | null)?.hiring_manager_id;
   const isManager = hiringManagerId === actor.employeeId;
+  if (!canManageRecruitmentTasks({ ...actor, isHiringManager: isManager })) {
+    return { error: 'Sem permissao.' };
+  }
   if (!isAdminRecruitment && !isManager) return { error: 'Sem permissao.' };
 
   const { data, error } = await admin

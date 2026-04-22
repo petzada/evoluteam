@@ -8,11 +8,16 @@ import { notify } from '@/lib/notifications';
 import { sendEmail } from '@/lib/email';
 import { employeeInviteEmail } from '@/lib/emails/employee-invite';
 import { getActor } from '@/features/permissions/actor';
-import { canDo, canInviteAs } from '@/features/permissions/permissions';
-import type { Role } from '@/features/permissions/types';
+import {
+  canDo,
+  canInviteAs,
+  normalizeScreenPermissions,
+} from '@/features/permissions/permissions';
+import type { Role, ScreenPermissions } from '@/features/permissions/types';
 import type { EmployeeInput, TransferOption } from './schema';
 import { TransferOptionSchema } from './schema';
 import { validateManagerAssignment } from './validators';
+import { resolveCreateEmployeeAccess } from './access';
 import type { TablesInsert, TablesUpdate } from '@/lib/supabase/types';
 
 async function getActorContext() {
@@ -96,7 +101,7 @@ export async function updateEmployee(employeeId: string, input: EmployeeInput) {
     hire_date: input.hireDate,
     updated_at: new Date().toISOString(),
   };
-  if (ctx.canManageEmployees && input.internalNotes !== undefined) {
+  if (ctx.actor.role === 'admin_rh' && input.internalNotes !== undefined) {
     update.internal_notes = input.internalNotes ?? null;
   }
 
@@ -130,14 +135,11 @@ export async function createEmployee(input: EmployeeInput) {
   if (!ctx) return { error: 'Não autenticado.' };
   if (!ctx.canManageEmployees && !ctx.canInviteUsers) return { error: 'Sem permissão.' };
 
-  if (!ctx.canManageEmployees) {
-    if (input.role !== 'user') {
-      return { error: 'RH com permissão de convites só pode convidar Colaborador.' };
-    }
-    if (!input.sendInvite) {
-      return { error: 'Sem permissão para criar colaborador sem convite.' };
-    }
-  }
+  const access = resolveCreateEmployeeAccess(ctx.actor, {
+    role: input.role as Role,
+    screenPermissions: input.screenPermissions,
+  });
+  if (!access.ok) return { error: access.error };
 
   const managerError = await assertValidManager(
     null,
@@ -160,7 +162,7 @@ export async function createEmployee(input: EmployeeInput) {
     hire_date: input.hireDate,
     status: 'active',
   };
-  if (ctx.canManageEmployees && input.internalNotes) insert.internal_notes = input.internalNotes;
+  if (ctx.actor.role === 'admin_rh' && input.internalNotes) insert.internal_notes = input.internalNotes;
 
   const { data: employee, error: empErr } = await admin
     .from('employees')
@@ -182,21 +184,13 @@ export async function createEmployee(input: EmployeeInput) {
   });
 
   if (input.sendInvite) {
-    const inviteRole: Role = (ctx.canManageEmployees ? input.role : 'user') as Role;
-    if (!canInviteAs(ctx.actor, inviteRole)) {
-      return { error: 'Sem permissão para convidar com este papel.' };
-    }
-    // FT-9: snapshot de toggles por tela aplicado apos aceite. So faz
-    // sentido pra inviteRole='user'. Admin/Diretor sao pacotes fechados.
-    const screenPermissionsSnapshot =
-      inviteRole === 'user' ? input.screenPermissions ?? null : null;
     await sendInviteForEmployee(
       employee.id,
       input.email,
-      inviteRole,
+      access.inviteRole,
       ctx.user.id,
       companyId,
-      screenPermissionsSnapshot,
+      access.screenPermissionsSnapshot,
     );
   }
 
@@ -565,12 +559,15 @@ export async function acceptInvite(token: string, data: { fullName: string; pass
   // sync_screen_permissions_on_role_change ja criou user_screen_permissions
   // vazio quando role='user' foi setado; aqui apenas upsert com o snapshot.
   if (invite.role === 'user' && invite.screen_permissions) {
+    const permissions = normalizeScreenPermissions(
+      invite.screen_permissions as ScreenPermissions,
+    );
     await admin
       .from('user_screen_permissions')
       .upsert({
         profile_id: userId,
         company_id: invite.company_id,
-        permissions: invite.screen_permissions,
+        permissions,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'profile_id' });
   }

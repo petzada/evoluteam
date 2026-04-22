@@ -15,7 +15,6 @@ export async function createScorecard(applicationId: string, input: ScorecardInp
   const actor = await getActor();
   if (!actor) return { error: 'Nao autenticado.' };
   if (!actor.employeeId) return { error: 'Usuario sem perfil de colaborador.' };
-  if (!canSubmitScorecard(actor)) return { error: 'Sem permissao.' };
 
   const parsed = ScorecardInputSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Dados invalidos.' };
@@ -37,6 +36,9 @@ export async function createScorecard(applicationId: string, input: ScorecardInp
   const hiringManagerId =
     (app.job_opening as unknown as { hiring_manager_id: string | null } | null)?.hiring_manager_id;
   const isManager = hiringManagerId === actor.employeeId;
+  if (!canSubmitScorecard({ ...actor, isHiringManager: isManager })) {
+    return { error: 'Sem permissao.' };
+  }
   if (!isAdminRecruitment && !isManager) return { error: 'Sem permissao.' };
 
   // Valida UNIQUE(application_id, stage_id, author_id)
@@ -94,7 +96,7 @@ export async function createScorecard(applicationId: string, input: ScorecardInp
 export async function updateScorecard(id: string, input: ScorecardInput) {
   const actor = await getActor();
   if (!actor) return { error: 'Nao autenticado.' };
-  if (!canSubmitScorecard(actor)) return { error: 'Sem permissao.' };
+  if (!actor.employeeId) return { error: 'Usuario sem perfil de colaborador.' };
 
   const parsed = ScorecardInputSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Dados invalidos.' };

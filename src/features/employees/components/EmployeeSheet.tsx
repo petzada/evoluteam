@@ -19,7 +19,11 @@ import {
 import { EmployeeSchema, type EmployeeInput } from '../schema';
 import { createEmployee, updateEmployee } from '../actions';
 import { createTaxonomy } from '@/features/taxonomies/actions';
-import { EMPTY_SCREEN_PERMISSIONS } from '@/features/permissions/types';
+import {
+  EMPTY_SCREEN_PERMISSIONS,
+  type ScreenPermissions,
+} from '@/features/permissions/types';
+import { getDisabledGrantPermissionKeys } from '@/features/permissions/permissions';
 import { ScreenPermissionsToggles } from '@/features/permissions/components/ScreenPermissionsToggles';
 
 interface Position { id: string; name: string }
@@ -48,7 +52,9 @@ interface Props {
   departments: Department[];
   managers: ManagerOption[];
   employee?: ExistingEmployee | null;
-  isAdmin: boolean;
+  canManageEmployees: boolean;
+  actorIsAdmin: boolean;
+  actorScreenPermissions?: ScreenPermissions | null;
 }
 
 // FT-9: role 'rh' removido. Roles concedidos via sheet: Colaborador + Diretor
@@ -74,7 +80,15 @@ const EMPTY_DEFAULTS: EmployeeInput = {
 };
 
 export function EmployeeSheet({
-  open, onOpenChange, positions, departments, managers, employee, isAdmin,
+  open,
+  onOpenChange,
+  positions,
+  departments,
+  managers,
+  employee,
+  canManageEmployees,
+  actorIsAdmin,
+  actorScreenPermissions,
 }: Props) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -100,14 +114,20 @@ export function EmployeeSheet({
     return [...positions, ...fresh].sort((a, b) => a.name.localeCompare(b.name));
   }, [positions, createdLocallyPositions]);
 
+  const canCreatePositions = actorIsAdmin || actorScreenPermissions?.['cargos.edit'] === true;
+  const canCreateDepartments = actorIsAdmin || actorScreenPermissions?.['departamentos.edit'] === true;
+  const disabledPermissionKeys = actorIsAdmin
+    ? []
+    : getDisabledGrantPermissionKeys(actorScreenPermissions);
+
   const positionItems = [
     ...localPositions.map((p) => ({ value: p.id, label: p.name })),
-    ...(isAdmin ? [{ value: '__create_position__', label: '+ Criar cargo novo' }] : []),
+    ...(canCreatePositions ? [{ value: '__create_position__', label: '+ Criar cargo novo' }] : []),
   ];
   const departmentItems = [
     { value: '__none__', label: 'Nenhum' },
     ...localDepartments.map((d) => ({ value: d.id, label: d.name })),
-    ...(isAdmin ? [{ value: '__create__', label: '+ Criar novo departamento' }] : []),
+    ...(canCreateDepartments ? [{ value: '__create__', label: '+ Criar novo departamento' }] : []),
   ];
   // FT-9: actor nao-admin so concede Colaborador; Admin/Diretor viram
   // opcoes desabilitadas com tooltip. Admin_rh nunca aparece como opcao
@@ -117,7 +137,7 @@ export function EmployeeSheet({
     .map(([value, label]) => ({
       value,
       label,
-      disabled: !isAdmin && value !== 'user',
+      disabled: !actorIsAdmin && value !== 'user',
     }));
 
   const form = useForm<EmployeeInput>({
@@ -292,7 +312,7 @@ export function EmployeeSheet({
                     {roleDisabled && (
                       <p className="text-[11px] text-muted-foreground">Você não pode alterar seu próprio papel.</p>
                     )}
-                    {!isAdmin && !roleDisabled && (
+                    {!actorIsAdmin && !roleDisabled && (
                       <p className="text-[11px] text-muted-foreground">
                         Apenas Administrador pode conceder Diretor.
                       </p>
@@ -309,6 +329,8 @@ export function EmployeeSheet({
                       title="Permissões deste colaborador"
                       value={field.value ?? EMPTY_SCREEN_PERMISSIONS}
                       onChange={(next) => field.onChange(next)}
+                      disabledKeys={disabledPermissionKeys}
+                      disabledReason="Voce nao tem este acesso para conceder."
                     />
                     <p className="text-[11px] text-muted-foreground">
                       Aplicadas automaticamente quando o convite for aceito.
@@ -396,7 +418,7 @@ export function EmployeeSheet({
                 )} />
               </div>
 
-              {isAdmin && (
+              {actorIsAdmin && (
                 <FormField control={form.control} name="internalNotes" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Observações internas</FormLabel>
@@ -440,7 +462,7 @@ export function EmployeeSheet({
           <Button variant="outline" type="button" onClick={() => onOpenChange(false)} disabled={loading}>
             Cancelar
           </Button>
-          <Button type="submit" form="employee-form" disabled={loading}>
+          <Button type="submit" form="employee-form" disabled={loading || !canManageEmployees}>
             {loading ? 'Salvando…' : ctaLabel}
           </Button>
         </div>

@@ -5,7 +5,11 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 import { logActivity } from '@/lib/activity';
 import { getActor } from './actor';
-import { canChangeUserAccess, canGrantScreenPermissions } from './permissions';
+import {
+  canChangeUserAccess,
+  canGrantScreenPermissions,
+  normalizeScreenPermissions,
+} from './permissions';
 import {
   EMPTY_SCREEN_PERMISSIONS,
   type Role,
@@ -77,7 +81,7 @@ export async function updateUserAccess(input: {
     actor.role !== 'admin_rh'
     && input.newRole === 'user'
     && input.newScreenPermissions
-    && !canGrantScreenPermissions(actor, input.newScreenPermissions)
+    && !canGrantScreenPermissions(actor, normalizeScreenPermissions(input.newScreenPermissions))
   ) {
     return {
       error: 'Voce nao pode conceder permissoes que voce mesmo nao possui.',
@@ -154,15 +158,6 @@ async function readScreenPermissions(profileId: string): Promise<ScreenPermissio
     .eq('profile_id', profileId)
     .maybeSingle();
   return (data?.permissions as ScreenPermissions | undefined) ?? null;
-}
-
-/** Remove chaves com valor false pra manter o jsonb compacto (opcional). */
-function normalizeScreenPermissions(p: ScreenPermissions): ScreenPermissions {
-  const out: ScreenPermissions = {};
-  for (const [key, value] of Object.entries(p) as [ScreenPermissionKey, boolean][]) {
-    if (value === true) out[key] = true;
-  }
-  return out;
 }
 
 function permissionsDiffer(a: ScreenPermissions, b: ScreenPermissions): boolean {

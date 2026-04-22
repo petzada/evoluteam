@@ -15,7 +15,6 @@ export async function createFeedback(applicationId: string, input: CandidateFeed
   const actor = await getActor();
   if (!actor) return { error: 'Nao autenticado.' };
   if (!actor.employeeId) return { error: 'Usuario sem perfil de colaborador.' };
-  if (!canGiveRecruitmentFeedback(actor)) return { error: 'Sem permissao.' };
 
   const parsed = CandidateFeedbackInputSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Dados invalidos.' };
@@ -38,6 +37,9 @@ export async function createFeedback(applicationId: string, input: CandidateFeed
   const isManager =
     (app.job_opening as unknown as { hiring_manager_id: string | null } | null)?.hiring_manager_id
     === actor.employeeId;
+  if (!canGiveRecruitmentFeedback({ ...actor, isHiringManager: isManager })) {
+    return { error: 'Sem permissao.' };
+  }
   if (!isAdminRecruitment && !isDirector && !isManager) return { error: 'Sem permissao.' };
 
   const { data, error } = await admin
@@ -77,7 +79,7 @@ export async function createFeedback(applicationId: string, input: CandidateFeed
 export async function updateFeedback(id: string, input: CandidateFeedbackInput) {
   const actor = await getActor();
   if (!actor) return { error: 'Nao autenticado.' };
-  if (!canGiveRecruitmentFeedback(actor)) return { error: 'Sem permissao.' };
+  if (!actor.employeeId) return { error: 'Usuario sem perfil de colaborador.' };
 
   const parsed = CandidateFeedbackInputSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Dados invalidos.' };

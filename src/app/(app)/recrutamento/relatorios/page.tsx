@@ -1,13 +1,17 @@
 import { redirect } from 'next/navigation';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { loadActorGate } from '@/features/permissions/queries';
+import { hasOpenJobAsHiringManager } from '@/features/recruitment/queries/jobOpenings';
 import {
   getMetricsKpis, getFunnel, getOriginsBreakdown,
   getStageDurations, getStalledCandidates, getOverdueTasks,
   getJobsForFilter, getManagersForFilter,
   type MetricsFilter, type ViewerRole,
 } from '@/features/recruitment/queries/metrics';
-import { canAccessRecruitmentModule, canManageRecruitment } from '@/features/recruitment/permissions';
+import {
+  canAccessRecruitmentModule,
+  canViewRecruitmentReportsGlobally,
+} from '@/features/recruitment/permissions';
 import { RelatoriosDashboard } from '@/features/recruitment/components/RelatoriosDashboard';
 
 type SearchParams = Promise<{
@@ -67,10 +71,14 @@ export default async function RelatoriosPage({ searchParams }: { searchParams: S
     .eq('company_id', profile.company_id)
     .maybeSingle();
 
-  const gate = await loadActorGate(user.id, profile.role);
+  const [gate, isHiringManager] = await Promise.all([
+    loadActorGate(user.id, profile.role),
+    hasOpenJobAsHiringManager(profile.company_id, employeeRow?.id ?? null),
+  ]);
   const actor = {
     role: profile.role,
     employeeId: employeeRow?.id ?? null,
+    isHiringManager,
     ...gate,
   };
   if (!canAccessRecruitmentModule(actor)) redirect('/dashboard');
@@ -79,7 +87,7 @@ export default async function RelatoriosPage({ searchParams }: { searchParams: S
   const viewerRole: ViewerRole =
     actor.role === 'director'
       ? 'director'
-      : canManageRecruitment(actor)
+      : canViewRecruitmentReportsGlobally(actor)
         ? 'admin_rh'
         : 'gestor';
 

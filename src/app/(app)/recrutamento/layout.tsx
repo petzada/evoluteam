@@ -1,6 +1,8 @@
 import { redirect } from 'next/navigation';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { loadActorGate } from '@/features/permissions/queries';
 import { canAccessRecruitmentModule } from '@/features/recruitment/permissions';
+import { hasOpenJobAsHiringManager } from '@/features/recruitment/queries/jobOpenings';
 
 export default async function RecrutamentoLayout({
   children,
@@ -26,9 +28,16 @@ export default async function RecrutamentoLayout({
     .eq('company_id', profile.company_id)
     .maybeSingle();
 
+  const [gate, isHiringManager] = await Promise.all([
+    loadActorGate(user.id, profile.role),
+    hasOpenJobAsHiringManager(profile.company_id, employeeRow?.id ?? null),
+  ]);
+
   const actor = {
     role: profile.role,
     employeeId: employeeRow?.id ?? null,
+    isHiringManager,
+    ...gate,
   };
 
   if (!canAccessRecruitmentModule(actor)) {
