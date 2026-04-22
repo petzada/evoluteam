@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import crypto from 'node:crypto';
 import { sendEmail } from '@/lib/email';
 import { renderAdminWelcome } from '@/emails/admin-welcome';
+import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 
 type Payload = {
   type?: string;
@@ -54,11 +55,23 @@ export async function POST(request: NextRequest) {
   }
 
   const origin = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
-  const recoveryUrl = `${origin}/forgot-password`;
+
+  // Gera magic link de recovery: o user clica -> Supabase autentica via token
+  // -> redireciona pra /reset-password com session ativa -> user so define senha.
+  const admin = createAdminSupabaseClient();
+  const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({
+    type: 'recovery',
+    email: record.email,
+    options: { redirectTo: `${origin}/reset-password` },
+  });
+
+  if (linkErr || !linkData?.properties?.action_link) {
+    return NextResponse.json({ ok: true, reason: 'link_gen_failed' }, { status: 200 });
+  }
 
   await sendEmail({
     to: record.email,
-    ...(await renderAdminWelcome({ recoveryUrl })),
+    ...(await renderAdminWelcome({ recoveryUrl: linkData.properties.action_link })),
   });
 
   return NextResponse.json({ ok: true, reason: 'welcomed' }, { status: 200 });
