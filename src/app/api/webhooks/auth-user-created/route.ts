@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import crypto from 'node:crypto';
 import { sendEmail } from '@/lib/email';
-import { adminWelcomeEmail } from '@/lib/emails/admin-welcome';
+import { renderAdminWelcome } from '@/emails/admin-welcome';
 
 type Payload = {
   type?: string;
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
 
   await sendEmail({
     to: record.email,
-    ...adminWelcomeEmail({ recoveryUrl }),
+    ...(await renderAdminWelcome({ recoveryUrl })),
   });
 
   return NextResponse.json({ ok: true, reason: 'welcomed' }, { status: 200 });

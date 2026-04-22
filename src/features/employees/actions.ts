@@ -6,7 +6,8 @@ import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 import { logActivity } from '@/lib/activity';
 import { notify } from '@/lib/notifications';
 import { sendEmail } from '@/lib/email';
-import { employeeInviteEmail } from '@/lib/emails/employee-invite';
+import { renderEmployeeInvite } from '@/emails/employee-invite';
+import { roleLabel } from '@/emails/_lib/role-label';
 import { getActor } from '@/features/permissions/actor';
 import {
   canDo,
@@ -237,10 +238,25 @@ async function sendInviteForEmployee(
     metadata: { email },
   });
 
+  // Best-effort: carrega contexto pro template. Se qualquer query falhar,
+  // cai nos fallbacks do template (ver src/emails/employee-invite.tsx).
+  const [employeeRes, companyRes, inviterRes] = await Promise.all([
+    admin.from('employees').select('full_name').eq('id', employeeId).maybeSingle(),
+    admin.from('companies').select('name').eq('id', companyId).maybeSingle(),
+    admin.from('profiles').select('full_name').eq('id', invitedBy).maybeSingle(),
+  ]);
+
   const origin = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
   const result = await sendEmail({
     to: email,
-    ...employeeInviteEmail({ inviteUrl: `${origin}/convite/${token}` }),
+    ...(await renderEmployeeInvite({
+      inviteUrl: `${origin}/convite/${token}`,
+      inviteeName: employeeRes.data?.full_name ?? undefined,
+      inviterName: inviterRes.data?.full_name ?? undefined,
+      companyName: companyRes.data?.name ?? undefined,
+      roleLabel: roleLabel(role),
+      expiresAt: new Date(expiresAt),
+    })),
   });
   return { emailSent: result.ok };
 }
