@@ -1,12 +1,11 @@
 import { Link } from '@react-email/components';
 import { render } from '@react-email/render';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 import type { ReactNode } from 'react';
 import { Button } from './_components/Button';
 import { Heading } from './_components/Heading';
 import { Layout } from './_components/Layout';
 import { Text } from './_components/Text';
+import { daysUntil, formatDeadlineDate } from './_lib/format-deadline';
 
 export interface EmployeeInviteProps {
   inviteUrl: string;
@@ -25,12 +24,7 @@ function firstName(fullName: string): string {
 }
 
 function expiresInDays(expiresAt: Date): number {
-  const diffMs = expiresAt.getTime() - Date.now();
-  return Math.max(1, Math.ceil(diffMs / 86_400_000));
-}
-
-function formatExpiry(expiresAt: Date): string {
-  return format(expiresAt, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+  return Math.max(1, daysUntil(expiresAt));
 }
 
 function buildSubject(props: EmployeeInviteProps): string {
@@ -75,7 +69,7 @@ export function EmployeeInviteEmail(props: EmployeeInviteProps) {
   const greeting = inviteeName ? `Olá, ${firstName(inviteeName)},` : 'Olá,';
   const days = expiresInDays(expiresAt);
   const dayWord = days === 1 ? 'dia' : 'dias';
-  const expiryLine = `Este convite expira em ${days} ${dayWord} (${formatExpiry(expiresAt)}).`;
+  const expiryLine = `Este convite expira em ${days} ${dayWord} (${formatDeadlineDate(expiresAt)}).`;
 
   return (
     <Layout
