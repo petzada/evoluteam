@@ -6,7 +6,7 @@
 import 'server-only';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { createAdminSupabaseClient } from '@/lib/supabase/admin';
-import type { Actor, RhPermissions, Role } from './types';
+import type { Actor, RhPermissions, Role, ScreenPermissions } from './types';
 
 /**
  * Carrega o Actor do request atual.
@@ -71,6 +71,19 @@ export async function getActor(): Promise<Actor | null> {
     }
   }
 
+  // FT-9 — carrega permissoes por tela para user/rh. Admin/Diretor ficam null
+  // (pacotes fechados, canDo trata por bypass de role).
+  let screenPermissions: ScreenPermissions | null = null;
+  if (role === 'user' || role === 'rh') {
+    const admin = createAdminSupabaseClient();
+    const { data: usp } = await admin
+      .from('user_screen_permissions')
+      .select('permissions')
+      .eq('profile_id', user.id)
+      .maybeSingle();
+    screenPermissions = (usp?.permissions as ScreenPermissions) ?? {};
+  }
+
   return {
     userId: user.id,
     companyId: profile.company_id,
@@ -78,5 +91,6 @@ export async function getActor(): Promise<Actor | null> {
     employeeId: emp?.id ?? null,
     employeeStatus: (emp?.status as Actor['employeeStatus']) ?? null,
     rhPermissions,
+    screenPermissions,
   };
 }

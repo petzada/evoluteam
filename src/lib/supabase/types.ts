@@ -868,6 +868,45 @@ export type Database = {
         }
         Relationships: []
       }
+      user_screen_permissions: {
+        Row: {
+          profile_id: string
+          company_id: string
+          permissions: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          profile_id: string
+          company_id: string
+          permissions?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          profile_id?: string
+          company_id?: string
+          permissions?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_screen_permissions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_screen_permissions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null

@@ -19,6 +19,7 @@ const baseActor = (partial: Partial<Actor> = {}): Actor => ({
   employeeId: 'e1',
   employeeStatus: 'active',
   rhPermissions: null,
+  screenPermissions: null,
   ...partial,
 });
 
