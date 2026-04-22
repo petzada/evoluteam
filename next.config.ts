@@ -1,7 +1,11 @@
 import type { NextConfig } from 'next';
 import { withSentryConfig } from '@sentry/nextjs';
 
-const nextConfig: NextConfig = {};
+const nextConfig: NextConfig = {
+  async rewrites() {
+    return [{ source: '/favicon.ico', destination: '/icon' }];
+  },
+};
 
 export default withSentryConfig(nextConfig, {
   // For all available options, see:
