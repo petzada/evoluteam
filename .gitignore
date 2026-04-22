@@ -1,9 +1,34 @@
 # Node / Next.js
 node_modules/
 .next/
+next-env.d.ts
+
+# Env files — commit apenas .env.example
 .env
 .env.local
 .env.*.local
+.env.production
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-error.log*
+yarn-debug.log*
+
+# Test coverage
+coverage/
+
+# Deploy / build caches
+.vercel/
+.turbo/
+
+# Build artifacts
+tsconfig.tsbuildinfo
+
+# Claude Code — allowlist local e planos internos (pessoais, não commitar)
+.claude/settings.local.json
+.claude/.plans/
 
 # Brainstorm artifacts (Visual Companion)
 .superpowers/brainstorm/*/state/
@@ -13,9 +38,6 @@ node_modules/
 supabase/.temp/
 supabase/.branches/
 
-# Build artifacts
-tsconfig.tsbuildinfo
-
 # OS
 .DS_Store
 Thumbs.db
@@ -23,3 +45,4 @@ Thumbs.db
 # Editor
 .vscode/
 .idea/
+*.swp
