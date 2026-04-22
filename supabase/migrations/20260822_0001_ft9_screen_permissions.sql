@@ -116,12 +116,9 @@ CREATE TRIGGER profiles_role_change_sync_screen_permissions
   EXECUTE FUNCTION public.sync_screen_permissions_on_role_change();
 
 -- =============================================================
--- 5. updated_at automatico
+-- 5. updated_at: atualizado via app (padrao do repo; nenhuma
+--    tabela usa trigger para isso).
 -- =============================================================
-
-CREATE TRIGGER usp_updated_at
-  BEFORE UPDATE ON public.user_screen_permissions
-  FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
 -- =============================================================
 -- 6. Helper SQL has_screen_permission(screen, action)
