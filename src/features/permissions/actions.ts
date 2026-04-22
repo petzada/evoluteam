@@ -5,31 +5,36 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 import { logActivity } from '@/lib/activity';
 import { getActor } from './actor';
-import { canChangeUserAccess } from './permissions';
-import { EMPTY_RH_PERMISSIONS, type RhPermissions, type Role } from './types';
+import { canChangeUserAccess, canGrantScreenPermissions } from './permissions';
+import {
+  EMPTY_SCREEN_PERMISSIONS,
+  type Role,
+  type ScreenPermissions,
+  type ScreenPermissionKey,
+} from './types';
 
 type Result<T = { ok: true }> = T | { error: string; code?: string };
 
 /**
- * Atualiza o role e (se role='rh') os toggles de permissao de um
- * usuario existente. Substitui a antiga `updateRole` com suporte
- * granular e seguranca contra escalacao.
+ * Atualiza o role e (se role='user') os toggles de permissao por tela de um
+ * usuario existente. FT-9 substitui a antiga rh_permissions por
+ * user_screen_permissions.
  *
  * Regras:
  *   - Admin_rh pode alterar qualquer outro usuario para qualquer role.
- *   - RH com can_invites pode alterar Colaboradores mantendo-os como
- *     Colaborador (ou seja, nao escala — P8 · C).
+ *   - Colaborador com colaboradores.edit pode alterar Colaboradores mantendo
+ *     o papel (nao escala), e apenas com toggles subset dos proprios.
  *   - Ninguem pode alterar o proprio role/toggles.
- *   - Se role mudar para 'rh', trigger no banco cria rh_permissions
- *     com tudo false. Depois, se newPermissions vier, aplicamos UPSERT.
- *   - Se role sair de 'rh', trigger apaga rh_permissions.
+ *   - Se role mudar para 'user', trigger no banco cria user_screen_permissions
+ *     vazio. Depois, se newScreenPermissions vier, aplicamos UPSERT.
+ *   - Se role sair de 'user' (virando director/admin_rh), trigger apaga.
  *   - Preserva o invariante "empresa precisa de ao menos um Admin".
  *   - Grava user.role_changed e/ou user.permissions_changed em audit.
  */
 export async function updateUserAccess(input: {
   profileId: string;
   newRole: Role;
-  newPermissions?: Partial<RhPermissions>;
+  newScreenPermissions?: ScreenPermissions;
 }): Promise<Result> {
   const actor = await getActor();
   if (!actor) return { error: 'Nao autenticado.' };
@@ -67,12 +72,25 @@ export async function updateUserAccess(input: {
     }
   }
 
-  const previousPermissions: RhPermissions | null =
-    currentRole === 'rh'
-      ? await readRhPermissions(input.profileId)
+  // Validacao de escalacao: actor nao-admin so concede toggles subset dos proprios.
+  if (
+    actor.role !== 'admin_rh'
+    && input.newRole === 'user'
+    && input.newScreenPermissions
+    && !canGrantScreenPermissions(actor, input.newScreenPermissions)
+  ) {
+    return {
+      error: 'Voce nao pode conceder permissoes que voce mesmo nao possui.',
+      code: 'ESCALATION_DENIED',
+    };
+  }
+
+  const previousPermissions: ScreenPermissions | null =
+    currentRole === 'user' || currentRole === 'rh'
+      ? await readScreenPermissions(input.profileId)
       : null;
 
-  // 1. Atualiza role (trigger cuida de criar/apagar rh_permissions).
+  // 1. Atualiza role (trigger cuida de criar/apagar user_screen_permissions).
   if (currentRole !== input.newRole) {
     const { error: uErr } = await supabase
       .from('profiles')
@@ -91,26 +109,21 @@ export async function updateUserAccess(input: {
     });
   }
 
-  // 2. Se terminamos em role=rh e vierem toggles, UPSERT em rh_permissions.
-  if (input.newRole === 'rh' && input.newPermissions) {
+  // 2. Se terminamos em role=user e vierem toggles, UPSERT em user_screen_permissions.
+  if (input.newRole === 'user' && input.newScreenPermissions) {
     const admin = createAdminSupabaseClient();
-    const newPerms = { ...EMPTY_RH_PERMISSIONS, ...input.newPermissions };
+    const newPerms = normalizeScreenPermissions(input.newScreenPermissions);
     const { error: pErr } = await admin
-      .from('rh_permissions')
+      .from('user_screen_permissions')
       .upsert({
         profile_id: input.profileId,
         company_id: actor.companyId,
-        ...newPerms,
+        permissions: newPerms,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'profile_id' });
-    if (pErr) return { error: 'Falha ao atualizar permissoes do RH.' };
+    if (pErr) return { error: 'Falha ao atualizar permissoes.' };
 
-    const permsChanged =
-      !previousPermissions
-      || (Object.keys(newPerms) as (keyof RhPermissions)[]).some(
-        (k) => previousPermissions[k] !== newPerms[k],
-      );
-
+    const permsChanged = permissionsDiffer(previousPermissions ?? {}, newPerms);
     if (permsChanged) {
       await logActivity({
         companyId: actor.companyId,
@@ -119,7 +132,7 @@ export async function updateUserAccess(input: {
         entityType: 'profile',
         entityId: input.profileId,
         metadata: {
-          before: previousPermissions ?? EMPTY_RH_PERMISSIONS,
+          before: previousPermissions ?? EMPTY_SCREEN_PERMISSIONS,
           after: newPerms,
         },
       });
@@ -128,18 +141,35 @@ export async function updateUserAccess(input: {
 
   revalidatePath('/colaboradores');
   revalidatePath(`/colaboradores/${input.profileId}`);
-  // Invalida o layout do (app) tambem — a Sidebar le rhPermissions e
-  // muda os items visiveis quando os toggles do RH afetado mudam.
+  // Invalida layout (app) porque a Sidebar le screenPermissions.
   revalidatePath('/', 'layout');
   return { ok: true };
 }
 
-async function readRhPermissions(profileId: string): Promise<RhPermissions | null> {
+async function readScreenPermissions(profileId: string): Promise<ScreenPermissions | null> {
   const admin = createAdminSupabaseClient();
   const { data } = await admin
-    .from('rh_permissions')
-    .select('can_employees, can_reviews, can_recruitment, can_pdi_feedback, can_invites, can_audit')
+    .from('user_screen_permissions')
+    .select('permissions')
     .eq('profile_id', profileId)
     .maybeSingle();
-  return data ?? null;
+  return (data?.permissions as ScreenPermissions | undefined) ?? null;
+}
+
+/** Remove chaves com valor false pra manter o jsonb compacto (opcional). */
+function normalizeScreenPermissions(p: ScreenPermissions): ScreenPermissions {
+  const out: ScreenPermissions = {};
+  for (const [key, value] of Object.entries(p) as [ScreenPermissionKey, boolean][]) {
+    if (value === true) out[key] = true;
+  }
+  return out;
+}
+
+function permissionsDiffer(a: ScreenPermissions, b: ScreenPermissions): boolean {
+  const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+  for (const k of keys) {
+    const ak = k as ScreenPermissionKey;
+    if ((a[ak] ?? false) !== (b[ak] ?? false)) return true;
+  }
+  return false;
 }

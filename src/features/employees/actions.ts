@@ -186,15 +186,17 @@ export async function createEmployee(input: EmployeeInput) {
     if (!canInviteAs(ctx.actor, inviteRole)) {
       return { error: 'Sem permissão para convidar com este papel.' };
     }
-    const rhPermissionsSnapshot =
-      inviteRole === 'rh' && ctx.canManageEmployees ? input.rhPermissions ?? null : null;
+    // FT-9: snapshot de toggles por tela aplicado apos aceite. So faz
+    // sentido pra inviteRole='user'. Admin/Diretor sao pacotes fechados.
+    const screenPermissionsSnapshot =
+      inviteRole === 'user' ? input.screenPermissions ?? null : null;
     await sendInviteForEmployee(
       employee.id,
       input.email,
       inviteRole,
       ctx.user.id,
       companyId,
-      rhPermissionsSnapshot,
+      screenPermissionsSnapshot,
     );
   }
 
@@ -209,7 +211,7 @@ async function sendInviteForEmployee(
   role: Role,
   invitedBy: string,
   companyId: string,
-  rhPermissionsSnapshot: EmployeeInput['rhPermissions'] | null = null,
+  screenPermissionsSnapshot: EmployeeInput['screenPermissions'] | null = null,
 ) {
   const admin = createAdminSupabaseClient();
   const token = crypto.randomUUID();
@@ -225,7 +227,7 @@ async function sendInviteForEmployee(
       role,
       invited_by: invitedBy,
       expires_at: expiresAt,
-      rh_permissions: rhPermissionsSnapshot ?? null,
+      screen_permissions: screenPermissionsSnapshot ?? null,
     })
     .select('id')
     .single();
@@ -533,7 +535,7 @@ export async function acceptInvite(token: string, data: { fullName: string; pass
 
   const { data: invite } = await admin
     .from('invites')
-    .select('id, company_id, employee_id, email, role, expires_at, accepted_at, revoked_at, invited_by, rh_permissions')
+    .select('id, company_id, employee_id, email, role, expires_at, accepted_at, revoked_at, invited_by, screen_permissions')
     .eq('token', token)
     .single();
 
@@ -559,21 +561,18 @@ export async function acceptInvite(token: string, data: { fullName: string; pass
     full_name: data.fullName,
   });
 
-  // Aplica toggles pre-configurados no convite (trigger ja criou rh_permissions
-  // vazio quando role='rh' foi setado; aqui atualizamos os booleanos).
-  if (invite.role === 'rh' && invite.rh_permissions) {
-    const snapshot = invite.rh_permissions as Record<string, boolean>;
+  // FT-9: aplica toggles por tela pre-configurados no convite. O trigger
+  // sync_screen_permissions_on_role_change ja criou user_screen_permissions
+  // vazio quando role='user' foi setado; aqui apenas upsert com o snapshot.
+  if (invite.role === 'user' && invite.screen_permissions) {
     await admin
-      .from('rh_permissions')
-      .update({
-        can_employees: !!snapshot.can_employees,
-        can_reviews: !!snapshot.can_reviews,
-        can_recruitment: !!snapshot.can_recruitment,
-        can_pdi_feedback: !!snapshot.can_pdi_feedback,
-        can_invites: !!snapshot.can_invites,
-        can_audit: !!snapshot.can_audit,
-      })
-      .eq('profile_id', userId);
+      .from('user_screen_permissions')
+      .upsert({
+        profile_id: userId,
+        company_id: invite.company_id,
+        permissions: invite.screen_permissions,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'profile_id' });
   }
 
   await admin.from('employees').update({ user_id: userId, full_name: data.fullName, updated_at: new Date().toISOString() }).eq('id', invite.employee_id);

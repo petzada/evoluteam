@@ -9,6 +9,11 @@ export const RhPermissionsSchema = z.object({
   can_audit: z.boolean(),
 });
 
+// FT-9: ScreenPermissions e um map parcial <screen>.<action> -> boolean.
+// Shape nao e validado com enum fechado (a lista pode evoluir); validator
+// SQL + type guard no app cuidam disso.
+export const ScreenPermissionsSchema = z.record(z.string(), z.boolean());
+
 export const EmployeeSchema = z.object({
   fullName: z.string().min(2, 'Nome obrigatório'),
   email: z.string().email('E-mail inválido'),
@@ -21,6 +26,7 @@ export const EmployeeSchema = z.object({
   sendInvite: z.boolean().optional(),
   internalNotes: z.string().optional().nullable(),
   rhPermissions: RhPermissionsSchema.optional().nullable(),
+  screenPermissions: ScreenPermissionsSchema.optional().nullable(),
 });
 
 export const UpdateRoleSchema = z.object({

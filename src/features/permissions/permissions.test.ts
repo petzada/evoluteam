@@ -101,7 +101,7 @@ describe('atalhos por modulo', () => {
   });
 });
 
-describe('canInviteAs (P8 · C — escalacao restrita)', () => {
+describe('canInviteAs (FT-9 escalacao restrita)', () => {
   it('admin_rh pode conceder qualquer role', () => {
     const adm = baseActor({ role: 'admin_rh' });
     expect(canInviteAs(adm, 'user')).toBe(true);
@@ -110,18 +110,17 @@ describe('canInviteAs (P8 · C — escalacao restrita)', () => {
     expect(canInviteAs(adm, 'admin_rh')).toBe(true);
   });
 
-  it('rh com can_invites concede APENAS Colaborador', () => {
-    const rh = rhWith({ can_invites: true });
+  it('rh legacy com can_employees concede APENAS Colaborador (via mapScreenToLegacyRhKey)', () => {
+    const rh = rhWith({ can_employees: true });
     expect(canInviteAs(rh, 'user')).toBe(true);
     expect(canInviteAs(rh, 'rh')).toBe(false);
     expect(canInviteAs(rh, 'director')).toBe(false);
     expect(canInviteAs(rh, 'admin_rh')).toBe(false);
   });
 
-  it('rh sem can_invites nao concede nada', () => {
-    const rh = rhWith({ can_employees: true });
+  it('rh sem can_employees nao concede nada (FT-9 unifica can_invites com colaboradores.edit)', () => {
+    const rh = rhWith({ can_reviews: true });
     expect(canInviteAs(rh, 'user')).toBe(false);
-    expect(canInviteAs(rh, 'rh')).toBe(false);
   });
 
   it('director e user comum nao concedem nada', () => {
@@ -146,8 +145,8 @@ describe('canChangeUserAccess', () => {
     expect(canChangeUserAccess(adm, { userId: 'other', role: 'director' }, 'admin_rh')).toBe(true);
   });
 
-  it('rh com can_invites so pode "editar" Colaboradores mantendo-os Colaboradores', () => {
-    const rh = rhWith({ can_invites: true });
+  it('rh legacy com can_employees pode editar Colaboradores mantendo como Colaborador', () => {
+    const rh = rhWith({ can_employees: true });
     expect(canChangeUserAccess(rh, { userId: 'other', role: 'user' }, 'user')).toBe(true);
     // Nao pode escalar:
     expect(canChangeUserAccess(rh, { userId: 'other', role: 'user' }, 'rh')).toBe(false);
@@ -157,7 +156,7 @@ describe('canChangeUserAccess', () => {
     expect(canChangeUserAccess(rh, { userId: 'other', role: 'director' }, 'user')).toBe(false);
   });
 
-  it('rh sem can_invites nao altera ninguem', () => {
+  it('rh sem can_employees nao altera ninguem', () => {
     const rh = rhWith({ can_reviews: true });
     expect(canChangeUserAccess(rh, { userId: 'other', role: 'user' }, 'user')).toBe(false);
   });

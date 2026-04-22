@@ -1,7 +1,6 @@
 import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import {
-  EMPTY_RH_PERMISSIONS,
   type RhPermissions,
   type Role,
   type ScreenPermissions,
@@ -76,7 +75,7 @@ export async function getUserAccess(
   fullName: string;
   email: string;
   role: Role;
-  rhPermissions: RhPermissions;
+  screenPermissions: ScreenPermissions;
 } | null> {
   const supabase = await createServerSupabaseClient();
   const { data: profile } = await supabase
@@ -90,14 +89,14 @@ export async function getUserAccess(
   const admin = createAdminSupabaseClient();
   const { data: { user: authUser } } = await admin.auth.admin.getUserById(profileId);
 
-  let rhPermissions: RhPermissions = { ...EMPTY_RH_PERMISSIONS };
-  if (profile.role === 'rh') {
+  let screenPermissions: ScreenPermissions = {};
+  if (profile.role === 'user' || profile.role === 'rh') {
     const { data } = await admin
-      .from('rh_permissions')
-      .select('can_employees, can_reviews, can_recruitment, can_pdi_feedback, can_invites, can_audit')
+      .from('user_screen_permissions')
+      .select('permissions')
       .eq('profile_id', profileId)
       .maybeSingle();
-    if (data) rhPermissions = data;
+    if (data?.permissions) screenPermissions = data.permissions as ScreenPermissions;
   }
 
   return {
@@ -105,6 +104,6 @@ export async function getUserAccess(
     fullName: profile.full_name,
     email: authUser?.email ?? '',
     role: profile.role as Role,
-    rhPermissions,
+    screenPermissions,
   };
 }

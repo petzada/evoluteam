@@ -68,15 +68,23 @@ export const canViewAudit = (actor: HasAdminPowerActor | null) =>
 /**
  * Quem pode conceder qual role em um convite.
  *
- * Regra P8 · C (decisao de brainstorm):
- *   - Administrador concede qualquer role.
- *   - RH com can_invites concede apenas Colaborador.
+ * Regras FT-9:
+ *   - Administrador concede qualquer role (admin_rh/director/user).
+ *   - Colaborador com colaboradores.edit concede apenas 'user' (nao escala).
  *   - Qualquer outro perfil nao concede.
+ *
+ * Compat FT-8 legado: rh com rhPermissions.can_invites tambem concede 'user'
+ * — o canDo via mapScreenToLegacyRhKey ja equipara can_employees a
+ * colaboradores.edit, entao isso e automatico.
  */
 export function canInviteAs(actor: Actor | null, targetRole: Role): boolean {
   if (!actor) return false;
   if (actor.role === 'admin_rh') return true;
-  if (actor.role === 'rh' && actor.rhPermissions?.can_invites && targetRole === 'user') {
+  if (
+    (actor.role === 'user' || actor.role === 'rh')
+    && canDo(actor, 'colaboradores', 'edit')
+    && targetRole === 'user'
+  ) {
     return true;
   }
   return false;
@@ -85,11 +93,11 @@ export function canInviteAs(actor: Actor | null, targetRole: Role): boolean {
 /**
  * Quem pode alterar o role/toggles de um usuario existente.
  *
- * Regras:
+ * Regras FT-9:
  *   - Administrador pode alterar qualquer outro usuario (modal de confirmacao
  *     na UI para escalada a admin_rh — controlada pela UI, nao aqui).
- *   - RH com can_invites pode alterar dados de usuarios que sao Colaborador
- *     e manter o role como Colaborador (nao escala para rh/director/admin_rh).
+ *   - Colaborador com colaboradores.edit pode alterar dados de outros
+ *     Colaboradores mantendo o role (nao escala para director/admin_rh).
  *   - Ninguem pode alterar o proprio role.
  */
 export function canChangeUserAccess(
@@ -101,10 +109,10 @@ export function canChangeUserAccess(
   if (actor.userId === target.userId) return false;
   if (actor.role === 'admin_rh') return true;
   if (
-    actor.role === 'rh' &&
-    actor.rhPermissions?.can_invites &&
-    target.role === 'user' &&
-    newRole === 'user'
+    (actor.role === 'user' || actor.role === 'rh')
+    && canDo(actor, 'colaboradores', 'edit')
+    && target.role === 'user'
+    && newRole === 'user'
   ) {
     return true;
   }

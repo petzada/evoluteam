@@ -19,8 +19,8 @@ import {
 import { EmployeeSchema, type EmployeeInput } from '../schema';
 import { createEmployee, updateEmployee } from '../actions';
 import { createTaxonomy } from '@/features/taxonomies/actions';
-import { EMPTY_RH_PERMISSIONS } from '@/features/permissions/types';
-import { PermissionsToggles } from '@/features/permissions/components/PermissionsToggles';
+import { EMPTY_SCREEN_PERMISSIONS } from '@/features/permissions/types';
+import { ScreenPermissionsToggles } from '@/features/permissions/components/ScreenPermissionsToggles';
 
 interface Position { id: string; name: string }
 interface Department { id: string; name: string }
@@ -51,7 +51,13 @@ interface Props {
   isAdmin: boolean;
 }
 
-const ROLE_LABELS = { admin_rh: 'Administrador', director: 'Diretor', user: 'Colaborador', rh: 'RH' };
+// FT-9: role 'rh' removido. Roles concedidos via sheet: Colaborador + Diretor
+// (para admin_rh); apenas Colaborador para actor nao-admin.
+const ROLE_LABELS: Partial<Record<EmployeeInput['role'], string>> = {
+  user: 'Colaborador',
+  director: 'Diretor',
+  admin_rh: 'Administrador',
+};
 
 const EMPTY_DEFAULTS: EmployeeInput = {
   fullName: '',
@@ -65,6 +71,7 @@ const EMPTY_DEFAULTS: EmployeeInput = {
   sendInvite: true,
   internalNotes: '',
   rhPermissions: null,
+  screenPermissions: null,
 };
 
 export function EmployeeSheet({
@@ -103,9 +110,11 @@ export function EmployeeSheet({
     ...localDepartments.map((d) => ({ value: d.id, label: d.name })),
     ...(isAdmin ? [{ value: '__create__', label: '+ Criar novo departamento' }] : []),
   ];
-  // RH com can_invites (isAdmin=false) so concede Colaborador; demais roles ficam
-  // visiveis, mas desabilitados com tooltip explicativo.
+  // FT-9: actor nao-admin so concede Colaborador; Admin/Diretor viram
+  // opcoes desabilitadas com tooltip. Admin_rh nunca aparece como opcao
+  // de convite (so o dono do SaaS cria Admin via painel Supabase).
   const roleItems = (Object.entries(ROLE_LABELS) as [EmployeeInput['role'], string][])
+    .filter(([value]) => value !== 'admin_rh' || isEdit) // admin_rh so em edit (pra mostrar)
     .map(([value, label]) => ({
       value,
       label,
@@ -119,8 +128,9 @@ export function EmployeeSheet({
 
   const sendInvite = useWatch({ control: form.control, name: 'sendInvite' });
   const watchedRole = useWatch({ control: form.control, name: 'role' });
-  const watchedRhPermissions = useWatch({ control: form.control, name: 'rhPermissions' });
-  const showRhToggles = !isEdit && watchedRole === 'rh';
+  // FT-9: toggles aparecem quando role=Colaborador em modo criar. Na edicao,
+  // direcionamos pro drawer "Gerenciar acesso" (mais completo).
+  const showScreenToggles = !isEdit && watchedRole === 'user';
 
   useEffect(() => {
     if (!open) return;
@@ -252,12 +262,12 @@ export function EmployeeSheet({
                     <Select
                       onValueChange={(v) => {
                         field.onChange(v);
-                        if (v === 'rh') {
-                          if (!form.getValues('rhPermissions')) {
-                            form.setValue('rhPermissions', EMPTY_RH_PERMISSIONS, { shouldDirty: true });
+                        if (v === 'user') {
+                          if (!form.getValues('screenPermissions')) {
+                            form.setValue('screenPermissions', { ...EMPTY_SCREEN_PERMISSIONS }, { shouldDirty: true });
                           }
                         } else {
-                          form.setValue('rhPermissions', null, { shouldDirty: true });
+                          form.setValue('screenPermissions', null, { shouldDirty: true });
                         }
                       }}
                       value={field.value}
@@ -285,7 +295,7 @@ export function EmployeeSheet({
                     )}
                     {!isAdmin && !roleDisabled && (
                       <p className="text-[11px] text-muted-foreground">
-                        Apenas Administrador pode conceder RH, Administrador ou Diretor.
+                        Apenas Administrador pode conceder Diretor.
                       </p>
                     )}
                     <FormMessage />
@@ -293,12 +303,12 @@ export function EmployeeSheet({
                 )} />
               </div>
 
-              {showRhToggles && (
-                <FormField control={form.control} name="rhPermissions" render={({ field }) => (
+              {showScreenToggles && (
+                <FormField control={form.control} name="screenPermissions" render={({ field }) => (
                   <FormItem>
-                    <PermissionsToggles
-                      title="Permissões de RH"
-                      value={field.value ?? EMPTY_RH_PERMISSIONS}
+                    <ScreenPermissionsToggles
+                      title="Permissões deste colaborador"
+                      value={field.value ?? EMPTY_SCREEN_PERMISSIONS}
                       onChange={(next) => field.onChange(next)}
                     />
                     <p className="text-[11px] text-muted-foreground">
@@ -308,7 +318,7 @@ export function EmployeeSheet({
                 )} />
               )}
 
-              {isEdit && employee!.role === 'rh' && (
+              {isEdit && (employee!.role === 'user' || employee!.role === 'rh') && (
                 <div className="rounded-md border bg-muted/30 p-3 text-xs text-muted-foreground">
                   Para alterar papel ou permissões deste colaborador, use <strong>Gerenciar acesso</strong> no perfil.
                 </div>

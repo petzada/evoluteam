@@ -13,7 +13,12 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AccessSheet } from '@/features/permissions/components/AccessSheet';
-import { ROLE_LABELS as CENTRAL_ROLE_LABELS, type RhPermissions, type Role as CentralRole } from '@/features/permissions/types';
+import {
+  ROLE_LABELS as CENTRAL_ROLE_LABELS,
+  type RhPermissions,
+  type Role as CentralRole,
+  type ScreenPermissions,
+} from '@/features/permissions/types';
 import { EmployeeSheet, type ExistingEmployee } from './EmployeeSheet';
 import { ConfirmStatusDialog, type StatusAction } from './ConfirmStatusDialog';
 import { FeedbackCard } from '@/features/feedbacks/components/FeedbackCard';
@@ -103,10 +108,15 @@ interface Props {
     jobTitle: string;
     hiredAt: string;
   } | null;
-  // FT-8 · drawer de Gerenciar acesso
-  targetRhPermissions: RhPermissions;
+  // FT-9 · drawer de Gerenciar acesso
+  targetScreenPermissions: ScreenPermissions;
   currentActorRole: CentralRole;
-  currentActorCanInvites: boolean;
+  /**
+   * true se o actor atual e admin_rh; false se e Colaborador com
+   * colaboradores.edit (so concede 'user' e subset dos proprios toggles).
+   */
+  actorIsAdmin: boolean;
+  actorScreenPermissions?: ScreenPermissions;
 }
 
 const ROLE_LABELS: Record<Role, string> = CENTRAL_ROLE_LABELS;
@@ -133,7 +143,7 @@ const CYCLE_STATUS_LABEL: Record<'draft' | 'published' | 'closed' | 'archived', 
 
 export function EmployeeProfile({
   employee, directReports, activityLog, role, lastSignInAt, isAdmin, isSelf,
-  targetRhPermissions, currentActorRole, currentActorCanInvites,
+  targetScreenPermissions, currentActorRole, actorIsAdmin, actorScreenPermissions,
   canSeeInternalNotes, positions, departments, managers, descendantIds,
   subordinatesCount, actors, feedbacks, reviewCycles, canSeeResults, initialTab,
   pdis, canCreatePdi, pdiEmployees, pdiCompetencies, pdiCycles, actorEmployeeId,
@@ -391,7 +401,7 @@ export function EmployeeProfile({
               <FieldRow label="Último login" value={lastSignInAt ? formatDateTime(lastSignInAt) : '—'} />
             </section>
 
-            {employee.user_id && !isSelf && (isAdmin || (currentActorRole === 'rh' && currentActorCanInvites && role === 'user')) && (
+            {employee.user_id && !isSelf && (actorIsAdmin || (!actorIsAdmin && role === 'user')) && (
               <section>
                 <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">
                   Acesso
@@ -627,9 +637,10 @@ export function EmployeeProfile({
           fullName={employee.full_name}
           email={employee.email}
           initialRole={(role ?? 'user')}
-          initialPermissions={targetRhPermissions}
+          initialScreenPermissions={targetScreenPermissions}
           currentActorRole={currentActorRole}
-          currentActorCanInvites={currentActorCanInvites}
+          actorIsAdmin={actorIsAdmin}
+          actorScreenPermissions={actorScreenPermissions}
         />
       )}
 

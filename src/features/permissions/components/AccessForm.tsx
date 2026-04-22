@@ -9,39 +9,64 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { updateUserAccess } from '../actions';
-import { EMPTY_RH_PERMISSIONS, type RhPermissions, type Role } from '../types';
+import {
+  EMPTY_SCREEN_PERMISSIONS,
+  type Role,
+  type ScreenPermissions,
+  type ScreenPermissionKey,
+} from '../types';
 import { RoleCards } from './RoleCards';
-import { PermissionsToggles } from './PermissionsToggles';
+import { ScreenPermissionsToggles } from './ScreenPermissionsToggles';
 
 interface Props {
   profileId: string;
   initialRole: Role;
-  initialPermissions: RhPermissions;
+  initialScreenPermissions: ScreenPermissions;
   currentActorRole: Role;
-  currentActorCanInvites: boolean;
+  /**
+   * Quando true, o actor e Administrador (role='admin_rh') — concede qualquer
+   * role. Quando false, o actor e Colaborador com colaboradores.edit — so
+   * pode mexer em outros Colaboradores, sem escalar.
+   */
+  actorIsAdmin: boolean;
+  /**
+   * Se actorIsAdmin=false, passar os proprios toggles para limitar a escalacao
+   * (o actor so concede subset dos proprios).
+   */
+  actorScreenPermissions?: ScreenPermissions;
   onSuccess?: () => void;
 }
 
 export function AccessForm({
-  profileId, initialRole, initialPermissions, currentActorRole, currentActorCanInvites, onSuccess,
+  profileId, initialRole, initialScreenPermissions,
+  currentActorRole: _currentActorRole, actorIsAdmin, actorScreenPermissions,
+  onSuccess,
 }: Props) {
   const router = useRouter();
   const [role, setRole] = useState<Role>(initialRole);
-  const [permissions, setPermissions] = useState<RhPermissions>(initialPermissions);
+  const [permissions, setPermissions] = useState<ScreenPermissions>(initialScreenPermissions);
   const [confirmAdmin, setConfirmAdmin] = useState(false);
   const [pending, startTransition] = useTransition();
 
-  // RH com can_invites so pode manipular roles='user'. Outros roles
-  // aparecem desabilitados com tooltip.
-  const isRestrictedRh = currentActorRole === 'rh' && currentActorCanInvites;
-  const disabledRoles: Role[] = isRestrictedRh ? ['rh', 'admin_rh', 'director'] : [];
+  // Se actor nao e Admin, so pode conceder 'user'. Os outros roles ficam
+  // desabilitados com tooltip.
+  const disabledRoles: Role[] = actorIsAdmin ? [] : ['admin_rh', 'director', 'rh'];
+
+  // Escalacao restrita: actor nao-admin so concede permissoes que ele proprio
+  // tem marcadas. Toggles nao possuidos aparecem desabilitados.
+  const disabledPermissionKeys: ScreenPermissionKey[] = (() => {
+    if (actorIsAdmin || !actorScreenPermissions) return [];
+    const blocked: ScreenPermissionKey[] = [];
+    for (const [key, value] of Object.entries(actorScreenPermissions) as [ScreenPermissionKey, boolean][]) {
+      if (value !== true) blocked.push(key);
+    }
+    return blocked;
+  })();
 
   const dirty =
     role !== initialRole
-    || (role === 'rh' && (
-      (Object.keys(permissions) as (keyof RhPermissions)[]).some(
-        (k) => permissions[k] !== initialPermissions[k],
-      )
+    || (role === 'user' && (
+      permissionsDiffer(permissions, initialScreenPermissions)
     ));
 
   async function submit() {
@@ -49,7 +74,7 @@ export function AccessForm({
       const r = await updateUserAccess({
         profileId,
         newRole: role,
-        newPermissions: role === 'rh' ? permissions : undefined,
+        newScreenPermissions: role === 'user' ? permissions : undefined,
       });
       if ('error' in r) {
         toast.error(r.error);
@@ -66,13 +91,6 @@ export function AccessForm({
     if (role === 'admin_rh' && initialRole !== 'admin_rh') {
       setConfirmAdmin(true);
       return;
-    }
-    // Aviso leve se RH ficar sem nenhum toggle.
-    if (role === 'rh' && !Object.values(permissions).some(Boolean)) {
-      const ok = window.confirm(
-        'Este RH nao tera nenhuma permissao alem das de Colaborador. Continuar?',
-      );
-      if (!ok) return;
     }
     submit();
   }
@@ -91,14 +109,28 @@ export function AccessForm({
         />
       </div>
 
-      {role === 'rh' && (
-        <div>
-          <PermissionsToggles
-            value={permissions}
-            onChange={setPermissions}
-            title="Permissoes deste RH"
-          />
-        </div>
+      {role === 'user' && (
+        <ScreenPermissionsToggles
+          value={permissions}
+          onChange={setPermissions}
+          disabledKeys={disabledPermissionKeys}
+          disabledReason="Voce nao tem este acesso para conceder."
+          title="Permissoes deste colaborador"
+        />
+      )}
+
+      {role === 'director' && (
+        <RoleDescriptor
+          title="Diretor"
+          description="Ve tudo em leitura. Comenta em feedbacks, PDIs e resultados de ciclo. Nao edita dados nem configura a empresa."
+        />
+      )}
+
+      {role === 'admin_rh' && (
+        <RoleDescriptor
+          title="Administrador"
+          description="Acesso total ao sistema, inclusive configuracoes da empresa, gerenciamento de acesso dos demais e auditoria."
+        />
       )}
 
       <div className="flex justify-end gap-2">
@@ -132,5 +164,22 @@ export function AccessForm({
   );
 }
 
-// Helper pra consumidores que preferem nao montar EMPTY_RH_PERMISSIONS.
-export { EMPTY_RH_PERMISSIONS };
+function RoleDescriptor({ title, description }: { title: string; description: string }) {
+  return (
+    <div className="rounded-md border bg-muted/30 p-3 text-xs">
+      <div className="font-semibold text-sm mb-1">{title}</div>
+      <p className="text-muted-foreground leading-snug">{description}</p>
+    </div>
+  );
+}
+
+function permissionsDiffer(a: ScreenPermissions, b: ScreenPermissions): boolean {
+  const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+  for (const k of keys) {
+    const ak = k as ScreenPermissionKey;
+    if ((a[ak] ?? false) !== (b[ak] ?? false)) return true;
+  }
+  return false;
+}
+
+export { EMPTY_SCREEN_PERMISSIONS };

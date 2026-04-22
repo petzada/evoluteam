@@ -4,7 +4,7 @@ import {
   Sheet, SheetContent, SheetTitle, SheetDescription, SheetHeader,
 } from '@/components/ui/sheet';
 import { AccessForm } from './AccessForm';
-import type { RhPermissions, Role } from '../types';
+import type { Role, ScreenPermissions } from '../types';
 
 interface Props {
   open: boolean;
@@ -13,15 +13,16 @@ interface Props {
   fullName: string;
   email: string;
   initialRole: Role;
-  initialPermissions: RhPermissions;
+  initialScreenPermissions: ScreenPermissions;
   currentActorRole: Role;
-  currentActorCanInvites: boolean;
+  actorIsAdmin: boolean;
+  actorScreenPermissions?: ScreenPermissions;
 }
 
 export function AccessSheet({
   open, onOpenChange, profileId, fullName, email,
-  initialRole, initialPermissions,
-  currentActorRole, currentActorCanInvites,
+  initialRole, initialScreenPermissions,
+  currentActorRole, actorIsAdmin, actorScreenPermissions,
 }: Props) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -36,9 +37,10 @@ export function AccessSheet({
         <AccessForm
           profileId={profileId}
           initialRole={initialRole}
-          initialPermissions={initialPermissions}
+          initialScreenPermissions={initialScreenPermissions}
           currentActorRole={currentActorRole}
-          currentActorCanInvites={currentActorCanInvites}
+          actorIsAdmin={actorIsAdmin}
+          actorScreenPermissions={actorScreenPermissions}
           onSuccess={() => onOpenChange(false)}
         />
       </SheetContent>

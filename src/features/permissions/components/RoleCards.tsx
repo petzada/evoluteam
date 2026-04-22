@@ -8,11 +8,14 @@ type RoleCardDef = {
   description: string;
 };
 
+// FT-9: role 'rh' saiu. Quem era RH vira Colaborador com toggles por tela.
+// Admin_rh continua como pacote fechado (so via painel Supabase). Aqui os
+// 3 roles concedidos pelo app: Colaborador (com toggles), Diretor e
+// Administrador (pacotes fechados, sem granularidade no drawer).
 const ROLE_CARDS: RoleCardDef[] = [
-  { role: 'user', description: 'Acesso ao proprio perfil, feedbacks e PDI.' },
-  { role: 'rh', description: 'Voce escolhe em quais areas atua.' },
-  { role: 'admin_rh', description: 'Acesso total, incluindo configuracoes.' },
-  { role: 'director', description: 'Ve tudo e opina em PDI, ciclo e candidato.' },
+  { role: 'user', description: 'Acesso ao proprio + arvore. Voce escolhe as permissoes.' },
+  { role: 'director', description: 'Ve tudo em leitura e comenta em feedbacks, PDIs e resultados.' },
+  { role: 'admin_rh', description: 'Acesso total, incluindo configuracoes da empresa.' },
 ];
 
 interface Props {

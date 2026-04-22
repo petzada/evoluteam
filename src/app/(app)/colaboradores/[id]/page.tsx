@@ -131,16 +131,9 @@ export default async function EmployeeProfilePage({
     }
   }
 
-  // Role + permissoes do target (para o AccessSheet em edicao).
+  // Role + screenPermissions do target (para o AccessSheet em edicao).
   let targetRole: 'admin_rh' | 'director' | 'user' | 'rh' | null = null;
-  let targetRhPermissions: import('@/features/permissions/types').RhPermissions = {
-    can_employees: false,
-    can_reviews: false,
-    can_recruitment: false,
-    can_pdi_feedback: false,
-    can_invites: false,
-    can_audit: false,
-  };
+  let targetScreenPermissions: import('@/features/permissions/types').ScreenPermissions = {};
   if (employee.user_id) {
     const { data: targetProfile } = await supabase
       .from('profiles')
@@ -148,14 +141,16 @@ export default async function EmployeeProfilePage({
       .eq('id', employee.user_id)
       .maybeSingle();
     targetRole = (targetProfile?.role as 'admin_rh' | 'director' | 'user' | 'rh' | null) ?? null;
-    if (targetRole === 'rh') {
+    if (targetRole === 'user' || targetRole === 'rh') {
       const admin = createAdminSupabaseClient();
       const { data: perms } = await admin
-        .from('rh_permissions')
-        .select('can_employees, can_reviews, can_recruitment, can_pdi_feedback, can_invites, can_audit')
+        .from('user_screen_permissions')
+        .select('permissions')
         .eq('profile_id', employee.user_id)
         .maybeSingle();
-      if (perms) targetRhPermissions = perms;
+      if (perms?.permissions) {
+        targetScreenPermissions = perms.permissions as import('@/features/permissions/types').ScreenPermissions;
+      }
     }
   }
 
@@ -203,9 +198,10 @@ export default async function EmployeeProfilePage({
       pdiCompetencies={pdiCompetencies ?? []}
       pdiCycles={pdiCycles ?? []}
       actorEmployeeId={actorEmployeeId}
-      targetRhPermissions={targetRhPermissions}
+      targetScreenPermissions={targetScreenPermissions}
       currentActorRole={actorRole}
-      currentActorCanInvites={canDo({ role: actorRole, ...gate }, 'colaboradores', 'edit')}
+      actorIsAdmin={actorRole === 'admin_rh'}
+      actorScreenPermissions={gate.screenPermissions ?? undefined}
       recruitmentSource={recruitmentSource}
     />
     </>
