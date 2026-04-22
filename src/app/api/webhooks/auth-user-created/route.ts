@@ -56,22 +56,24 @@ export async function POST(request: NextRequest) {
 
   const origin = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
 
-  // Gera magic link de recovery: o user clica -> Supabase autentica via token
-  // -> redireciona pra /reset-password com session ativa -> user so define senha.
+  // PKCE flow: usa hashed_token em vez de action_link para manter a URL no
+  // dominio proprio. /auth/callback consome o token server-side via verifyOtp,
+  // cria a session por cookie e redireciona pra /reset-password.
   const admin = createAdminSupabaseClient();
   const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({
     type: 'recovery',
     email: record.email,
-    options: { redirectTo: `${origin}/reset-password` },
   });
 
-  if (linkErr || !linkData?.properties?.action_link) {
+  if (linkErr || !linkData?.properties?.hashed_token) {
     return NextResponse.json({ ok: true, reason: 'link_gen_failed' }, { status: 200 });
   }
 
+  const recoveryUrl = `${origin}/auth/callback?token_hash=${encodeURIComponent(linkData.properties.hashed_token)}&type=recovery&next=${encodeURIComponent('/reset-password')}`;
+
   await sendEmail({
     to: record.email,
-    ...(await renderAdminWelcome({ recoveryUrl: linkData.properties.action_link })),
+    ...(await renderAdminWelcome({ recoveryUrl })),
   });
 
   return NextResponse.json({ ok: true, reason: 'welcomed' }, { status: 200 });
