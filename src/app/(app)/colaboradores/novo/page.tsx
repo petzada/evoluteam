@@ -1,23 +1,36 @@
 import { redirect } from 'next/navigation';
-import { getActorContext } from '@/features/auth/context';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
 import {
   listEmployees, getPositions, getDepartments, getCompanyProfileRoles,
 } from '@/features/employees/queries';
 import { EmployeesList } from '@/features/employees/components/EmployeesList';
+import { loadActorGate } from '@/features/permissions/queries';
 import { canDo } from '@/features/permissions/permissions';
 
 export default async function ColaboradoresNovoPage() {
-  const ctx = await getActorContext();
-  const actor = { role: ctx.profile.role, ...ctx.gate };
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('company_id, role')
+    .eq('id', user.id)
+    .single();
+
+  if (!profile?.company_id) redirect('/onboarding/criar-empresa');
+
+  const gate = await loadActorGate(user.id, profile.role);
+  const actor = { role: profile.role, ...gate };
   const canManageEmployees = canDo(actor, 'colaboradores', 'edit');
   // FT-9: convite unificado com colaboradores.edit.
   if (!canManageEmployees) redirect('/colaboradores');
 
   const [employees, positions, departments, profileRoles] = await Promise.all([
-    listEmployees(ctx.profile.company_id),
-    getPositions(ctx.profile.company_id),
-    getDepartments(ctx.profile.company_id),
-    getCompanyProfileRoles(ctx.profile.company_id),
+    listEmployees(profile.company_id),
+    getPositions(profile.company_id),
+    getDepartments(profile.company_id),
+    getCompanyProfileRoles(profile.company_id),
   ]);
 
   return (
@@ -25,10 +38,10 @@ export default async function ColaboradoresNovoPage() {
       employees={employees as Parameters<typeof EmployeesList>[0]['employees']}
       positions={positions}
       departments={departments}
-      currentUserId={ctx.user.id}
+      currentUserId={user.id}
       canManageEmployees
-      actorIsAdmin={ctx.profile.role === 'admin_rh'}
-      actorScreenPermissions={ctx.gate.screenPermissions}
+      actorIsAdmin={profile.role === 'admin_rh'}
+      actorScreenPermissions={gate.screenPermissions}
       profileRoles={profileRoles}
       openSheet
     />

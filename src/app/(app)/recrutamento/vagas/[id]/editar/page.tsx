@@ -1,6 +1,7 @@
 import { notFound, redirect } from 'next/navigation';
-import { getActorContext } from '@/features/auth/context';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { getDepartments, getPositions } from '@/features/employees/queries';
+import { loadActorGate } from '@/features/permissions/queries';
 import {
   getJobOpeningById, listHiringManagerOptions,
 } from '@/features/recruitment/queries/jobOpenings';
@@ -11,11 +12,28 @@ type Params = Promise<{ id: string }>;
 
 export default async function EditarVagaPage({ params }: { params: Params }) {
   const { id } = await params;
-  const ctx = await getActorContext();
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('company_id, role')
+    .eq('id', user.id)
+    .single();
+  if (!profile?.company_id) redirect('/onboarding/criar-empresa');
+
+  const { data: employeeRow } = await supabase
+    .from('employees')
+    .select('id')
+    .eq('user_id', user.id)
+    .eq('company_id', profile.company_id)
+    .maybeSingle();
+
+  const gate = await loadActorGate(user.id, profile.role);
   const actor = {
-    role: ctx.profile.role,
-    employeeId: ctx.employee?.id ?? null,
-    ...ctx.gate,
+    role: profile.role,
+    employeeId: employeeRow?.id ?? null,
+    ...gate,
   };
   if (!canManageJobOpenings(actor)) redirect(`/recrutamento/vagas/${id}`);
 
@@ -23,9 +41,9 @@ export default async function EditarVagaPage({ params }: { params: Params }) {
   if (!job) notFound();
 
   const [departments, positions, managers] = await Promise.all([
-    getDepartments(ctx.profile.company_id),
-    getPositions(ctx.profile.company_id),
-    listHiringManagerOptions(ctx.profile.company_id),
+    getDepartments(profile.company_id),
+    getPositions(profile.company_id),
+    listHiringManagerOptions(profile.company_id),
   ]);
 
   return (

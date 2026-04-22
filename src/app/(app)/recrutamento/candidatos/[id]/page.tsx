@@ -1,6 +1,7 @@
 import { notFound, redirect } from 'next/navigation';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { createAdminSupabaseClient } from '@/lib/supabase/admin';
-import { getActorContext } from '@/features/auth/context';
+import { loadActorGate } from '@/features/permissions/queries';
 import { getCandidateById } from '@/features/recruitment/queries/candidates';
 import {
   listApplicationsByCandidate,
@@ -9,7 +10,10 @@ import {
 import { listFeedbacksByCandidate } from '@/features/recruitment/queries/feedbacks';
 import { listScorecardsByCandidate } from '@/features/recruitment/queries/scorecards';
 import { listTasksByCandidate } from '@/features/recruitment/queries/tasks';
-import { listHiringManagerOptions } from '@/features/recruitment/queries/jobOpenings';
+import {
+  hasOpenJobAsHiringManager,
+  listHiringManagerOptions,
+} from '@/features/recruitment/queries/jobOpenings';
 import {
   canManageCandidates, canGiveFeedback, canManageRecruitment,
   canViewAllCandidates, canViewAssignedCandidates,
@@ -21,12 +25,33 @@ type Params = Promise<{ id: string }>;
 
 export default async function CandidatoPage({ params }: { params: Params }) {
   const { id } = await params;
-  const ctx = await getActorContext();
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('company_id, role')
+    .eq('id', user.id)
+    .single();
+  if (!profile?.company_id) redirect('/onboarding/criar-empresa');
+
+  const { data: employeeRow } = await supabase
+    .from('employees')
+    .select('id')
+    .eq('user_id', user.id)
+    .eq('company_id', profile.company_id)
+    .maybeSingle();
+
+  const [gate, isHiringManager] = await Promise.all([
+    loadActorGate(user.id, profile.role),
+    hasOpenJobAsHiringManager(profile.company_id, employeeRow?.id ?? null),
+  ]);
   const actor = {
-    role: ctx.profile.role,
-    employeeId: ctx.employee?.id ?? null,
-    isHiringManager: ctx.isHiringManager,
-    ...ctx.gate,
+    role: profile.role,
+    employeeId: employeeRow?.id ?? null,
+    isHiringManager,
+    ...gate,
   };
 
   if (!canViewAllCandidates(actor) && !canViewAssignedCandidates(actor)) {
@@ -42,7 +67,7 @@ export default async function CandidatoPage({ params }: { params: Params }) {
     listFeedbacksByCandidate(id),
     listScorecardsByCandidate(id),
     listTasksByCandidate(id),
-    listHiringManagerOptions(ctx.profile.company_id),
+    listHiringManagerOptions(profile.company_id),
   ]);
 
   let hiredEmployeeName: string | null = null;

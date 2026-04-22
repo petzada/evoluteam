@@ -1,9 +1,8 @@
 import { notFound, redirect } from 'next/navigation';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { getActorContext } from '@/features/auth/context';
 import {
   getCycle, getResultOverview, getCycleComments,
-  getActorDescendants,
+  getActorEmployeeId, getActorDescendants,
   listResultLeadershipComments,
 } from '@/features/reviews/queries';
 import { getEmployeeAncestors } from '@/features/employees/queries';
@@ -16,12 +15,21 @@ export default async function ResultadoIndividualPage({
   params: Promise<{ cycleId: string; employeeId: string }>;
 }) {
   const { cycleId, employeeId } = await params;
-  const ctx = await getActorContext();
+
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('company_id, role')
+    .eq('id', user.id)
+    .single();
+  if (!profile?.company_id) redirect('/onboarding/criar-empresa');
 
   const cycle = await getCycle(cycleId);
   if (!cycle) notFound();
 
-  const supabase = await createServerSupabaseClient();
   const { data: employeeRaw } = await supabase
     .from('employees')
     .select('id, full_name, position:positions(id, name), department:departments(id, name)')
@@ -36,10 +44,10 @@ export default async function ResultadoIndividualPage({
   };
 
   // Permissão
-  const isAdmin = ctx.profile.role === 'admin_rh';
-  const isDirector = ctx.profile.role === 'director';
-  const actorEmployeeId = ctx.employee?.id ?? null;
-  const descendants = actorEmployeeId ? await getActorDescendants(ctx.user.id) : [];
+  const isAdmin = profile.role === 'admin_rh';
+  const isDirector = profile.role === 'director';
+  const actorEmployeeId = await getActorEmployeeId(user.id);
+  const descendants = actorEmployeeId ? await getActorDescendants(user.id) : [];
   const isSelf = actorEmployeeId === employeeId;
   const isManagerPath = descendants.includes(employeeId);
 
@@ -65,19 +73,19 @@ export default async function ResultadoIndividualPage({
     supabase
       .from('employees')
       .select('id, full_name, email, status, manager_id, position:positions(id, name)')
-      .eq('company_id', ctx.profile.company_id)
+      .eq('company_id', profile.company_id)
       .in('status', ['active', 'inactive'])
       .order('full_name'),
     supabase
       .from('competencies')
       .select('id, name')
-      .eq('company_id', ctx.profile.company_id)
+      .eq('company_id', profile.company_id)
       .eq('is_archived', false)
       .order('name'),
     supabase
       .from('review_cycles')
       .select('id, name, status')
-      .eq('company_id', ctx.profile.company_id)
+      .eq('company_id', profile.company_id)
       .in('status', ['published', 'closed'])
       .order('created_at', { ascending: false }),
   ]);

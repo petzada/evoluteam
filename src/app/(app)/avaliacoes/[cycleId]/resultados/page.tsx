@@ -1,10 +1,10 @@
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { getActorContext } from '@/features/auth/context';
-import { getCycle, listCycleResults, getActorDescendants } from '@/features/reviews/queries';
+import { getCycle, listCycleResults, getActorDescendants, getActorEmployeeId } from '@/features/reviews/queries';
 import { getDepartments } from '@/features/employees/queries';
 import { CycleResults } from '@/features/reviews/components/CycleResults';
 import { canDo } from '@/features/permissions/permissions';
+import { loadActorGate } from '@/features/permissions/queries';
 
 export default async function ResultadosPage({
   params,
@@ -12,26 +12,37 @@ export default async function ResultadosPage({
   params: Promise<{ cycleId: string }>;
 }) {
   const { cycleId } = await params;
-  const ctx = await getActorContext();
-  const actor = { role: ctx.profile.role, ...ctx.gate };
+
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('company_id, role')
+    .eq('id', user.id)
+    .single();
+  if (!profile?.company_id) redirect('/onboarding/criar-empresa');
+
+  const gate = await loadActorGate(user.id, profile.role);
+  const actor = { role: profile.role, ...gate };
 
   const cycle = await getCycle(cycleId);
   if (!cycle) notFound();
 
   const isAdmin = canDo(actor, 'avaliacoes', 'edit');
-  const isDirector = ctx.profile.role === 'director';
-  const actorEmployeeId = ctx.employee?.id ?? null;
+  const isDirector = profile.role === 'director';
 
-  const supabase = await createServerSupabaseClient();
-  const [rowsAll, departments, { data: managersRaw }] = await Promise.all([
+  const [rowsAll, departments, { data: managersRaw }, actorEmployeeId] = await Promise.all([
     listCycleResults(cycleId),
-    getDepartments(ctx.profile.company_id),
+    getDepartments(profile.company_id),
     supabase
       .from('employees')
       .select('id, full_name')
-      .eq('company_id', ctx.profile.company_id)
+      .eq('company_id', profile.company_id)
       .eq('status', 'active')
       .order('full_name'),
+    getActorEmployeeId(user.id),
   ]);
 
   let rows = rowsAll;
@@ -39,7 +50,7 @@ export default async function ResultadosPage({
     if (!actorEmployeeId) {
       rows = [];
     } else {
-      const descendants = await getActorDescendants(ctx.user.id);
+      const descendants = await getActorDescendants(user.id);
       const allowed = new Set([actorEmployeeId, ...descendants]);
       rows = rowsAll.filter((r) => allowed.has(r.employeeId));
     }

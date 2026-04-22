@@ -1,12 +1,13 @@
 import { notFound, redirect } from 'next/navigation';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { createAdminSupabaseClient } from '@/lib/supabase/admin';
-import { getActorContext } from '@/features/auth/context';
+import { loadActorGate } from '@/features/permissions/queries';
 import { canDo } from '@/features/permissions/permissions';
 import {
   getEmployee,
   getDirectReports,
   countDirectReports,
+  getEmployeeByUserId,
   getEmployeeDescendants,
   getEmployeeActivityLog,
   getPositions,
@@ -30,12 +31,23 @@ export default async function EmployeeProfilePage({
 }) {
   const { id } = await params;
   const search = (await searchParams) ?? {};
-  const ctx = await getActorContext();
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
 
-  const actorRole = ctx.profile.role;
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('company_id, role, full_name')
+    .eq('id', user.id)
+    .single();
+  if (!profile?.company_id) redirect('/onboarding/criar-empresa');
+
+  const actorRole = profile.role as 'admin_rh' | 'director' | 'user';
+  const gate = await loadActorGate(user.id, actorRole);
+
   const showInternalNotes = canSeeInternalNotes({
     role: actorRole,
-    ...ctx.gate,
+    ...gate,
   });
 
   const employee = await getEmployee(id, { includeInternalNotes: showInternalNotes })
@@ -43,22 +55,24 @@ export default async function EmployeeProfilePage({
   if (!employee) notFound();
 
   // Permissão de visualização
-  const actorEmployeeId = ctx.employee?.id ?? null;
-  const [descendantIds, actorDescendants] = await Promise.all([
-    getEmployeeDescendants(id),
-    actorEmployeeId ? getEmployeeDescendants(actorEmployeeId) : Promise.resolve<string[]>([]),
-  ]);
+  const actorEmployee = await getEmployeeByUserId(user.id);
+  const actorEmployeeId = actorEmployee?.id ?? null;
+  const descendantIds = await getEmployeeDescendants(id);
+  // Ancestor chain: para user comum, precisa que actor esteja na cadeia de gestores do target
+  // Como já temos descendantIds de `id`, se target está em descendants de actor → actor é ancestor.
+  const actorDescendants = actorEmployeeId
+    ? await getEmployeeDescendants(actorEmployeeId)
+    : [];
   const isDescendantOfActor = actorDescendants.includes(id);
 
   const canView = canViewEmployee(
-    { id: '', role: actorRole, userId: ctx.user.id, employeeId: actorEmployeeId, ...ctx.gate },
+    { id: '', role: actorRole, userId: user.id, employeeId: actorEmployeeId, ...gate },
     { id, managerChain: isDescendantOfActor ? [actorEmployeeId ?? ''] : [] },
   );
   if (!canView) {
     redirect('/colaboradores');
   }
 
-  const supabase = await createServerSupabaseClient();
   const [
     directReports, subordinatesCount, activityLog, positions, departments, managers,
     feedbacks, pdis, reviewCycles,
@@ -66,43 +80,43 @@ export default async function EmployeeProfilePage({
   ] = await Promise.all([
     getDirectReports(id),
     countDirectReports(id),
-    getEmployeeActivityLog(ctx.profile.company_id, id, employee.user_id),
-    getPositions(ctx.profile.company_id),
-    getDepartments(ctx.profile.company_id),
-    getManagerCandidates(ctx.profile.company_id, id),
+    getEmployeeActivityLog(profile.company_id, id, employee.user_id),
+    getPositions(profile.company_id),
+    getDepartments(profile.company_id),
+    getManagerCandidates(profile.company_id, id),
     listFeedbacksForEmployee(id),
     listPdisForEmployee(id),
     listReviewCyclesForEmployee(id),
     supabase
       .from('employees')
       .select('id, full_name, email, status, manager_id, position:positions(id, name)')
-      .eq('company_id', ctx.profile.company_id)
+      .eq('company_id', profile.company_id)
       .in('status', ['active', 'inactive'])
       .order('full_name'),
     supabase
       .from('competencies')
       .select('id, name')
-      .eq('company_id', ctx.profile.company_id)
+      .eq('company_id', profile.company_id)
       .eq('is_archived', false)
       .order('name'),
     supabase
       .from('review_cycles')
       .select('id, name, status')
-      .eq('company_id', ctx.profile.company_id)
+      .eq('company_id', profile.company_id)
       .in('status', ['published', 'closed'])
       .order('created_at', { ascending: false }),
   ]);
 
   const canCreatePdiHere =
-    canDo({ role: actorRole, ...ctx.gate }, 'pdi', 'edit')
+    canDo({ role: actorRole, ...gate }, 'pdi', 'edit')
     || (actorEmployeeId !== null && employee.manager?.id === actorEmployeeId);
 
   // canSeeResults: quem tem avaliacoes.view ve tudo; gestor vê descendentes;
   // self só com liberação. Quando canSeeResults=false e isSelf=true, o
   // componente libera por ciclo (isReleased).
-  const isSelfHere = employee.user_id === ctx.user.id;
+  const isSelfHere = employee.user_id === user.id;
   const canSeeResults =
-    canDo({ role: actorRole, ...ctx.gate }, 'avaliacoes', 'view')
+    canDo({ role: actorRole, ...gate }, 'avaliacoes', 'view')
     || (!isSelfHere && isDescendantOfActor);
 
   // Último login via admin auth
@@ -165,8 +179,8 @@ export default async function EmployeeProfilePage({
       activityLog={activityLog as Parameters<typeof EmployeeProfile>[0]['activityLog']}
       role={targetRole}
       lastSignInAt={lastSignInAt}
-      isAdmin={canDo({ role: actorRole, ...ctx.gate }, 'colaboradores', 'edit')}
-      isSelf={employee.user_id === ctx.user.id}
+      isAdmin={canDo({ role: actorRole, ...gate }, 'colaboradores', 'edit')}
+      isSelf={employee.user_id === user.id}
       canSeeInternalNotes={showInternalNotes}
       positions={positions}
       departments={departments}
@@ -187,7 +201,7 @@ export default async function EmployeeProfilePage({
       targetScreenPermissions={targetScreenPermissions}
       currentActorRole={actorRole}
       actorIsAdmin={actorRole === 'admin_rh'}
-      actorScreenPermissions={ctx.gate.screenPermissions ?? undefined}
+      actorScreenPermissions={gate.screenPermissions ?? undefined}
       recruitmentSource={recruitmentSource}
     />
     </>

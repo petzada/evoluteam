@@ -1,8 +1,10 @@
 import { notFound, redirect } from 'next/navigation';
-import { getActorContext } from '@/features/auth/context';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { getDepartments, getPositions } from '@/features/employees/queries';
+import { loadActorGate } from '@/features/permissions/queries';
 import {
   getJobOpeningById,
+  hasOpenJobAsHiringManager,
   listHiringManagerOptions,
 } from '@/features/recruitment/queries/jobOpenings';
 import {
@@ -25,12 +27,33 @@ type Params = Promise<{ id: string }>;
 
 export default async function VagaDetailPage({ params }: { params: Params }) {
   const { id } = await params;
-  const ctx = await getActorContext();
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('company_id, role')
+    .eq('id', user.id)
+    .single();
+  if (!profile?.company_id) redirect('/onboarding/criar-empresa');
+
+  const { data: employeeRow } = await supabase
+    .from('employees')
+    .select('id')
+    .eq('user_id', user.id)
+    .eq('company_id', profile.company_id)
+    .maybeSingle();
+
+  const [gate, isHiringManager] = await Promise.all([
+    loadActorGate(user.id, profile.role),
+    hasOpenJobAsHiringManager(profile.company_id, employeeRow?.id ?? null),
+  ]);
   const actor = {
-    role: ctx.profile.role,
-    employeeId: ctx.employee?.id ?? null,
-    isHiringManager: ctx.isHiringManager,
-    ...ctx.gate,
+    role: profile.role,
+    employeeId: employeeRow?.id ?? null,
+    isHiringManager,
+    ...gate,
   };
 
   if (!canViewAllJobOpenings(actor) && !canViewAssignedJobOpenings(actor)) {
@@ -47,9 +70,9 @@ export default async function VagaDetailPage({ params }: { params: Params }) {
   const [active, archived, positions, departments, managers] = await Promise.all([
     listActiveApplicationsByJob(id),
     listArchivedApplicationsByJob(id),
-    getPositions(ctx.profile.company_id),
-    getDepartments(ctx.profile.company_id),
-    listHiringManagerOptions(ctx.profile.company_id),
+    getPositions(profile.company_id),
+    getDepartments(profile.company_id),
+    listHiringManagerOptions(profile.company_id),
   ]);
   const stages = job.pipeline_snapshot;
 

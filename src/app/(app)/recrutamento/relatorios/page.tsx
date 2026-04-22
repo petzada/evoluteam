@@ -1,5 +1,7 @@
 import { redirect } from 'next/navigation';
-import { getActorContext } from '@/features/auth/context';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { loadActorGate } from '@/features/permissions/queries';
+import { hasOpenJobAsHiringManager } from '@/features/recruitment/queries/jobOpenings';
 import {
   getMetricsKpis, getFunnel, getOriginsBreakdown,
   getStageDurations, getStalledCandidates, getOverdueTasks,
@@ -51,12 +53,33 @@ function parseList(v: string | undefined): string[] | null {
 
 export default async function RelatoriosPage({ searchParams }: { searchParams: SearchParams }) {
   const sp = await searchParams;
-  const ctx = await getActorContext();
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('company_id, role')
+    .eq('id', user.id)
+    .single();
+  if (!profile?.company_id) redirect('/onboarding/criar-empresa');
+
+  const { data: employeeRow } = await supabase
+    .from('employees')
+    .select('id')
+    .eq('user_id', user.id)
+    .eq('company_id', profile.company_id)
+    .maybeSingle();
+
+  const [gate, isHiringManager] = await Promise.all([
+    loadActorGate(user.id, profile.role),
+    hasOpenJobAsHiringManager(profile.company_id, employeeRow?.id ?? null),
+  ]);
   const actor = {
-    role: ctx.profile.role,
-    employeeId: ctx.employee?.id ?? null,
-    isHiringManager: ctx.isHiringManager,
-    ...ctx.gate,
+    role: profile.role,
+    employeeId: employeeRow?.id ?? null,
+    isHiringManager,
+    ...gate,
   };
   if (!canAccessRecruitmentModule(actor)) redirect('/dashboard');
 
@@ -69,7 +92,7 @@ export default async function RelatoriosPage({ searchParams }: { searchParams: S
         : 'gestor';
 
   const filter: MetricsFilter = {
-    companyId: ctx.profile.company_id,
+    companyId: profile.company_id,
     from: period.from,
     to: period.to,
     jobIds: parseList(sp.job_ids),
@@ -89,8 +112,8 @@ export default async function RelatoriosPage({ searchParams }: { searchParams: S
     getStageDurations(filter),
     getStalledCandidates(filter),
     getOverdueTasks(filter),
-    getJobsForFilter(ctx.profile.company_id, { role: viewerRole, employeeId: actor.employeeId }),
-    getManagersForFilter(ctx.profile.company_id, { role: viewerRole, employeeId: actor.employeeId }),
+    getJobsForFilter(profile.company_id, { role: viewerRole, employeeId: actor.employeeId }),
+    getManagersForFilter(profile.company_id, { role: viewerRole, employeeId: actor.employeeId }),
   ]);
 
   return (

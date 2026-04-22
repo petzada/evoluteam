@@ -1,7 +1,6 @@
 import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { getActorContext } from '@/features/auth/context';
 import { getDepartments, getPositions } from '@/features/employees/queries';
 import {
   getCycle, getCycleParticipants, getCycleForm, getEligibleEmployees,
@@ -14,6 +13,7 @@ import { PublishedCycleEditForm } from '@/features/reviews/components/PublishedC
 import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/ui/button';
 import { BreadcrumbLabel } from '@/features/shell/components/BreadcrumbLabel';
+import { loadActorGate } from '@/features/permissions/queries';
 import { canCreateCycle } from '@/features/reviews/permissions';
 
 export default async function EditCyclePage({
@@ -22,12 +22,23 @@ export default async function EditCyclePage({
   params: Promise<{ cycleId: string }>;
 }) {
   const { cycleId } = await params;
-  const ctx = await getActorContext();
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('company_id, role')
+    .eq('id', user.id)
+    .single();
+  if (!profile?.company_id) redirect('/onboarding/criar-empresa');
+
+  const gate = await loadActorGate(user.id, profile.role);
   const actor = {
-    role: ctx.profile.role,
-    userId: ctx.user.id,
+    role: profile.role,
+    userId: user.id,
     employeeId: null,
-    ...ctx.gate,
+    ...gate,
   };
   if (!canCreateCycle(actor)) redirect(`/avaliacoes/${cycleId}`);
 
@@ -72,16 +83,15 @@ export default async function EditCyclePage({
   }
 
   // status === 'draft': wizard completo em modo edit
-  const supabase = await createServerSupabaseClient();
   const [positions, departments, employees, { data: competencies }, participants, formData] =
     await Promise.all([
-      getPositions(ctx.profile.company_id),
-      getDepartments(ctx.profile.company_id),
-      getEligibleEmployees(ctx.profile.company_id),
+      getPositions(profile.company_id),
+      getDepartments(profile.company_id),
+      getEligibleEmployees(profile.company_id),
       supabase
         .from('competencies')
         .select('id, name')
-        .eq('company_id', ctx.profile.company_id)
+        .eq('company_id', profile.company_id)
         .eq('is_archived', false)
         .order('name'),
       getCycleParticipants(cycleId),

@@ -1,12 +1,13 @@
 import { redirect } from 'next/navigation';
-import { getActorContext } from '@/features/auth/context';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
 import {
   listEmployees, getPositions, getDepartments, getCompanyProfileRoles,
-  getEmployeeDescendants,
+  getEmployeeByUserId, getEmployeeDescendants,
 } from '@/features/employees/queries';
 import { listEmployeesWithoutRecentFeedback } from '@/features/dashboard/queries';
 import { EmployeesList } from '@/features/employees/components/EmployeesList';
 import { canDo } from '@/features/permissions/permissions';
+import { loadActorGate } from '@/features/permissions/queries';
 
 type SearchParams = Promise<{
   status?: string;
@@ -20,34 +21,46 @@ export default async function ColaboradoresPage({
 }: {
   searchParams: SearchParams;
 }) {
-  const ctx = await getActorContext();
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('company_id, role')
+    .eq('id', user.id)
+    .single();
+
+  if (!profile?.company_id) redirect('/onboarding/criar-empresa');
+
   const params = await searchParams;
   const filter = params.filter === 'sem_feedback' ? 'sem_feedback' : null;
 
-  const actorForGate = { role: ctx.profile.role, ...ctx.gate };
+  const gate = await loadActorGate(user.id, profile.role);
+  const actorForGate = { role: profile.role, ...gate };
 
   // canDo('colaboradores', 'view') cobre admin_rh, director e user/rh com toggle.
   const canSeeAll = canDo(actorForGate, 'colaboradores', 'view');
   let scopedIds: string[] | null = null;
 
   if (!canSeeAll) {
-    const actorId = ctx.employee?.id ?? null;
-    if (!actorId) redirect('/dashboard');
-    const descendants = await getEmployeeDescendants(actorId);
-    const visible = Array.from(new Set([actorId, ...descendants]));
+    const actor = await getEmployeeByUserId(user.id);
+    if (!actor?.id) redirect('/dashboard');
+    const descendants = await getEmployeeDescendants(actor.id);
+    const visible = Array.from(new Set([actor.id, ...descendants]));
     if (visible.length === 1) {
-      redirect(`/colaboradores/${actorId}`);
+      redirect(`/colaboradores/${actor.id}`);
     }
     scopedIds = visible;
   }
 
   const [employees, positions, departments, profileRoles, withoutFeedbackIds] = await Promise.all([
-    listEmployees(ctx.profile.company_id, { scopedIds }),
-    getPositions(ctx.profile.company_id),
-    getDepartments(ctx.profile.company_id),
-    getCompanyProfileRoles(ctx.profile.company_id),
+    listEmployees(profile.company_id, { scopedIds }),
+    getPositions(profile.company_id),
+    getDepartments(profile.company_id),
+    getCompanyProfileRoles(profile.company_id),
     filter === 'sem_feedback'
-      ? listEmployeesWithoutRecentFeedback(ctx.profile.company_id)
+      ? listEmployeesWithoutRecentFeedback(profile.company_id)
       : Promise.resolve<string[]>([]),
   ]);
 
@@ -56,10 +69,10 @@ export default async function ColaboradoresPage({
       employees={employees as Parameters<typeof EmployeesList>[0]['employees']}
       positions={positions}
       departments={departments}
-      currentUserId={ctx.user.id}
+      currentUserId={user.id}
       canManageEmployees={canDo(actorForGate, 'colaboradores', 'edit')}
-      actorIsAdmin={ctx.profile.role === 'admin_rh'}
-      actorScreenPermissions={ctx.gate.screenPermissions}
+      actorIsAdmin={profile.role === 'admin_rh'}
+      actorScreenPermissions={gate.screenPermissions}
       profileRoles={profileRoles}
       initialStatusFilter={params.status ?? null}
       specialFilter={filter}

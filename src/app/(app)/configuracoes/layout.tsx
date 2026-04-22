@@ -1,6 +1,9 @@
-import { getActorContext } from '@/features/auth/context';
+import { redirect } from 'next/navigation';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
 
 export default async function ConfiguracoesLayout({ children }: { children: React.ReactNode }) {
-  await getActorContext();
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
   return <>{children}</>;
 }

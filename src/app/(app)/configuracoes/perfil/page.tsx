@@ -1,23 +1,23 @@
-import { getActorContext } from '@/features/auth/context';
+import { redirect } from 'next/navigation';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { getCurrentProfile, getCurrentUserEmployee } from '@/features/profile/queries';
 import { ProfileForm } from '@/features/profile/components/ProfileForm';
 import { PageHeader } from '@/components/PageHeader';
 
 export default async function PerfilPage() {
-  const ctx = await getActorContext();
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
 
   const profile = await getCurrentProfile();
-  if (!profile) {
-    // Should not happen — getActorContext would have redirected.
-    return null;
-  }
+  if (!profile) redirect('/login');
 
   const employee = profile.company_id
-    ? await getCurrentUserEmployee(profile.company_id, ctx.user.id)
+    ? await getCurrentUserEmployee(profile.company_id, user.id)
     : null;
 
   const employeeWithEmail = employee
-    ? { ...employee, email: ctx.user.email ?? '' }
+    ? { ...employee, email: user.email ?? '' }
     : null;
 
   return (
