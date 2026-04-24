@@ -600,7 +600,7 @@ export function canDeletePdi(actor: Actor): boolean {
 - **Performance:** listagem de 500 PDIs renderiza em <300ms (índices em `employee_id`, `company_id`, `status`). Comentários paginados (20/página).
 - **Segurança:** RLS em todas as 3 tabelas; `canUpdateActionStatus` verificado na Server Action além do RLS (defense in depth). `pg_cron` insere diretamente em `notifications` sem bypassar outras políticas.
 - **Acessibilidade:** cards com `<article>`, badges com `aria-label`, `AlertDialog` com foco gerenciado pelo shadcn.
-- **Observabilidade:** Sentry captura erros de Server Actions; activity logs em `pdi.created`, `pdi.concluded`, `pdi.cancelled`, `pdi.deleted`.
+- **Observabilidade:** activity logs em `pdi.created`, `pdi.concluded`, `pdi.cancelled`, `pdi.deleted`.
 - **pg_cron resiliente:** falha no job diário não afeta a aplicação; erros ficam em `cron.job_run_details` do Supabase para diagnóstico.
 
 ---

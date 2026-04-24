@@ -19,8 +19,7 @@ Decisões que valem para **todas** as fases/features do produto. Toda escolha qu
 | 8 | Data access | Supabase Client em todo lugar + estrutura `features/{domain}/{schema,queries,actions,permissions,components}` |
 | 9 | Environments | Um único projeto Supabase cloud (dev = prod) até o 1º cliente pagante |
 | 10 | Locale | pt-BR hardcoded + UTC/São Paulo + formato BR |
-| 11 | Observabilidade | Sentry free, setup mínimo |
-| 12 | Notificações | Application code + polling 30s |
+| 11 | Notificações | Application code + polling 30s |
 | 13 | Activity logs | Schema populado + tela simples em `/configuracoes/auditoria` (admin_rh) |
 | 14 | Seed no cadastro | Departamentos **vazios**, cargos **pré-populados** (4), competências **pré-populadas** (7) |
 | 15 | Identidade | Evoluteam / `evolu.team` / logo text-only / paleta branco+cinza+laranja / remetente `marcio@marct.co` |
@@ -34,8 +33,7 @@ Decisões que valem para **todas** as fases/features do produto. Toda escolha qu
 - **Frontend/Backend:** Next.js 14+ App Router, TypeScript strict, rodando em Node.js na Railway.
 - **Banco/Auth/Storage:** Supabase (Postgres 15, Supabase Auth, Supabase Storage, RLS ativa em todas as tabelas operacionais).
 - **E-mail transacional:** Resend (3k e-mails/mês no free, domínio `marct.co` verificado com SPF/DKIM).
-- **Observabilidade:** Sentry (free tier).
-- **Sem:** Clerk, Drizzle, tRPC, Docker local (opção C de ambientes).
+- **Sem:** Clerk, Drizzle, tRPC, Docker local (opção C de ambientes). Sem observabilidade externa no MVP — logs Railway para stdout são suficientes.
 
 ### Por quê
 Supabase dá RLS multi-tenant nativo, Auth completo, Storage S3-compatível e Realtime futuro — tudo sob uma conta. Railway hospeda Next.js em Node sem complicação. Resend tem DX melhor que SendGrid para o volume do MVP.
@@ -173,16 +171,7 @@ No dia em que o primeiro cliente tiver dados reais, qualquer `db reset` ou teste
 
 ---
 
-## 11. Observabilidade — Sentry free
-
-- `@sentry/nextjs` com setup wizard.
-- Captura erros server, client e Server Actions.
-- 2 env vars (`SENTRY_DSN`, `SENTRY_AUTH_TOKEN`).
-- 5k erros/mês grátis — suficiente para MVP.
-
----
-
-## 12. Notificações
+## 11. Notificações
 
 - **Gerador:** Server Actions chamam `notify({ userIds, type, title, body, linkUrl })` em `src/lib/notifications.ts`.
 - **Visualização:** polling simples, badge no header faz `GET /api/notifications/unread-count` a cada 30s.

@@ -533,7 +533,7 @@ export function canTerminateEmployee(actor, target): boolean {
 - **Performance:** listagem com 500 colaboradores renderiza em <400ms (paginação 20/página, filtros server-side com índices).
 - **Segurança:** `internal_notes` nunca enviada em response para quem não é admin_rh; teste automatizado cobre.
 - **Acessibilidade:** modais de confirmação destructivos (`ConfirmTerminate`) têm foco no botão "Cancelar" por default + `aria-labelledby`.
-- **Observabilidade:** `logActivity` registra todas as transições; Sentry captura erros.
+- **Observabilidade:** `logActivity` registra todas as transições.
 
 ## 13. Referências
 

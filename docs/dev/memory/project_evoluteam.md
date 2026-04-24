@@ -6,7 +6,7 @@ originSessionId: b1a397aa-47d0-4b3f-95c2-041bf38034a0
 ---
 evoluteam é um SaaS B2B multi-tenant em Next.js para empresas gerenciarem colaboradores, avaliações de desempenho, feedbacks contínuos, PDIs e dashboards de gestão de pessoas. ICP: empresas de 20–300 colaboradores que hoje usam planilhas.
 
-**Stack confirmada:** Next.js App Router em Railway + Supabase (Auth + Postgres + RLS + Storage) + Resend + Sentry free. UI com shadcn/ui + Geist + Lucide + RHF+Zod + TanStack Table + Recharts + Sonner.
+**Stack confirmada:** Next.js App Router em Railway + Supabase (Auth + Postgres + RLS + Storage) + Resend. UI com shadcn/ui + Geist + Lucide + RHF+Zod + TanStack Table + Recharts + Sonner.
 
 **Estado (2026-04-20):** Brainstorm de produto em andamento. **5 specs commitados em `docs/dev/`**: 00-decisoes-transversais, 01-fase-0-fundacao, 02-ft-1-colaboradores, 03-ft-2-avaliacoes, 04-ft-3-feedbacks. **Nada de código escrito ainda** — só documentação.
 

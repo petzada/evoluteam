@@ -316,7 +316,7 @@ Os screenshots mostrados nos mockups do brainstorming são **mocks HTML próximo
 - OG image: imagem 1200x630 com headline do hero.
 
 ### 4.7. Analytics e tracking
-- Fora do escopo do spec. Decidir em implementação: GA4, Plausible, PostHog? O projeto já usa Sentry — não adiciona telemetria de produto automaticamente.
+- Fora do escopo do spec. Decidir em implementação: GA4, Plausible, PostHog? Nenhuma telemetria de produto adicionada automaticamente.
 
 ### 4.8. Dark mode
 - A landing **não** respeita `prefers-color-scheme`. Sempre renderiza no esquema projetado (branco, cinza, com seções específicas em preto). Landing editorial é uma peça visual curada, não uma app.

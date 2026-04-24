@@ -344,7 +344,7 @@ export function canDeleteFeedback(actor): boolean {
 - **Performance:** listagem com 1000 feedbacks renderiza em <300ms (índices em recipient/sender + paginação).
 - **Segurança:** RLS cobre todos os cenários de visibilidade; teste manual valida que `privado` não vaza para admin_rh.
 - **Acessibilidade:** cards com `<article>`, pills com `aria-label`, textarea com `aria-describedby`.
-- **Observabilidade:** Sentry + Activity logs em `sent`/`deleted`.
+- **Observabilidade:** Activity logs em `sent`/`deleted`.
 
 ## 14. Referências
 

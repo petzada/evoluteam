@@ -561,7 +561,7 @@ export function canReleaseResult(actor): boolean {
 - **Performance:** listagem de 100 ciclos em <400ms. Cálculo de resultado individual em <200ms (view otimizada).
 - **Segurança:** RLS impede cross-cycle e cross-employee. Teste cobre cenários de vazamento.
 - **Acessibilidade:** modais de confirmação destructivos têm foco em Cancelar. Tabelas com `<caption>` + headers corretos. Nota escolhível via teclado (1-5 mapeados).
-- **Observabilidade:** Sentry captura erros. Activity logs cobrem transições.
+- **Observabilidade:** Activity logs cobrem transições.
 - **Resiliência:** falha no envio de e-mail de lembrete não bloqueia outras operações; admin recebe toast "Alguns lembretes falharam (N). Tente novamente."
 
 ## 15. Referências

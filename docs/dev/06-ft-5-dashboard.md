@@ -289,7 +289,7 @@ Nenhuma. Dashboard é leitura pura — não gera notificações.
 - **Performance:** todas as queries respondem em <200ms para empresa de 300 colaboradores (queries simples de agregação com índices já existentes em `company_id`, `status`, `cycle_id`, `employee_id`). Se necessário, adicionar índices pontuais detectados em profiling.
 - **Segurança:** escopo de gestor calculado no servidor (nunca via query param); admin_rh nunca recebe dados de outra empresa.
 - **Acessibilidade:** cards com `role="link"` ou `<a>`; gráficos com `aria-label` descritivo; empty states com `role="status"`.
-- **Observabilidade:** Sentry captura erros de queries de aggregação; nenhum log de atividade (dashboard é somente leitura).
+- **Observabilidade:** nenhum log de atividade (dashboard é somente leitura).
 - **Responsividade:** grid de KPI cards adapta de 4 colunas (desktop) para 2 (tablet) e 1 (mobile); gráficos com `ResponsiveContainer` do Recharts.
 
 ---

@@ -80,7 +80,7 @@ Os números aqui são de ordem aproximada do brainstorm — a lista canônica de
 8. Data access: Supabase Client em todo lugar + `features/{domain}/*`
 9. Env: 1 projeto Supabase cloud único
 10. Locale: pt-BR hardcoded + UTC/São Paulo
-11. Observabilidade: Sentry free
+11. Observabilidade: nenhuma (application code + logs Railway)
 12. Notificações: application code + polling 30s
 13. Activity logs: schema + tela em `/configuracoes/auditoria`
 14. Seed: departamentos vazios; 4 cargos; 7 competências

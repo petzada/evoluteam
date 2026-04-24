@@ -984,7 +984,7 @@ Não são reescritas na migration do FT-8 (pra não conflitar com histórico). A
 - [ ] Deploy migration em prod.
 - [ ] Deploy código em prod.
 - [ ] Script/SQL de notificação de directors rodado.
-- [ ] Monitoramento Sentry por 24h — atento a erros novos em `permissions.ts` e RLS.
+- [ ] Monitoramento por 24h — atento a erros novos em `permissions.ts` e RLS.
 
 ---
 

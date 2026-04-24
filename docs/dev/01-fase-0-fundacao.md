@@ -371,7 +371,7 @@ src/
         layout.tsx                  # abas laterais de configurações
       layout.tsx                    # app shell (sidebar escura + user card)
     conta-suspensa/page.tsx
-    layout.tsx                      # root layout (fonte Geist, Sentry)
+    layout.tsx                      # root layout (fonte Geist)
     globals.css                     # paleta com laranja primary
 
   middleware.ts                     # route guards (ver §7)
@@ -690,7 +690,7 @@ Ver `docs/dev/00-decisoes-transversais.md` §17 e a tabela completa abaixo:
 | | Formato inválido | Aceita só PNG/JPG/WEBP |
 | | Upload falha | Toast; não bloqueia form (logo opcional) |
 | **Onboarding** | Wizard abandonado | Session persiste; ao retornar, middleware redireciona pro passo 1 |
-| | Falha em `createCompany` | Rollback + toast + Sentry |
+| | Falha em `createCompany` | Rollback + toast de erro |
 | **Notificações** | User deletado | CASCADE via FK |
 
 ## 10. Critérios de aceite
@@ -712,7 +712,6 @@ Ver `docs/dev/00-decisoes-transversais.md` §17 e a tabela completa abaixo:
 - [ ] Todos os itens de menu futuros aparecem na sidebar em cinza (desabilitados).
 - [ ] Pt-BR, datas `dd/MM/yyyy`, timezone `America/Sao_Paulo` em toda exibição.
 - [ ] Vitest testa permissões + schemas + helpers puros.
-- [ ] Sentry captura um erro artificial e envia para o projeto configurado.
 
 ## 11. Plano de implementação (ordem sugerida)
 
@@ -733,9 +732,8 @@ Ver `docs/dev/00-decisoes-transversais.md` §17 e a tabela completa abaixo:
 15. **Activity logs base** — `logActivity()`, `/configuracoes/auditoria`.
 16. **Dashboard stub** — KPIs + checklist.
 17. **Stubs** — `/configuracoes/departamentos`, `/cargos`, `/competencias` (páginas "Em breve na próxima fase").
-18. **Sentry** — `@sentry/nextjs` wizard, verificação de envio.
-19. **Testes** — Vitest cobrindo critérios de aceite.
-20. **Deploy** — Railway configurado, `marct.co` verificado no Resend, admin de teste criado.
+18. **Testes** — Vitest cobrindo critérios de aceite.
+19. **Deploy** — Railway configurado, `marct.co` verificado no Resend, admin de teste criado.
 
 ## 12. Não-funcionais
 
@@ -743,7 +741,7 @@ Ver `docs/dev/00-decisoes-transversais.md` §17 e a tabela completa abaixo:
 - **Acessibilidade:** shadcn garante a11y base; botões têm labels; forms têm `aria-describedby` para erros.
 - **Segurança:** RLS obrigatório; `service_role` nunca exposto ao client; tokens de convite são UUID v4 (não adivinháveis); senha mínima 8 caracteres (padrão Supabase).
 - **i18n:** pt-BR hardcoded; nenhum `next-intl` até demanda.
-- **Observabilidade:** Sentry em server + client; logs Railway para stdout.
+- **Observabilidade:** logs Railway para stdout.
 
 ## 13. Referências
 

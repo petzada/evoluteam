@@ -29,7 +29,6 @@ Antes de começar, confirmar que os itens abaixo estão prontos:
   - Service role key (secret)
   - Project ID (ref, ex: `abcdefghijklmnop`)
 - [ ] **Resend** — conta criada, API key gerada, domínio `marct.co` verificado com SPF/DKIM
-- [ ] **Sentry** — projeto criado (free tier), DSN disponível (opcional para dev local)
 
 ---
 
@@ -63,9 +62,6 @@ pnpm add recharts
 pnpm add sonner
 pnpm add lucide-react
 pnpm add next-themes
-
-# Sentry
-pnpm add @sentry/nextjs
 
 # Dev
 pnpm add -D vitest @vitejs/plugin-react @testing-library/react @testing-library/jest-dom jsdom
@@ -143,17 +139,7 @@ Adicionar scripts em `package.json`:
 
 ---
 
-## 6. Configurar Sentry
-
-```bash
-pnpm dlx @sentry/wizard@latest -i nextjs
-```
-
-> O wizard cria `sentry.client.config.ts`, `sentry.server.config.ts` e `sentry.edge.config.ts` automaticamente. Aceitar todas as opções padrão.
-
----
-
-## 7. Variáveis de ambiente
+## 6. Variáveis de ambiente
 
 Criar `.env.example` (commitado no git):
 
@@ -165,17 +151,13 @@ SUPABASE_SERVICE_ROLE_KEY=
 
 # Resend (obrigatorio para fluxo de convite — Fase 0)
 RESEND_API_KEY=
-
-# Sentry (opcional — pode deixar vazio em dev local)
-NEXT_PUBLIC_SENTRY_DSN=
-SENTRY_AUTH_TOKEN=
 ```
 
 Criar `.env.local` (no `.gitignore` — preencher com valores reais):
 
 ```bash
 cp .env.example .env.local
-# Editar .env.local com os valores reais do Supabase, Resend e Sentry
+# Editar .env.local com os valores reais do Supabase e Resend
 ```
 
 Confirmar que `.gitignore` inclui `.env.local` (Next.js já inclui por padrão).
@@ -284,7 +266,7 @@ src/
         layout.tsx
       layout.tsx            # app shell (sidebar + topbar)
     conta-suspensa/page.tsx
-    layout.tsx              # root layout (Geist, Sentry, Sonner)
+    layout.tsx              # root layout (Geist, Sonner)
     globals.css
   middleware.ts
   components/
