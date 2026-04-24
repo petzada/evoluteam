@@ -39,7 +39,7 @@ const ROLE_TAG_STYLES: Record<string, string> = {
   admin_rh: 'bg-destructive/10 text-destructive border-destructive/30',
   director: 'bg-blue-500/10 text-blue-700 border-blue-500/30',
   manager: 'bg-primary/10 text-primary border-primary/30',
-  rh: 'bg-primary/10 text-primary border-primary/30',
+  rh: 'bg-secondary/10 text-secondary border-secondary/30',
 };
 const ROLE_TAG_LABELS: Record<string, string> = {
   admin_rh: 'Administrador',

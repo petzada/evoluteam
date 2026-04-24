@@ -335,7 +335,7 @@ export function PdiActionsSection({
                 <div className="flex-1 min-w-0">
                   <p className="font-medium truncate">{a.title}</p>
                   <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
-                    <span className={cn(isOverdue && 'text-red-700 font-medium')}>
+                    <span className={cn(isOverdue && 'text-amber-700 font-medium')}>
                       Prazo: {formatDate(a.due_date)}
                     </span>
                   </div>

@@ -85,7 +85,7 @@ export function MinhaArea({ firstName, assignments, pdiActions, feedbacks, curre
                   Ações do PDI em aberto
                 </CardTitle>
                 {overdueCount > 0 ? (
-                  <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />
+                  <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                 ) : (
                   <Target className="h-4 w-4 text-muted-foreground" />
                 )}
@@ -109,7 +109,7 @@ export function MinhaArea({ firstName, assignments, pdiActions, feedbacks, curre
                             {' · '}
                             prazo {formatDate(a.dueDate)}
                             {a.isOverdue && (
-                              <span className="ml-2 text-red-600 dark:text-red-400 font-medium">atrasada</span>
+                              <span className="ml-2 text-amber-600 dark:text-amber-400 font-medium">atrasada</span>
                             )}
                           </p>
                         </div>

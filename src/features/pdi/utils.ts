@@ -1,6 +1,7 @@
 import type {
   PdiStatus, PdiActionStatus, PdiComputedStatus, PdiActionComputedStatus,
 } from './schema';
+import { statusClass, type StatusToken } from '@/lib/status-colors';
 
 function isPastDate(dateStr: string): boolean {
   const today = new Date().toISOString().slice(0, 10);
@@ -27,26 +28,32 @@ export function progressFor(actions: { status: string }[]): { done: number; tota
   return { done, total };
 }
 
-export function pdiStatusColor(status: PdiComputedStatus): string {
+function pdiStatusToken(status: PdiComputedStatus): StatusToken {
   switch (status) {
-    case 'em_andamento': return 'bg-amber-100 text-amber-900 border-amber-200';
-    case 'atrasado': return 'bg-red-100 text-red-900 border-red-200';
-    case 'concluido': return 'bg-emerald-100 text-emerald-900 border-emerald-200';
-    case 'cancelado': return 'bg-muted text-muted-foreground border-muted';
+    case 'em_andamento': return 'progress';
+    case 'atrasado':     return 'warning';
+    case 'concluido':    return 'success';
+    case 'cancelado':    return 'muted';
     case 'nao_iniciado':
-    default:
-      return 'bg-muted text-muted-foreground border-muted';
+    default:             return 'neutral';
   }
 }
 
-export function actionStatusColor(status: PdiActionComputedStatus): string {
+function actionStatusToken(status: PdiActionComputedStatus): StatusToken {
   switch (status) {
-    case 'em_andamento': return 'bg-amber-100 text-amber-900 border-amber-200';
-    case 'atrasada': return 'bg-red-100 text-red-900 border-red-200';
-    case 'concluida': return 'bg-emerald-100 text-emerald-900 border-emerald-200';
-    case 'cancelada': return 'bg-muted text-muted-foreground border-muted';
+    case 'em_andamento': return 'progress';
+    case 'atrasada':     return 'warning';
+    case 'concluida':    return 'success';
+    case 'cancelada':    return 'muted';
     case 'pendente':
-    default:
-      return 'bg-muted text-muted-foreground border-muted';
+    default:             return 'neutral';
   }
+}
+
+export function pdiStatusColor(status: PdiComputedStatus): string {
+  return statusClass(pdiStatusToken(status));
+}
+
+export function actionStatusColor(status: PdiActionComputedStatus): string {
+  return statusClass(actionStatusToken(status));
 }

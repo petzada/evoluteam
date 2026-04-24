@@ -55,7 +55,7 @@ export function PdiCard({ plan, showEmployee = true }: { plan: PlanRow; showEmpl
             className={cn(
               'h-full rounded-full transition-all',
               computed === 'concluido' ? 'bg-emerald-500'
-                : isOverdue ? 'bg-red-500'
+                : isOverdue ? 'bg-amber-500'
                 : 'bg-primary',
             )}
             style={{ width: `${pct}%` }}
@@ -67,7 +67,7 @@ export function PdiCard({ plan, showEmployee = true }: { plan: PlanRow; showEmpl
         <span
           className={cn(
             'inline-flex items-center rounded-md border px-2 py-0.5',
-            isOverdue ? 'border-red-200 text-red-700' : 'text-muted-foreground',
+            isOverdue ? 'border-amber-200 text-amber-700' : 'text-muted-foreground',
           )}
         >
           Prazo: {formatDate(plan.due_date)}

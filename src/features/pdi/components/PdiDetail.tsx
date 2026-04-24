@@ -137,7 +137,7 @@ export function PdiDetail({
             <div className="mt-3 flex flex-wrap items-center gap-1.5 text-xs">
               <span className={cn(
                 'inline-flex items-center rounded-md border px-2 py-0.5',
-                isOverdue ? 'border-red-200 text-red-700' : 'text-muted-foreground',
+                isOverdue ? 'border-amber-200 text-amber-700' : 'text-muted-foreground',
               )}>
                 Prazo: {formatDate(plan.due_date)}
               </span>
