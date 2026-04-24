@@ -58,7 +58,7 @@ export const getActorContext = cache(async (): Promise<ActorContext> => {
       .from('profiles')
       .select('id, role, company_id, full_name, avatar_url, company:companies(name, status)')
       .eq('id', user.id)
-      .single(),
+      .maybeSingle(),
     supabase
       .from('employees')
       .select('id, status, manager_id, company_id')
@@ -68,7 +68,9 @@ export const getActorContext = cache(async (): Promise<ActorContext> => {
   mark('profile+employee');
 
   const profileRow = profileRes.data;
-  if (!profileRow) redirect('/login');
+  // Usuario autenticado mas sem profile: primeiro acesso (ex: criado no painel
+  // do Supabase). Cai no wizard de empresa, que faz upsert em profiles no fim.
+  if (!profileRow) redirect('/onboarding/criar-empresa');
   if (!profileRow.company_id) redirect('/onboarding/criar-empresa');
   const companyId = profileRow.company_id;
 
