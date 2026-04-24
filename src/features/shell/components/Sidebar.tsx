@@ -125,7 +125,7 @@ export function Sidebar({
         className={cn(
           baseClasses,
           isActive
-            ? 'bg-sidebar-accent text-sidebar-primary font-medium'
+            ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium'
             : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground',
         )}
       >
@@ -155,9 +155,12 @@ export function Sidebar({
     >
       <div className="flex h-14 items-center justify-center px-4 border-b border-sidebar-border">
         {collapsed ? (
-          <span className="text-lg font-bold text-sidebar-primary">E</span>
+          <span className="text-lg font-bold text-white">E</span>
         ) : (
-          <span className="text-lg font-bold text-sidebar-primary tracking-tight">Evoluteam</span>
+          <span className="text-lg font-bold tracking-tight">
+            <span className="text-white">Evolu</span>
+            <span className="text-blue-500">team</span>
+          </span>
         )}
       </div>
 
