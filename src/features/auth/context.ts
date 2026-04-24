@@ -1,16 +1,13 @@
 // Loader unificado do contexto do actor para Server Components (layouts e pages).
 //
-// Por que existe: antes deste arquivo, cada layout e cada page faziam por
-// conta propria auth.getUser() + select em profiles + select em employees +
-// loadActorGate. Em uma navegacao tipica isso roda 2-3 vezes (proxy, layout,
-// page) e bloqueia o TTFB em ~10 queries sequenciais. Agora todos chamam
-// getActorContext() — cacheado por request via React.cache — e os dados sao
-// resolvidos uma unica vez.
+// Otimizacoes aplicadas:
+// 1. React.cache: deduplica chamadas dentro da mesma request (shell+pages).
+// 2. Promise.all(profile, employee): antes eram sequenciais (cascata de 2 RTTs).
+// 3. memoize(gate, 30s): screenPermissions mudam raramente.
+// 4. memoize(isHiringManager, 60s): assignment muda em atualizacoes de vaga.
 //
-// Importante: redirects sao feitos AQUI dentro. Quem chama nao precisa
-// repetir os guards (sem usuario -> /login, sem empresa -> onboarding,
-// suspensa -> /conta-suspensa, terminated -> signOut + login). Por isso este
-// loader so pode ser usado em rotas autenticadas.
+// Redirects acontecem AQUI. Quem chama nao precisa repetir guards.
+// So use em rotas autenticadas (layouts/pages dentro de (app)).
 
 import 'server-only';
 import { cache } from 'react';
@@ -18,6 +15,7 @@ import { redirect } from 'next/navigation';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { loadActorGate } from '@/features/permissions/queries';
 import { hasOpenJobAsHiringManager } from '@/features/recruitment/queries/jobOpenings';
+import { memoize } from '@/lib/cache/memory';
 import type { Actor, Role, ScreenPermissions } from '@/features/permissions/types';
 
 export type ActorContext = {
@@ -53,26 +51,40 @@ export const getActorContext = cache(async (): Promise<ActorContext> => {
   mark('getUser');
   if (!user) redirect('/login');
 
-  const { data: profileRow } = await supabase
-    .from('profiles')
-    .select('id, role, company_id, full_name, avatar_url, company:companies(name, status)')
-    .eq('id', user.id)
-    .single();
-  mark('profile+company');
+  // Paraleliza: profile e employee sao independentes. Antes eram sequenciais.
+  // employee e filtrado por user_id (unique) — company_id e revalidado depois.
+  const [profileRes, employeeRes] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('id, role, company_id, full_name, avatar_url, company:companies(name, status)')
+      .eq('id', user.id)
+      .single(),
+    supabase
+      .from('employees')
+      .select('id, status, manager_id, company_id')
+      .eq('user_id', user.id)
+      .maybeSingle(),
+  ]);
+  mark('profile+employee');
 
+  const profileRow = profileRes.data;
   if (!profileRow) redirect('/login');
   if (!profileRow.company_id) redirect('/onboarding/criar-empresa');
+  const companyId = profileRow.company_id;
 
   const company = (profileRow.company ?? null) as { name: string; status: string } | null;
   if (company?.status === 'suspended') redirect('/conta-suspensa');
 
-  const { data: employee } = await supabase
-    .from('employees')
-    .select('id, status, manager_id')
-    .eq('user_id', user.id)
-    .eq('company_id', profileRow.company_id)
-    .maybeSingle();
-  mark('employee');
+  // Valida que o employee pertence a mesma company. Se user trocou de empresa
+  // (improvavel), ignora o employee velho.
+  const rawEmployee = employeeRes.data;
+  const employee = rawEmployee && rawEmployee.company_id === companyId
+    ? {
+        id: rawEmployee.id,
+        status: rawEmployee.status as 'active' | 'inactive' | 'terminated',
+        manager_id: rawEmployee.manager_id,
+      }
+    : null;
 
   if (employee?.status === 'terminated') {
     await supabase.auth.signOut();
@@ -81,6 +93,10 @@ export const getActorContext = cache(async (): Promise<ActorContext> => {
 
   const role = profileRow.role as Role;
 
+  // Promise.all das 3 queries restantes, agora com cache em memoria em 2
+  // delas (gate e isHiringManager). directReports count fica sem cache
+  // porque muda com adicao/remocao de colaboradores e tem que ser preciso
+  // para decidir a visibilidade do dashboard.
   const [directReportsRes, isHiringManager, gate] = await Promise.all([
     employee?.id
       ? supabase
@@ -89,9 +105,17 @@ export const getActorContext = cache(async (): Promise<ActorContext> => {
           .eq('manager_id', employee.id)
       : Promise.resolve({ count: 0 as number | null }),
     employee?.id
-      ? hasOpenJobAsHiringManager(profileRow.company_id, employee.id)
+      ? memoize(
+          `hiringmgr:${companyId}:${employee.id}`,
+          60_000,
+          () => hasOpenJobAsHiringManager(companyId, employee.id),
+        )
       : Promise.resolve(false),
-    loadActorGate(user.id, role),
+    memoize(
+      `gate:${user.id}:${role}`,
+      30_000,
+      () => loadActorGate(user.id, role),
+    ),
   ]);
   mark('parallel(directReports+hiringManager+gate)');
   mark('TOTAL');
@@ -101,12 +125,12 @@ export const getActorContext = cache(async (): Promise<ActorContext> => {
     profile: {
       id: profileRow.id,
       role,
-      company_id: profileRow.company_id,
+      company_id: companyId,
       full_name: profileRow.full_name,
       avatar_url: profileRow.avatar_url,
       company,
     },
-    employee: employee as ActorContext['employee'],
+    employee,
     isManager: (directReportsRes.count ?? 0) > 0,
     isHiringManager,
     gate,
@@ -114,7 +138,6 @@ export const getActorContext = cache(async (): Promise<ActorContext> => {
 });
 
 // Adapter para callsites que precisam do Actor (canDo, hasAdminPower, etc).
-// O screenPermissions vem de loadActorGate (admin/director recebem null).
 export function actorFromContext(ctx: ActorContext): Actor {
   return {
     userId: ctx.user.id,

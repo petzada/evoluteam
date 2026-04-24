@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 import { logActivity } from '@/lib/activity';
+import { invalidate as invalidateMemoryCache } from '@/lib/cache/memory';
 import { getActor } from './actor';
 import {
   canChangeUserAccess,
@@ -142,6 +143,9 @@ export async function updateUserAccess(input: {
       });
     }
   }
+
+  // Invalida o cache em memoria do gate do alvo — getActorContext le daqui.
+  invalidateMemoryCache(`gate:${input.profileId}`);
 
   revalidatePath('/colaboradores');
   revalidatePath(`/colaboradores/${input.profileId}`);
