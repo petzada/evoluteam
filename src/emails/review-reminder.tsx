@@ -14,7 +14,7 @@ export interface ReviewReminderProps {
   cycleUrl: string;
 }
 
-const linkStyle = { color: '#F97316', textDecoration: 'underline' };
+const linkStyle = { color: '#2563EB', textDecoration: 'underline' };
 
 function firstName(fullName: string): string {
   return fullName.trim().split(/\s+/)[0];

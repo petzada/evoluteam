@@ -13,16 +13,16 @@ export default function Icon() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: 'linear-gradient(135deg, #F97316 0%, #EA580C 100%)',
+          background: '#0F172A',
           borderRadius: 7,
-          color: '#FFFFFF',
-          fontSize: 22,
+          fontSize: 19,
           fontWeight: 800,
-          letterSpacing: -1,
+          letterSpacing: -1.5,
           fontFamily: 'sans-serif',
         }}
       >
-        E
+        <span style={{ display: 'flex', color: '#FFFFFF' }}>e</span>
+        <span style={{ display: 'flex', color: '#3B82F6' }}>t</span>
       </div>
     ),
     { ...size },

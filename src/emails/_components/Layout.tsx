@@ -35,7 +35,6 @@ const containerStyle = {
 };
 
 const wordmarkStyle = {
-  color: '#F97316',
   fontSize: '22px',
   fontWeight: 700,
   letterSpacing: '-0.02em',
@@ -63,7 +62,10 @@ export function Layout({ preheader, footerMessage, children }: LayoutProps) {
       <Body style={bodyStyle}>
         <Container style={containerStyle}>
           <Section>
-            <Text style={wordmarkStyle}>Evoluteam</Text>
+            <Text style={wordmarkStyle}>
+              <span style={{ color: '#0F172A' }}>Evolu</span>
+              <span style={{ color: '#2563EB' }}>team</span>
+            </Text>
           </Section>
           {children}
           <Hr style={dividerStyle} />

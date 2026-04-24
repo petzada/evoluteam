@@ -7,7 +7,7 @@ export interface ButtonProps {
 }
 
 const buttonStyle = {
-  backgroundColor: '#F97316',
+  backgroundColor: '#2563EB',
   borderRadius: '8px',
   color: '#FFFFFF',
   display: 'inline-block',
