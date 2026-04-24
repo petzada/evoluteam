@@ -53,7 +53,7 @@ export function CompetencyRadarChart({ data }: Props) {
                 style={{ fontSize: 11, fill: 'currentColor' }}
               />
               {chartData.map((_, i) => (
-                <Cell key={i} fill="oklch(0.62 0.19 258)" />
+                <Cell key={i} fill="var(--primary)" />
               ))}
             </Bar>
           </BarChart>
@@ -72,8 +72,8 @@ export function CompetencyRadarChart({ data }: Props) {
           <Radar
             name="Média"
             dataKey="value"
-            stroke="oklch(0.62 0.19 258)"
-            fill="oklch(0.62 0.19 258)"
+            stroke="var(--primary)"
+            fill="var(--primary)"
             fillOpacity={0.35}
           />
         </RadarChart>

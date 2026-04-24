@@ -74,7 +74,7 @@ export function DepartmentBarsChart({ data }: Props) {
               style={{ fontSize: 11, fill: 'currentColor' }}
             />
             {chartData.map((d, i) => (
-              <Cell key={i} fill="oklch(0.62 0.19 258)" />
+              <Cell key={i} fill="var(--primary)" />
             ))}
           </Bar>
         </BarChart>

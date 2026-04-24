@@ -15,7 +15,7 @@ interface KpiCardProps {
 }
 
 const TONE_CLASS: Record<Tone, string> = {
-  default: 'text-foreground',
+  default: 'text-muted-foreground',
   success: 'text-emerald-600 dark:text-emerald-400',
   warning: 'text-amber-600 dark:text-amber-400',
   danger: 'text-red-600 dark:text-red-400',
@@ -26,10 +26,10 @@ export function KpiCard({ label, icon: Icon, value, hint, href, tone = 'default'
     <Card className={cn('transition-colors', href && 'hover:border-primary/60 cursor-pointer')}>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground">{label}</CardTitle>
-        <Icon className="h-4 w-4 text-muted-foreground" />
+        <Icon className={cn('h-4 w-4', TONE_CLASS[tone])} />
       </CardHeader>
       <CardContent>
-        <p className={cn('text-2xl font-bold', TONE_CLASS[tone])}>{value}</p>
+        <p className="text-2xl font-bold">{value}</p>
         {hint ? (
           <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
         ) : (
