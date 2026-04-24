@@ -1,20 +1,57 @@
 # Migrations Supabase — Evoluteam
 
-Arquivos SQL aplicados via **Supabase Dashboard → SQL Editor** na ordem numerada.
-Nomes seguem o padrão `YYYYMMDD_NNNN_descricao.sql`.
+## Estado atual
 
-## Fase 0
-- `20260419_0001_init_fase_0.sql` — 9 tabelas operacionais (companies, profiles, departments, positions, competencies, employees, invites, notifications, activity_logs)
-- `20260419_0002_rls_helpers.sql` — funções `public.my_company_id()` e `public.my_role()`
-- `20260419_0003_rls_policies.sql` — políticas RLS para todas as tabelas
+Um único arquivo baseline (`20260425_0001_baseline.sql`) representa o schema
+final consolidado. Ele substitui as 42 migrations que existiam antes do squash
+(Fase 0 → FT-9 + indices de performance).
 
-## Convenção
-- Migrations são a fonte de verdade do schema. Aplicar **na ordem numerada**.
-- Nunca editar uma migration já aplicada — criar nova com timestamp posterior.
-- Para reset local de DB Supabase, usar Supabase CLI ou re-rodar manualmente em ordem.
+O squash foi feito em 2026-04-25 porque migrations iam se acumulando com
+rollbacks parciais e refactors RLS sobrepostos, dificultando aplicar o schema
+em ambientes novos.
 
-## Próximas fases
-- FT-1: `20260508_*` (deptos/cargos CRUD)
-- FT-2: `20260510_*` (ciclos de avaliação)
-- FT-3: `20260517_*` (feedbacks)
-- FT-4: `20260601_*` (PDI + pg_cron)
+## Como aplicar em um projeto Supabase novo
+
+1. Crie o projeto vazio no Supabase.
+2. Database → Extensions → habilite `pg_cron` (schema `extensions`). Sem ela
+   o job diário de notificação de PDI é pulado com `RAISE NOTICE` (não quebra).
+3. SQL Editor → cole `20260425_0001_baseline.sql` inteiro → Run.
+4. Atualize as env vars do app:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `SUPABASE_SERVICE_ROLE_KEY`
+
+## O que o baseline cria
+
+- **9 tabelas fundação**: companies, profiles, departments, positions,
+  competencies, employees, invites, notifications, activity_logs
+- **Avaliações (FT-2)**: review_cycles, review_cycle_participants,
+  review_forms, review_questions, review_assignments, review_answers
+- **Feedbacks (FT-3)**: feedbacks
+- **PDI (FT-4)**: development_plans, development_plan_actions,
+  development_plan_comments + pg_cron job diário
+- **Recrutamento (FT-7)**: recruitment_stages, job_openings, candidates,
+  job_applications, candidate_stage_history, candidate_feedbacks,
+  candidate_scorecards, candidate_tasks + trigger que semeia as 7 etapas
+  padrão em toda `companies` nova
+- **Permissões por tela (FT-9)**: user_screen_permissions + helper
+  `has_screen_permission(screen, action)` + validador de shape JSONB
+- **Comentários da liderança (FT-8)**: review_result_comments
+- **Funções helper RLS**: `my_company_id`, `my_role`, `my_employee_id`,
+  `get_employee_descendants`, `get_employee_ancestors`,
+  `is_gestor_of_opening`, `can_read_employee`
+- **Índices de performance**: os 7 índices compostos da Fase 2
+
+## O que NÃO entra (legado removido)
+
+- Role `rh` e tabela `rh_permissions` (removidos em FT-9 fase 5)
+- Webhook `pg_net` em `auth.users` (substituído por `/api/webhooks/auth-user-created` no app)
+- RPCs `get_actor_context` e `dashboard_options` (tentativa de otimização revertida)
+
+## Convenção daqui pra frente
+
+- Próximas features criam novas migrations a partir deste baseline com
+  timestamp `>20260425_0001`.
+- Nunca editar o baseline nem migrations já aplicadas — gerar nova com
+  timestamp posterior.
+- Aplicar cada migration no SQL Editor do Supabase, na ordem numérica.
