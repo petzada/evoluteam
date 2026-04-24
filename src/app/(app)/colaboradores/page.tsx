@@ -1,13 +1,12 @@
 import { redirect } from 'next/navigation';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
 import {
   listEmployees, getPositions, getDepartments, getCompanyProfileRoles,
-  getEmployeeByUserId, getEmployeeDescendants,
+  getEmployeeDescendants,
 } from '@/features/employees/queries';
 import { listEmployeesWithoutRecentFeedback } from '@/features/dashboard/queries';
 import { EmployeesList } from '@/features/employees/components/EmployeesList';
 import { canDo } from '@/features/permissions/permissions';
-import { loadActorGate } from '@/features/permissions/queries';
+import { getActorContext } from '@/features/auth/context';
 
 type SearchParams = Promise<{
   status?: string;
@@ -21,22 +20,11 @@ export default async function ColaboradoresPage({
 }: {
   searchParams: SearchParams;
 }) {
-  const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('company_id, role')
-    .eq('id', user.id)
-    .single();
-
-  if (!profile?.company_id) redirect('/onboarding/criar-empresa');
+  const { user, profile, employee, gate } = await getActorContext();
 
   const params = await searchParams;
   const filter = params.filter === 'sem_feedback' ? 'sem_feedback' : null;
 
-  const gate = await loadActorGate(user.id, profile.role);
   const actorForGate = { role: profile.role, ...gate };
 
   // canDo('colaboradores', 'view') cobre admin_rh, director e user/rh com toggle.
@@ -44,12 +32,11 @@ export default async function ColaboradoresPage({
   let scopedIds: string[] | null = null;
 
   if (!canSeeAll) {
-    const actor = await getEmployeeByUserId(user.id);
-    if (!actor?.id) redirect('/dashboard');
-    const descendants = await getEmployeeDescendants(actor.id);
-    const visible = Array.from(new Set([actor.id, ...descendants]));
+    if (!employee?.id) redirect('/dashboard');
+    const descendants = await getEmployeeDescendants(employee.id);
+    const visible = Array.from(new Set([employee.id, ...descendants]));
     if (visible.length === 1) {
-      redirect(`/colaboradores/${actor.id}`);
+      redirect(`/colaboradores/${employee.id}`);
     }
     scopedIds = visible;
   }

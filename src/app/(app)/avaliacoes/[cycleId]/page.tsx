@@ -1,4 +1,4 @@
-import { notFound, redirect } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import {
   getCycle, getCycleParticipants, getCycleAssignments, getCycleForm,
@@ -6,7 +6,7 @@ import {
 import { CycleDetail } from '@/features/reviews/components/CycleDetail';
 import { BreadcrumbLabel } from '@/features/shell/components/BreadcrumbLabel';
 import { canDo } from '@/features/permissions/permissions';
-import { loadActorGate } from '@/features/permissions/queries';
+import { getActorContext } from '@/features/auth/context';
 
 function deriveCycleLabel(status: string, responseStart: string, responseEnd: string): string {
   if (status === 'draft') return 'Rascunho';
@@ -24,24 +24,14 @@ export default async function CycleDetailPage({
   params: Promise<{ cycleId: string }>;
 }) {
   const { cycleId } = await params;
+  const { profile, gate } = await getActorContext();
   const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('company_id, role')
-    .eq('id', user.id)
-    .single();
-  if (!profile?.company_id) redirect('/onboarding/criar-empresa');
-
-  const gate = await loadActorGate(user.id, profile.role);
   const actor = { role: profile.role, ...gate };
 
-  const cycle = await getCycle(cycleId);
-  if (!cycle) notFound();
-
-  const [participants, assignments, formData, { data: competencies }] = await Promise.all([
+  // Paraleliza tudo: getCycle nao precisa preceder as outras queries.
+  // Antes era await sequencial.
+  const [cycle, participants, assignments, formData, { data: competencies }] = await Promise.all([
+    getCycle(cycleId),
     getCycleParticipants(cycleId),
     getCycleAssignments(cycleId),
     getCycleForm(cycleId),
@@ -50,6 +40,7 @@ export default async function CycleDetailPage({
       .select('id, name')
       .eq('company_id', profile.company_id),
   ]);
+  if (!cycle) notFound();
 
   return (
     <>

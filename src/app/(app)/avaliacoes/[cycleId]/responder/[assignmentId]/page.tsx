@@ -1,11 +1,12 @@
 import { notFound, redirect } from 'next/navigation';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import {
-  getAssignment, getAssignmentAnswers, getActorEmployeeId,
+  getAssignment, getAssignmentAnswers,
 } from '@/features/reviews/queries';
 import { getDirectReports } from '@/features/employees/queries';
 import { AssignmentResponder } from '@/features/reviews/components/AssignmentResponder';
 import { listFeedbacksForReviewee } from '@/features/feedbacks/queries';
+import { getActorContext } from '@/features/auth/context';
 
 export default async function ResponderPage({
   params,
@@ -14,21 +15,12 @@ export default async function ResponderPage({
 }) {
   const { cycleId, assignmentId } = await params;
 
+  const { profile, employee } = await getActorContext();
+  const actorEmployeeId = employee?.id ?? null;
   const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('company_id, role')
-    .eq('id', user.id)
-    .single();
-  if (!profile?.company_id) redirect('/onboarding/criar-empresa');
 
   const assignment = await getAssignment(assignmentId);
   if (!assignment || assignment.cycle_id !== cycleId) notFound();
-
-  const actorEmployeeId = await getActorEmployeeId(user.id);
 
   const isReviewer = actorEmployeeId && assignment.reviewer_id === actorEmployeeId;
   const isAdmin = profile.role === 'admin_rh';

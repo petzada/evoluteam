@@ -1,9 +1,8 @@
-import { redirect } from 'next/navigation';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { getActorContext } from '@/features/auth/context';
 
 export default async function ConfiguracoesLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
+  // getActorContext garante sessao + empresa ativa + nao-terminated.
+  // E cacheado por request, entao nao duplica as queries do (app)/layout.
+  await getActorContext();
   return <>{children}</>;
 }

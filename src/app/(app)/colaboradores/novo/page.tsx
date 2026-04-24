@@ -1,29 +1,15 @@
 import { redirect } from 'next/navigation';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
 import {
   listEmployees, getPositions, getDepartments, getCompanyProfileRoles,
 } from '@/features/employees/queries';
 import { EmployeesList } from '@/features/employees/components/EmployeesList';
-import { loadActorGate } from '@/features/permissions/queries';
 import { canDo } from '@/features/permissions/permissions';
+import { getActorContext } from '@/features/auth/context';
 
 export default async function ColaboradoresNovoPage() {
-  const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('company_id, role')
-    .eq('id', user.id)
-    .single();
-
-  if (!profile?.company_id) redirect('/onboarding/criar-empresa');
-
-  const gate = await loadActorGate(user.id, profile.role);
+  const { user, profile, gate } = await getActorContext();
   const actor = { role: profile.role, ...gate };
   const canManageEmployees = canDo(actor, 'colaboradores', 'edit');
-  // FT-9: convite unificado com colaboradores.edit.
   if (!canManageEmployees) redirect('/colaboradores');
 
   const [employees, positions, departments, profileRoles] = await Promise.all([

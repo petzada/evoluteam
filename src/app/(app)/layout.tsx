@@ -1,56 +1,19 @@
-import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { Sidebar } from '@/features/shell/components/Sidebar';
 import { TopBar } from '@/features/shell/components/TopBar';
 import { UserCard } from '@/features/shell/components/UserCard';
 import { SidebarProvider } from '@/features/shell/SidebarContext';
 import { BreadcrumbProvider } from '@/features/shell/BreadcrumbContext';
 import { canAccessDashboard } from '@/features/dashboard/permissions';
-import { loadActorGate } from '@/features/permissions/queries';
-import { hasOpenJobAsHiringManager } from '@/features/recruitment/queries/jobOpenings';
+import { getActorContext } from '@/features/auth/context';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role, company_id, full_name, avatar_url, company:companies(name)')
-    .eq('id', user.id)
-    .single();
-
-  if (!profile) redirect('/login');
-  if (!profile.company_id) redirect('/onboarding/criar-empresa');
-
-  const company = profile.company as { name: string } | null;
-
-  const { data: actorEmployee } = await supabase
-    .from('employees')
-    .select('id')
-    .eq('user_id', user.id)
-    .maybeSingle();
-
-  let isManager = false;
-  let isHiringManager = false;
-  if (actorEmployee?.id) {
-    const [{ count: directReports }, hasOpenJob] = await Promise.all([
-      supabase
-        .from('employees')
-        .select('*', { count: 'exact', head: true })
-        .eq('manager_id', actorEmployee.id),
-      hasOpenJobAsHiringManager(profile.company_id, actorEmployee.id),
-    ]);
-    isManager = (directReports ?? 0) > 0;
-    isHiringManager = hasOpenJob;
-  }
-
-  const gate = await loadActorGate(user.id, profile.role);
+  const ctx = await getActorContext();
+  const { profile, employee, isManager, isHiringManager, gate } = ctx;
 
   const isOperationalOnly = !canAccessDashboard({
     role: profile.role,
-    employeeId: actorEmployee?.id ?? null,
+    employeeId: employee?.id ?? null,
     isManager,
     ...gate,
   });
@@ -70,7 +33,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             footer={
               <UserCard
                 fullName={profile.full_name}
-                companyName={company?.name ?? ''}
+                companyName={profile.company?.name ?? ''}
                 avatarUrl={profile.avatar_url}
               />
             }

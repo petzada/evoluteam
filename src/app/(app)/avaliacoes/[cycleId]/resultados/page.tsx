@@ -1,10 +1,10 @@
-import { notFound, redirect } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { getCycle, listCycleResults, getActorDescendants, getActorEmployeeId } from '@/features/reviews/queries';
+import { getCycle, listCycleResults, getActorDescendants } from '@/features/reviews/queries';
 import { getDepartments } from '@/features/employees/queries';
 import { CycleResults } from '@/features/reviews/components/CycleResults';
 import { canDo } from '@/features/permissions/permissions';
-import { loadActorGate } from '@/features/permissions/queries';
+import { getActorContext } from '@/features/auth/context';
 
 export default async function ResultadosPage({
   params,
@@ -13,27 +13,16 @@ export default async function ResultadosPage({
 }) {
   const { cycleId } = await params;
 
+  const { user, profile, employee, gate } = await getActorContext();
   const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('company_id, role')
-    .eq('id', user.id)
-    .single();
-  if (!profile?.company_id) redirect('/onboarding/criar-empresa');
-
-  const gate = await loadActorGate(user.id, profile.role);
   const actor = { role: profile.role, ...gate };
-
-  const cycle = await getCycle(cycleId);
-  if (!cycle) notFound();
+  const actorEmployeeId = employee?.id ?? null;
 
   const isAdmin = canDo(actor, 'avaliacoes', 'edit');
   const isDirector = profile.role === 'director';
 
-  const [rowsAll, departments, { data: managersRaw }, actorEmployeeId] = await Promise.all([
+  const [cycle, rowsAll, departments, { data: managersRaw }] = await Promise.all([
+    getCycle(cycleId),
     listCycleResults(cycleId),
     getDepartments(profile.company_id),
     supabase
@@ -42,8 +31,8 @@ export default async function ResultadosPage({
       .eq('company_id', profile.company_id)
       .eq('status', 'active')
       .order('full_name'),
-    getActorEmployeeId(user.id),
   ]);
+  if (!cycle) notFound();
 
   let rows = rowsAll;
   if (!isAdmin && !isDirector) {

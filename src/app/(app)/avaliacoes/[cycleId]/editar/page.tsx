@@ -13,8 +13,8 @@ import { PublishedCycleEditForm } from '@/features/reviews/components/PublishedC
 import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/ui/button';
 import { BreadcrumbLabel } from '@/features/shell/components/BreadcrumbLabel';
-import { loadActorGate } from '@/features/permissions/queries';
 import { canCreateCycle } from '@/features/reviews/permissions';
+import { getActorContext } from '@/features/auth/context';
 
 export default async function EditCyclePage({
   params,
@@ -22,18 +22,8 @@ export default async function EditCyclePage({
   params: Promise<{ cycleId: string }>;
 }) {
   const { cycleId } = await params;
+  const { user, profile, gate } = await getActorContext();
   const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('company_id, role')
-    .eq('id', user.id)
-    .single();
-  if (!profile?.company_id) redirect('/onboarding/criar-empresa');
-
-  const gate = await loadActorGate(user.id, profile.role);
   const actor = {
     role: profile.role,
     userId: user.id,

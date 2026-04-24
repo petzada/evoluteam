@@ -4,22 +4,12 @@ import { getDepartments, getPositions } from '@/features/employees/queries';
 import { getEligibleEmployees } from '@/features/reviews/queries';
 import { ReviewCycleWizard } from '@/features/reviews/components/ReviewCycleWizard';
 import { PageHeader } from '@/components/PageHeader';
-import { loadActorGate } from '@/features/permissions/queries';
 import { canCreateCycle } from '@/features/reviews/permissions';
+import { getActorContext } from '@/features/auth/context';
 
 export default async function NovaAvaliacaoPage() {
+  const { user, profile, gate } = await getActorContext();
   const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('company_id, role')
-    .eq('id', user.id)
-    .single();
-  if (!profile?.company_id) redirect('/onboarding/criar-empresa');
-
-  const gate = await loadActorGate(user.id, profile.role);
   const actor = {
     role: profile.role,
     userId: user.id,

@@ -1,13 +1,12 @@
 import { notFound, redirect } from 'next/navigation';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { createAdminSupabaseClient } from '@/lib/supabase/admin';
-import { loadActorGate } from '@/features/permissions/queries';
 import { canDo } from '@/features/permissions/permissions';
+import { getActorContext } from '@/features/auth/context';
 import {
   getEmployee,
   getDirectReports,
   countDirectReports,
-  getEmployeeByUserId,
   getEmployeeDescendants,
   getEmployeeActivityLog,
   getPositions,
@@ -32,37 +31,29 @@ export default async function EmployeeProfilePage({
   const { id } = await params;
   const search = (await searchParams) ?? {};
   const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('company_id, role, full_name')
-    .eq('id', user.id)
-    .single();
-  if (!profile?.company_id) redirect('/onboarding/criar-empresa');
-
-  const actorRole = profile.role as 'admin_rh' | 'director' | 'user';
-  const gate = await loadActorGate(user.id, actorRole);
+  const { user, profile, employee: actorEmployee, gate } = await getActorContext();
+  const actorRole = profile.role;
+  const actorEmployeeId = actorEmployee?.id ?? null;
 
   const showInternalNotes = canSeeInternalNotes({
     role: actorRole,
     ...gate,
   });
 
-  const employee = await getEmployee(id, { includeInternalNotes: showInternalNotes })
-    .catch(() => null);
+  // Paraleliza: getEmployee, getEmployeeDescendants(id) e getEmployeeDescendants(actor)
+  // sao independentes. Antes rodavam sequencialmente.
+  const [employee, descendantIds, actorDescendants] = await Promise.all([
+    getEmployee(id, { includeInternalNotes: showInternalNotes }).catch(() => null),
+    getEmployeeDescendants(id),
+    actorEmployeeId
+      ? getEmployeeDescendants(actorEmployeeId)
+      : Promise.resolve<string[]>([]),
+  ]);
   if (!employee) notFound();
 
-  // Permissão de visualização
-  const actorEmployee = await getEmployeeByUserId(user.id);
-  const actorEmployeeId = actorEmployee?.id ?? null;
-  const descendantIds = await getEmployeeDescendants(id);
-  // Ancestor chain: para user comum, precisa que actor esteja na cadeia de gestores do target
-  // Como já temos descendantIds de `id`, se target está em descendants de actor → actor é ancestor.
-  const actorDescendants = actorEmployeeId
-    ? await getEmployeeDescendants(actorEmployeeId)
-    : [];
+  // Ancestor chain: para user comum, precisa que actor esteja na cadeia de gestores do target.
+  // Como temos descendants de actor, se target esta em descendants de actor -> actor e ancestor.
   const isDescendantOfActor = actorDescendants.includes(id);
 
   const canView = canViewEmployee(

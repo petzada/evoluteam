@@ -2,6 +2,7 @@
 // Spec: docs/dev/21-ft-9-redesign-acessos.md §4.
 
 import 'server-only';
+import { cache } from 'react';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 import type { Actor, Role, ScreenPermissions } from './types';
@@ -17,8 +18,12 @@ import type { Actor, Role, ScreenPermissions } from './types';
  *
  * Retorna null se nao houver usuario autenticado ou se profile nao tiver
  * company_id (convite ainda nao aceito).
+ *
+ * Wrap em React.cache: dedupe automatica dentro da mesma request. Server
+ * actions tambem se beneficiam quando varias chamadas no mesmo handler usam
+ * getActor.
  */
-export async function getActor(): Promise<Actor | null> {
+export const getActor = cache(async (): Promise<Actor | null> => {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
@@ -58,4 +63,4 @@ export async function getActor(): Promise<Actor | null> {
     employeeStatus: (emp?.status as Actor['employeeStatus']) ?? null,
     screenPermissions,
   };
-}
+});

@@ -1,27 +1,14 @@
-import { redirect } from 'next/navigation';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
 import {
-  listCycles, getCycleProgress, getAssignmentsForReviewer, getActorEmployeeId,
+  listCycles, getCycleProgress, getAssignmentsForReviewer,
   listCycleIdsInvolvingEmployee,
 } from '@/features/reviews/queries';
 import { CyclesList, type AssignmentForUser } from '@/features/reviews/components/CyclesList';
 import { canDo } from '@/features/permissions/permissions';
-import { loadActorGate } from '@/features/permissions/queries';
+import { getActorContext } from '@/features/auth/context';
 
 export default async function AvaliacoesPage() {
-  const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('company_id, role')
-    .eq('id', user.id)
-    .single();
-  if (!profile?.company_id) redirect('/onboarding/criar-empresa');
-
-  const employeeId = await getActorEmployeeId(user.id);
-  const gate = await loadActorGate(user.id, profile.role);
+  const { profile, employee, gate } = await getActorContext();
+  const employeeId = employee?.id ?? null;
   const actorForGate = { role: profile.role, ...gate };
   const canSeeAll = canDo(actorForGate, 'avaliacoes', 'view');
   let scopedIds: string[] | null = null;

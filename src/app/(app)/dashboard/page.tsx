@@ -8,9 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/PageHeader';
 import { EmptyState } from '@/components/EmptyState';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { getActorContext } from '@/features/auth/context';
 import { getDepartments } from '@/features/employees/queries';
-import { loadActorGate } from '@/features/permissions/queries';
 import {
   buildScope,
   listCycleOptions,
@@ -44,57 +43,27 @@ export default async function DashboardPage({
 }: {
   searchParams: SearchParams;
 }) {
-  const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
+  const ctx = await getActorContext();
+  const { profile, employee, isManager, gate } = ctx;
+  const employeeId = employee?.id ?? null;
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('company_id, role')
-    .eq('id', user.id)
-    .single();
-
-  if (!profile?.company_id) redirect('/onboarding/criar-empresa');
-
-  const { data: employeeRow } = await supabase
-    .from('employees')
-    .select('id')
-    .eq('user_id', user.id)
-    .eq('company_id', profile.company_id)
-    .maybeSingle();
-
-  let isManager = false;
-  if (employeeRow?.id) {
-    const { count } = await supabase
-      .from('employees')
-      .select('*', { count: 'exact', head: true })
-      .eq('manager_id', employeeRow.id);
-    isManager = (count ?? 0) > 0;
-  }
-
-  const gate = await loadActorGate(user.id, profile.role);
   const actor = {
     role: profile.role,
-    employeeId: employeeRow?.id ?? null,
+    employeeId,
     isManager,
     ...gate,
   };
 
   if (!canAccessDashboard(actor)) {
-    if (!employeeRow?.id) redirect('/colaboradores');
+    if (!employeeId) redirect('/colaboradores');
 
-    const { data: me } = await supabase
-      .from('profiles')
-      .select('full_name')
-      .eq('id', user.id)
-      .single();
-    const firstName = (me?.full_name ?? '').split(/\s+/)[0] ?? '';
+    const firstName = (profile.full_name ?? '').split(/\s+/)[0] ?? '';
 
     const [assignments, pdiActions, feedbacks, currentPdi] = await Promise.all([
-      getMyPendingAssignments(employeeRow.id),
-      getMyOpenPdiActions(employeeRow.id),
-      getMyRecentFeedbacks(employeeRow.id),
-      getMyCurrentPdi(employeeRow.id),
+      getMyPendingAssignments(employeeId),
+      getMyOpenPdiActions(employeeId),
+      getMyRecentFeedbacks(employeeId),
+      getMyCurrentPdi(employeeId),
     ]);
 
     return (
@@ -109,24 +78,24 @@ export default async function DashboardPage({
   }
 
   const params = await searchParams;
-  const departments = canFilterByDepartment(actor)
-    ? await getDepartments(profile.company_id)
-    : [];
-  const cycles = await listCycleOptions(profile.company_id);
+  const [departments, cycles] = await Promise.all([
+    canFilterByDepartment(actor) ? getDepartments(profile.company_id) : Promise.resolve([]),
+    listCycleOptions(profile.company_id),
+  ]);
   const defaultCycleId = params.cycle_id ?? (cycles.length > 0 ? 'all' : null);
   const selectedDeptId = canFilterByDepartment(actor) ? (params.dept_id ?? null) : null;
 
   const scope = await buildScope({
     companyId: profile.company_id,
     role: profile.role,
-    actorEmployeeId: employeeRow?.id ?? null,
+    actorEmployeeId: employeeId,
     screenPermissions: gate.screenPermissions,
     departmentId: selectedDeptId,
     cycleId: defaultCycleId,
   });
 
   if (!scope) {
-    if (employeeRow?.id) redirect(`/colaboradores/${employeeRow.id}`);
+    if (employeeId) redirect(`/colaboradores/${employeeId}`);
     redirect('/colaboradores');
   }
 

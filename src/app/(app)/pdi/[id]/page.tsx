@@ -1,13 +1,12 @@
-import { notFound, redirect } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { getEmployeeByUserId } from '@/features/employees/queries';
 import {
   getPdiDetail, listActionsForPlan, listCommentsForPlan,
 } from '@/features/pdi/queries';
 import { PdiDetail } from '@/features/pdi/components/PdiDetail';
 import { BreadcrumbLabel } from '@/features/shell/components/BreadcrumbLabel';
 import { canDo } from '@/features/permissions/permissions';
-import { loadActorGate } from '@/features/permissions/queries';
+import { getActorContext } from '@/features/auth/context';
 
 export default async function PdiDetailRoute({
   params,
@@ -16,27 +15,15 @@ export default async function PdiDetailRoute({
 }) {
   const { id } = await params;
 
+  const { user, profile, employee, gate } = await getActorContext();
   const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('company_id, role')
-    .eq('id', user.id)
-    .single();
-  if (!profile?.company_id) redirect('/onboarding/criar-empresa');
-
-  const plan = await getPdiDetail(id);
-  if (!plan) notFound();
-
-  const gate = await loadActorGate(user.id, profile.role);
   const actor = { role: profile.role, ...gate };
   const isAdmin = canDo(actor, 'pdi', 'edit');
   const isDirector = profile.role === 'director';
+  const actorEmployeeId = employee?.id ?? null;
 
-  const actorEmployee = await getEmployeeByUserId(user.id);
-  const actorEmployeeId = actorEmployee?.id ?? null;
+  const plan = await getPdiDetail(id);
+  if (!plan) notFound();
 
   const [actions, comments, { data: employees }, { data: competencies }, { data: cycles }] = await Promise.all([
     listActionsForPlan(plan.id),

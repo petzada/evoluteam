@@ -1,36 +1,20 @@
-import { redirect } from 'next/navigation';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { getEmployeeByUserId, getEmployeeDescendants } from '@/features/employees/queries';
+import { getEmployeeDescendants } from '@/features/employees/queries';
 import { listMyPdis, listTeamPdis, listAllPdis } from '@/features/pdi/queries';
 import { PdisPage } from '@/features/pdi/components/PdisPage';
 import { canDo } from '@/features/permissions/permissions';
-import { loadActorGate } from '@/features/permissions/queries';
+import { getActorContext } from '@/features/auth/context';
 
 export default async function PdiRoute() {
+  const { profile, employee, gate } = await getActorContext();
   const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('company_id, role')
-    .eq('id', user.id)
-    .single();
-  if (!profile?.company_id) redirect('/onboarding/criar-empresa');
-
-  const role = profile.role as 'admin_rh' | 'director' | 'user';
-  const gate = await loadActorGate(user.id, role);
+  const role = profile.role;
   const actorForGate = { role, ...gate };
-  // Edit em PDI cobre admin_rh + user/rh com toggle. Diretor nao entra
-  // (apenas view+comentarios; nao modera/deleta).
   const isAdmin = canDo(actorForGate, 'pdi', 'edit');
-  // View em PDI cobre admin_rh, director e user/rh com toggle. Usado para
-  // liberar a aba "Todos" em modo leitura pro director.
   const canSeeAll = canDo(actorForGate, 'pdi', 'view');
   const companyId = profile.company_id;
 
-  const actorEmployee = await getEmployeeByUserId(user.id);
-  const actorEmployeeId = actorEmployee?.id ?? null;
+  const actorEmployeeId = employee?.id ?? null;
   const descendants = actorEmployeeId ? await getEmployeeDescendants(actorEmployeeId) : [];
   const hasTeam = descendants.length > 0;
 
@@ -58,7 +42,7 @@ export default async function PdiRoute() {
       .order('created_at', { ascending: false }),
   ]);
 
-  const hasManager = !!actorEmployee?.manager_id;
+  const hasManager = !!employee?.manager_id;
   const canCreateAny = isAdmin || hasTeam || (!!actorEmployeeId && hasManager);
 
   return (

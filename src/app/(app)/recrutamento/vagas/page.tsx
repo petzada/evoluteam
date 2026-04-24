@@ -1,41 +1,18 @@
-﻿import { redirect } from 'next/navigation';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { redirect } from 'next/navigation';
 import { getDepartments, getPositions } from '@/features/employees/queries';
-import { loadActorGate } from '@/features/permissions/queries';
 import {
-  hasOpenJobAsHiringManager,
   listJobOpenings,
   listHiringManagerOptions,
 } from '@/features/recruitment/queries/jobOpenings';
 import { canManageJobOpenings, canViewAllJobOpenings, canViewAssignedJobOpenings } from '@/features/recruitment/permissions';
 import { JobOpeningsTable } from '@/features/recruitment/components/JobOpeningsTable';
+import { getActorContext } from '@/features/auth/context';
 
 export default async function VagasPage() {
-  const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('company_id, role')
-    .eq('id', user.id)
-    .single();
-  if (!profile?.company_id) redirect('/onboarding/criar-empresa');
-
-  const { data: employeeRow } = await supabase
-    .from('employees')
-    .select('id')
-    .eq('user_id', user.id)
-    .eq('company_id', profile.company_id)
-    .maybeSingle();
-
-  const [gate, isHiringManager] = await Promise.all([
-    loadActorGate(user.id, profile.role),
-    hasOpenJobAsHiringManager(profile.company_id, employeeRow?.id ?? null),
-  ]);
+  const { profile, employee, isHiringManager, gate } = await getActorContext();
   const actor = {
     role: profile.role,
-    employeeId: employeeRow?.id ?? null,
+    employeeId: employee?.id ?? null,
     isHiringManager,
     ...gate,
   };

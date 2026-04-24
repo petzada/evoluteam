@@ -1,28 +1,16 @@
 import { redirect } from 'next/navigation';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { listActivityLogs, ACTIVITY_PAGE_SIZE } from '@/features/activity/queries';
 import { ActivityLogList } from '@/features/activity/components/ActivityLogList';
 import { PageHeader } from '@/components/PageHeader';
 import { canDo } from '@/features/permissions/permissions';
-import { loadActorGate } from '@/features/permissions/queries';
+import { getActorContext } from '@/features/auth/context';
 
 export default async function AuditoriaPage({
   searchParams,
 }: {
   searchParams: Promise<{ page?: string }>;
 }) {
-  const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('company_id, role')
-    .eq('id', user.id)
-    .single();
-
-  if (!profile?.company_id) redirect('/dashboard');
-  const gate = await loadActorGate(user.id, profile.role);
+  const { profile, gate } = await getActorContext();
   if (!canDo({ role: profile.role, ...gate }, 'auditoria', 'view')) {
     redirect('/dashboard');
   }

@@ -1,7 +1,5 @@
 import { notFound, redirect } from 'next/navigation';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { createAdminSupabaseClient } from '@/lib/supabase/admin';
-import { loadActorGate } from '@/features/permissions/queries';
 import { getCandidateById } from '@/features/recruitment/queries/candidates';
 import {
   listApplicationsByCandidate,
@@ -10,46 +8,23 @@ import {
 import { listFeedbacksByCandidate } from '@/features/recruitment/queries/feedbacks';
 import { listScorecardsByCandidate } from '@/features/recruitment/queries/scorecards';
 import { listTasksByCandidate } from '@/features/recruitment/queries/tasks';
-import {
-  hasOpenJobAsHiringManager,
-  listHiringManagerOptions,
-} from '@/features/recruitment/queries/jobOpenings';
+import { listHiringManagerOptions } from '@/features/recruitment/queries/jobOpenings';
 import {
   canManageCandidates, canGiveFeedback, canManageRecruitment,
   canViewAllCandidates, canViewAssignedCandidates,
 } from '@/features/recruitment/permissions';
 import { CandidateProfile } from '@/features/recruitment/components/CandidateProfile';
 import { BreadcrumbLabel } from '@/features/shell/components/BreadcrumbLabel';
+import { getActorContext } from '@/features/auth/context';
 
 type Params = Promise<{ id: string }>;
 
 export default async function CandidatoPage({ params }: { params: Params }) {
   const { id } = await params;
-  const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('company_id, role')
-    .eq('id', user.id)
-    .single();
-  if (!profile?.company_id) redirect('/onboarding/criar-empresa');
-
-  const { data: employeeRow } = await supabase
-    .from('employees')
-    .select('id')
-    .eq('user_id', user.id)
-    .eq('company_id', profile.company_id)
-    .maybeSingle();
-
-  const [gate, isHiringManager] = await Promise.all([
-    loadActorGate(user.id, profile.role),
-    hasOpenJobAsHiringManager(profile.company_id, employeeRow?.id ?? null),
-  ]);
+  const { profile, employee, isHiringManager, gate } = await getActorContext();
   const actor = {
     role: profile.role,
-    employeeId: employeeRow?.id ?? null,
+    employeeId: employee?.id ?? null,
     isHiringManager,
     ...gate,
   };

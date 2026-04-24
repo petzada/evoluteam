@@ -1,24 +1,13 @@
 import { redirect } from 'next/navigation';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { getCurrentCompany } from '@/features/company/queries';
 import { CompanyEditForm } from '@/features/company/components/CompanyEditForm';
 import { PageHeader } from '@/components/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
 import { canDo } from '@/features/permissions/permissions';
-import { loadActorGate } from '@/features/permissions/queries';
+import { getActorContext } from '@/features/auth/context';
 
 export default async function EmpresaPage() {
-  const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('company_id, role')
-    .eq('id', user.id)
-    .single();
-  if (!profile?.company_id) redirect('/onboarding/criar-empresa');
-  const gate = await loadActorGate(user.id, profile.role);
+  const { profile, gate } = await getActorContext();
   const actorForGate = { role: profile.role, ...gate };
   const canEditCompany = canDo(actorForGate, 'empresa', 'edit');
   const canReadCompany = canDo(actorForGate, 'empresa', 'view');
