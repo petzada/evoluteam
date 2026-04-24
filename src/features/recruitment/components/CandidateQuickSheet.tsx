@@ -198,7 +198,7 @@ export function CandidateQuickSheet({
               <span className="text-muted-foreground">·</span>
               <Badge
                 variant="outline"
-                className="border-orange-200 bg-orange-50 text-orange-700 font-semibold"
+                className="border-blue-200 bg-blue-50 text-blue-700 font-semibold"
               >
                 {application.current_stage?.name ?? '—'}
               </Badge>

@@ -8,6 +8,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { formatDate } from '@/lib/date';
+import { statusClass } from '@/lib/status-colors';
 import type { CandidateFeedbackRow } from '../../queries/feedbacks';
 import {
   FEEDBACK_RECOMMENDATION_LABELS,
@@ -16,9 +17,9 @@ import {
 } from '../../schema';
 
 export function recommendationColor(rec: FeedbackRecommendation): string {
-  if (rec === 'advance') return 'bg-emerald-100 text-emerald-800';
-  if (rec === 'doubt') return 'bg-amber-100 text-amber-900';
-  return 'bg-rose-100 text-rose-900';
+  if (rec === 'advance') return statusClass('success');
+  if (rec === 'doubt')   return statusClass('warning');
+  return statusClass('danger');
 }
 
 function useNowClock() {

@@ -8,20 +8,15 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { formatDate } from '@/lib/date';
+import { statusClass } from '@/lib/status-colors';
+import { recommendationColor } from './FeedbackCard';
 import type { ScorecardRow } from '../../queries/scorecards';
 import {
   FEEDBACK_RECOMMENDATION_LABELS,
   SCORECARD_DIMENSION_LABELS,
   SALARY_EXPECTATION_LABELS,
   SCORECARD_EDIT_WINDOW_MINUTES,
-  type FeedbackRecommendation,
 } from '../../schema';
-
-export function recommendationColor(rec: FeedbackRecommendation): string {
-  if (rec === 'advance') return 'bg-emerald-100 text-emerald-800';
-  if (rec === 'doubt') return 'bg-amber-100 text-amber-900';
-  return 'bg-rose-100 text-rose-900';
-}
 
 function useNowClock() {
   const [now, setNow] = useState(0);
@@ -106,7 +101,7 @@ export function SingleScorecardCard({ sc, currentEmployeeId, isAdmin, onEdit, on
         {sc.salary_expectation && (
           <span className={cn(
             'rounded-full px-2 py-0.5 text-[10px] font-medium',
-            sc.salary_expectation === 'compatible' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-900',
+            sc.salary_expectation === 'compatible' ? statusClass('success') : statusClass('warning'),
           )}>
             Salário: {SALARY_EXPECTATION_LABELS[sc.salary_expectation]}
           </span>
@@ -167,7 +162,7 @@ export function ComparisonTable({ scorecards, currentEmployeeId, isAdmin, onEdit
           <Badge variant="outline" className="text-[10px]">{scorecards.length} avaliadores</Badge>
         </div>
         {divergent > 0 && (
-          <span className="rounded-full bg-amber-100 text-amber-900 text-[10px] px-2 py-0.5 font-medium">
+          <span className={cn('rounded-full text-[10px] px-2 py-0.5 font-medium', statusClass('warning'))}>
             ⚠ divergência em {divergent} de {totalRows}
           </span>
         )}

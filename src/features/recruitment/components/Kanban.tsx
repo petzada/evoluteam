@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { stageColumnBorder, stageColumnTint } from '../utils/stage-color';
 import { moveApplicationStage } from '../actions/applications';
 import { checkHireEligibility } from '../actions/hire';
 import {
@@ -341,10 +342,11 @@ function KanbanColumn({
     <div
       ref={setNodeRef}
       className={cn(
-        'flex min-h-[280px] flex-col rounded-md border bg-muted/30 p-2 transition-colors',
+        'flex min-h-[280px] flex-col rounded-md border border-t-[3px] bg-muted/30 p-2 transition-colors',
+        stageColumnBorder(stage.kind),
+        stageColumnTint(stage.kind),
         isOver && !isHired && 'bg-primary/5 border-primary/30',
         isOver && isHired && 'bg-emerald-100 border-emerald-300',
-        isHired && !isOver && 'bg-emerald-50/50 border-emerald-200/60',
       )}
     >
       <div className="mb-2 flex items-center justify-between px-1">
@@ -533,7 +535,7 @@ function CandidateCard({ app, feedbackCount, scorecardCount, taskState, isDraggi
           {stalled && '⚠ '}{days}d
         </span>
         {feedbackCount > 0 && (
-          <span className="bg-orange-100 text-orange-800 rounded-full px-1.5 py-0.5 inline-flex items-center gap-1 font-medium">
+          <span className="bg-amber-100 text-amber-800 rounded-full px-1.5 py-0.5 inline-flex items-center gap-1 font-medium">
             <MessageSquare className="h-2.5 w-2.5" /> {feedbackCount}
           </span>
         )}
@@ -552,7 +554,7 @@ function renderTaskPill(state: TaskKanbanState | null): React.ReactNode {
   if (!state || state.total === 0) return null;
   if (state.overdue > 0) {
     return (
-      <span className="bg-rose-100 text-rose-800 rounded-full px-1.5 py-0.5 font-medium">
+      <span className="bg-amber-100 text-amber-800 rounded-full px-1.5 py-0.5 font-medium">
         ⚠ {state.overdue} atras.
       </span>
     );

@@ -31,18 +31,18 @@ interface Props {
 }
 
 /**
- * Interpola verticalmente entre orange-300→400 no topo do funil e
- * orange-700→800 no fundo. Cada etapa tem seu gradiente próprio, progredindo
- * linearmente pelo índice. Intervalo geral: orange-300 → orange-800.
+ * Interpola verticalmente entre blue-300→400 no topo do funil e
+ * blue-700→800 no fundo. Cada etapa tem seu gradiente próprio, progredindo
+ * linearmente pelo índice. Intervalo geral: blue-300 → blue-800.
  */
 function getFunnelBarGradient(idx: number, total: number): string {
-  if (total <= 1) return 'linear-gradient(180deg, #fdba74 0%, #fb923c 100%)';
+  if (total <= 1) return 'linear-gradient(180deg, #93c5fd 0%, #60a5fa 100%)';
   const t = idx / (total - 1);
   const lerp = (a: number, b: number) => Math.round(a + (b - a) * t);
-  // Topo: orange-300 (#fdba74) → orange-700 (#c2410c)
-  const tr = lerp(0xfd, 0xc2), tg = lerp(0xba, 0x41), tb = lerp(0x74, 0x0c);
-  // Fundo: orange-400 (#fb923c) → orange-800 (#9a3412)
-  const br = lerp(0xfb, 0x9a), bg = lerp(0x92, 0x34), bb = lerp(0x3c, 0x12);
+  // Topo: blue-300 (#93c5fd) → blue-700 (#1d4ed8)
+  const tr = lerp(0x93, 0x1d), tg = lerp(0xc5, 0x4e), tb = lerp(0xfd, 0xd8);
+  // Fundo: blue-400 (#60a5fa) → blue-800 (#1e40af)
+  const br = lerp(0x60, 0x1e), bg = lerp(0xa5, 0x40), bb = lerp(0xfa, 0xaf);
   return `linear-gradient(180deg, rgb(${tr} ${tg} ${tb}) 0%, rgb(${br} ${bg} ${bb}) 100%)`;
 }
 
@@ -126,7 +126,7 @@ export function RelatoriosDashboard({
                             <span className="text-xs text-muted-foreground/50">—</span>
                           )}
                         </div>
-                        <span className="text-[15px] font-bold text-orange-700 tabular-nums tracking-tight">
+                        <span className="text-[15px] font-bold text-blue-700 tabular-nums tracking-tight">
                           {stage.conversionFromFirst !== null ? `${stage.conversionFromFirst}%` : '—'}
                         </span>
                       </div>

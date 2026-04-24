@@ -15,6 +15,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
+import { statusClass } from '@/lib/status-colors';
 import { HireCandidateInputSchema, type HireCandidateInput } from '../schema';
 import { hireCandidate, type HireEligibility } from '../actions/hire';
 
@@ -107,7 +109,7 @@ function HireCandidateDialogInner({
             <DialogHeader>
               <DialogTitle className="flex flex-wrap items-center gap-2 min-w-0">
                 <span className="truncate">Contratar {context?.candidate.name}</span>
-                <Badge variant="default" className="bg-emerald-600 hover:bg-emerald-600 shrink-0">
+                <Badge variant="default" className={cn(statusClass('success'), 'hover:opacity-100 shrink-0')}>
                   Vira colaborador(a)
                 </Badge>
               </DialogTitle>

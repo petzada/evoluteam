@@ -8,10 +8,10 @@ interface Props {
 }
 
 const DONUT_COLORS = [
-  '#f97316', // LinkedIn (laranja — primária)
+  '#0A66C2', // LinkedIn (azul LinkedIn oficial — distinto do primary #2563EB)
   '#8b5cf6', // Indicação (violeta)
   '#10b981', // Indeed (verde)
-  '#0ea5e9', // Gupy (azul)
+  '#0ea5e9', // Gupy (azul claro)
   '#eab308', // Instagram (amarelo)
   '#ec4899', // WhatsApp (rosa)
   '#64748b', // site_empresa (ardósia)
