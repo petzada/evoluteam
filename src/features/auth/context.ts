@@ -41,8 +41,16 @@ export type ActorContext = {
 };
 
 export const getActorContext = cache(async (): Promise<ActorContext> => {
+  const DEBUG = process.env.NODE_ENV !== 'production';
+  const t0 = Date.now();
+  const mark = (label: string) => {
+    if (DEBUG) console.log(`[actor] ${label}: ${Date.now() - t0}ms`);
+  };
+
   const supabase = await createServerSupabaseClient();
+  mark('client');
   const { data: { user } } = await supabase.auth.getUser();
+  mark('getUser');
   if (!user) redirect('/login');
 
   const { data: profileRow } = await supabase
@@ -50,6 +58,7 @@ export const getActorContext = cache(async (): Promise<ActorContext> => {
     .select('id, role, company_id, full_name, avatar_url, company:companies(name, status)')
     .eq('id', user.id)
     .single();
+  mark('profile+company');
 
   if (!profileRow) redirect('/login');
   if (!profileRow.company_id) redirect('/onboarding/criar-empresa');
@@ -63,6 +72,7 @@ export const getActorContext = cache(async (): Promise<ActorContext> => {
     .eq('user_id', user.id)
     .eq('company_id', profileRow.company_id)
     .maybeSingle();
+  mark('employee');
 
   if (employee?.status === 'terminated') {
     await supabase.auth.signOut();
@@ -83,6 +93,8 @@ export const getActorContext = cache(async (): Promise<ActorContext> => {
       : Promise.resolve(false),
     loadActorGate(user.id, role),
   ]);
+  mark('parallel(directReports+hiringManager+gate)');
+  mark('TOTAL');
 
   return {
     user: { id: user.id, email: user.email ?? null },
