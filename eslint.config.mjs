@@ -15,6 +15,7 @@ const eslintConfig = defineConfig([
     // External tooling not part of the product code:
     ".agents/**",
     ".superpowers/**",
+    ".claude/**",
   ]),
   // Accept `_`-prefixed vars/args as intentionally unused.
   {

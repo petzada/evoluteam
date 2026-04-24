@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Plus, GripVertical, Archive, Pencil, Check, X, RotateCcw, Info } from 'lucide-react';
@@ -41,7 +41,11 @@ const KIND_LABELS = {
 export function RecruitmentStagesManager({ stages: initialStages, canEdit }: Props) {
   const router = useRouter();
   const [stages, setStages] = useState<StageRow[]>(initialStages);
-  useEffect(() => { setStages(initialStages); }, [initialStages]);
+  const [prevInitial, setPrevInitial] = useState(initialStages);
+  if (prevInitial !== initialStages) {
+    setPrevInitial(initialStages);
+    setStages(initialStages);
+  }
   const [createOpen, setCreateOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState('');
