@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { Users, CheckCircle2, Clock, AlertTriangle } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { HoverCard, HoverCardTrigger, HoverCardContent } from '@/components/ui/hover-card';
 import type {
@@ -94,8 +94,10 @@ export function RelatoriosDashboard({
       </div>
 
       <Card className="mb-4">
-        <CardContent className="pt-6">
-          <h3 className="text-sm font-semibold mb-4">Funil de conversão</h3>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium text-muted-foreground">Funil de conversão</CardTitle>
+        </CardHeader>
+        <CardContent>
           {funnel.length === 0 || funnel.every((f) => f.count === 0) ? (
             <p className="text-xs text-muted-foreground">Sem dados no período.</p>
           ) : (
@@ -178,15 +180,19 @@ export function RelatoriosDashboard({
 
       <div className="grid gap-4 md:grid-cols-2 mb-4">
         <Card>
-          <CardContent className="pt-6">
-            <h3 className="text-sm font-semibold mb-3">Origens — candidatos × contratados</h3>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Origens — candidatos × contratados</CardTitle>
+          </CardHeader>
+          <CardContent>
             <OriginsDualDonut origins={origins} />
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="pt-6 flex flex-col h-full">
-            <h3 className="text-sm font-semibold mb-3">Tempo mediano por etapa (em dias)</h3>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Tempo mediano por etapa (em dias)</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col h-full">
             <StageDurationsLollipop durations={durations} />
           </CardContent>
         </Card>
@@ -194,8 +200,10 @@ export function RelatoriosDashboard({
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
-          <CardContent className="pt-6">
-            <h3 className="text-sm font-semibold mb-3">Candidatos parados &gt; 5d</h3>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Candidatos parados &gt; 5d</CardTitle>
+          </CardHeader>
+          <CardContent>
             {stalled.length === 0 ? (
               <p className="text-xs text-muted-foreground">Nenhum candidato parado há mais de 5 dias.</p>
             ) : (
@@ -230,8 +238,10 @@ export function RelatoriosDashboard({
         </Card>
 
         <Card>
-          <CardContent className="pt-6">
-            <h3 className="text-sm font-semibold mb-3">Tarefas atrasadas</h3>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Tarefas atrasadas</CardTitle>
+          </CardHeader>
+          <CardContent>
             {overdue.length === 0 ? (
               <p className="text-xs text-muted-foreground">Nenhuma tarefa atrasada.</p>
             ) : (
