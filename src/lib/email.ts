@@ -1,8 +1,13 @@
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 const FROM = 'Evoluteam <marcio@marct.co>';
+let resend: Resend | null = null;
+
+function getResend() {
+  if (!process.env.RESEND_API_KEY) return null;
+  resend ??= new Resend(process.env.RESEND_API_KEY);
+  return resend;
+}
 
 export interface EmailPayload {
   to: string;
@@ -11,8 +16,11 @@ export interface EmailPayload {
 }
 
 export async function sendEmail(payload: EmailPayload): Promise<{ ok: boolean }> {
+  const client = getResend();
+  if (!client) return { ok: false };
+
   try {
-    await resend.emails.send({
+    await client.emails.send({
       from: FROM,
       to: payload.to,
       subject: payload.subject,

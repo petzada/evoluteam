@@ -38,8 +38,10 @@ export async function proxy(request: NextRequest) {
   const isPublicCallback = pathname.startsWith('/auth/callback');
   const isPublicAuth = pathname === '/login' || pathname === '/forgot-password';
   const isPublicSuspended = pathname === '/conta-suspensa';
+  const isPublicMarketing = pathname === '/' || pathname === '/privacidade' || pathname === '/termos';
 
   if (isPublicReset || isPublicInvite || isPublicCallback) return response;
+  if (isPublicMarketing) return response;
 
   if (isPublicAuth) {
     if (user) return NextResponse.redirect(new URL('/dashboard', request.url));

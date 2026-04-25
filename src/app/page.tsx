@@ -1,5 +1,24 @@
+import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
+import { LandingPage } from '@/features/landing/LandingPage';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
 
-export default function RootPage() {
-  redirect('/dashboard');
+export const metadata: Metadata = {
+  title: 'Evoluteam | Feedback, avaliação e PDI no mesmo fluxo',
+  description:
+    'Landing pública do Evoluteam: feedback contínuo, ciclo de avaliação e PDI conectados para transformar avaliação em desenvolvimento.',
+  alternates: {
+    canonical: '/',
+  },
+};
+
+export default async function RootPage() {
+  const supabase = await createServerSupabaseClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (user) redirect('/dashboard');
+
+  return <LandingPage />;
 }

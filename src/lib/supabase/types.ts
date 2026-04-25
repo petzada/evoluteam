@@ -309,6 +309,42 @@ export type Database = {
           },
         ]
       }
+      leads: {
+        Row: {
+          id: number
+          full_name: string
+          email: string
+          company: string
+          role: string
+          team_size: string
+          source: string
+          status: string
+          created_at: string
+        }
+        Insert: {
+          id?: never
+          full_name: string
+          email: string
+          company: string
+          role: string
+          team_size: string
+          source: string
+          status?: string
+          created_at?: string
+        }
+        Update: {
+          id?: never
+          full_name?: string
+          email?: string
+          company?: string
+          role?: string
+          team_size?: string
+          source?: string
+          status?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           body: string | null
