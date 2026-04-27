@@ -113,8 +113,8 @@ export async function getMyRecentFeedbacks(employeeId: string, limit = 5): Promi
   const { data } = await supabase
     .from('feedbacks')
     .select(`
-      id, type, content, created_at, visibility,
-      author:employees!author_id(full_name),
+      id, type, message, created_at, visibility,
+      author:employees!sender_id(full_name),
       competency:competencies!competency_id(name)
     `)
     .eq('recipient_id', employeeId)
@@ -125,7 +125,7 @@ export async function getMyRecentFeedbacks(employeeId: string, limit = 5): Promi
   const rows = (data ?? []) as unknown as Array<{
     id: string;
     type: string;
-    content: string;
+    message: string;
     created_at: string;
     visibility: string;
     author: { full_name: string } | null;
@@ -138,7 +138,7 @@ export async function getMyRecentFeedbacks(employeeId: string, limit = 5): Promi
     createdAt: r.created_at,
     authorName: r.author?.full_name ?? null,
     competencyName: r.competency?.name ?? null,
-    excerpt: r.content.length > 160 ? `${r.content.slice(0, 160)}…` : r.content,
+    excerpt: r.message.length > 160 ? `${r.message.slice(0, 160)}…` : r.message,
   }));
 }
 
