@@ -269,7 +269,7 @@ export function CycleDetail({
             )}
           </div>
 
-          <div className="rounded-md border">
+          <div className="rounded-md border bg-card shadow-card">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -345,7 +345,7 @@ export function CycleDetail({
 
         <TabsContent value="resultados" className="mt-6">
           {canShowResults && (
-            <div className="rounded-md border p-6">
+            <div className="rounded-md border bg-card p-6 shadow-card">
               <p className="text-sm text-muted-foreground mb-3">
                 Ciclo encerrado. Os resultados consolidados estão disponíveis.
               </p>
@@ -412,7 +412,7 @@ export function CycleDetail({
 
 function KpiCard({ label, value, warn }: { label: string; value: number | string; warn?: boolean }) {
   return (
-    <div className="rounded-md border p-4">
+    <div className="rounded-md border bg-card p-4 shadow-card">
       <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{label}</p>
       <p className={`text-2xl font-semibold mt-1 ${warn ? 'text-destructive' : ''}`}>{value}</p>
     </div>
@@ -481,7 +481,7 @@ function ParticipantsPanel({
       <p className="text-sm text-muted-foreground mb-3">
         {participants.length} colaborador(es) incluídos no ciclo.
       </p>
-      <div className="rounded-md border">
+      <div className="rounded-md border bg-card shadow-card">
         <Table>
           <TableHeader>
             <TableRow>
@@ -542,7 +542,7 @@ function FormPanel({ questions, competencies }: {
         .slice()
         .sort((a, b) => a.question_order - b.question_order)
         .map((q, i) => (
-          <li key={q.id} className="rounded-md border p-3">
+          <li key={q.id} className="rounded-md border bg-card p-3 shadow-card">
             <div className="flex items-center gap-1.5 mb-1">
               <span className="text-xs font-semibold text-muted-foreground">{i + 1}.</span>
               <Badge variant={q.type === 'scale' ? 'default' : 'secondary'}>

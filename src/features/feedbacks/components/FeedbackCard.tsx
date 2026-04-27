@@ -70,7 +70,7 @@ export function FeedbackCard({ feedback, perspective, isAdmin, unread }: Props) 
   return (
     <article
       className={cn(
-        'rounded-md border p-4 text-sm',
+        'rounded-md border bg-card p-4 text-sm shadow-card',
         unread && 'border-primary/40 bg-primary/5',
       )}
     >

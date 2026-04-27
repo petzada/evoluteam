@@ -77,7 +77,7 @@ export function ProfileForm({ defaultValues, employeeData }: Props) {
 
       {/* Read-only HR data */}
       {employeeData && (
-        <div className="rounded-lg border p-4 space-y-3">
+        <div className="rounded-lg border bg-muted/40 p-4 space-y-3">
           <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Dados de RH</p>
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div>

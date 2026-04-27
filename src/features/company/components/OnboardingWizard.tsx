@@ -40,7 +40,7 @@ export function OnboardingWizard() {
         })}
       </div>
 
-      <div className="rounded-xl border bg-card p-8 shadow-sm">
+      <div className="rounded-xl border bg-card p-8 shadow-card">
         {step === 1 && (
           <>
             <h2 className="mb-6 text-lg font-semibold">Dados da empresa</h2>

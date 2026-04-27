@@ -230,7 +230,7 @@ export function PdiDetail({
         </div>
 
         <aside className="space-y-4">
-          <section className="rounded-md border p-4">
+          <section className="rounded-md border bg-card p-4 shadow-card">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-3">
               Progresso
             </p>
@@ -239,7 +239,7 @@ export function PdiDetail({
               {plan.actions_done} de {plan.actions_count} ações concluídas
             </p>
           </section>
-          <section className="rounded-md border p-4 text-xs">
+          <section className="rounded-md border bg-card p-4 text-xs shadow-card">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">
               Detalhes
             </p>

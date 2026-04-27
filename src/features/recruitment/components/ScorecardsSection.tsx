@@ -148,7 +148,7 @@ function ScorecardAppGroup({
   const totalScorecards = Array.from(stageMap.values()).reduce((acc, arr) => acc + arr.length, 0);
 
   return (
-    <div className="rounded-md border p-4">
+    <div className="rounded-md border bg-card p-4 shadow-card">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}

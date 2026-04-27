@@ -189,7 +189,7 @@ export function ResultDetail({
             {overview.competencyScores.length === 0 ? (
               <p className="text-sm text-muted-foreground italic">Sem notas de escala registradas.</p>
             ) : (
-              <div className="rounded-md border overflow-hidden">
+              <div className="rounded-md border bg-card shadow-card overflow-hidden">
                 <table className="w-full text-sm">
                   <thead className="bg-muted/30">
                     <tr>
@@ -230,7 +230,7 @@ export function ResultDetail({
             {existingPdi ? (
               <Link
                 href={`/pdi/${existingPdi.id}`}
-                className="block rounded-md border p-4 hover:bg-muted/30 transition-colors"
+                className="block rounded-md border bg-card p-4 shadow-card hover:bg-muted/30 transition-colors"
               >
                 <div className="flex items-start justify-between gap-3">
                   <p className="text-sm line-clamp-2">{existingPdi.objective}</p>
@@ -273,7 +273,7 @@ export function ResultDetail({
             ) : (
               <div className="space-y-4">
                 {groupByQuestion(comments).map(([qText, group]) => (
-                  <div key={qText} className="rounded-md border p-4">
+                  <div key={qText} className="rounded-md border bg-card p-4 shadow-card">
                     <p className="text-sm font-medium mb-2">{qText}</p>
                     <ul className="space-y-2">
                       {group.map((c, i) => (

@@ -169,7 +169,7 @@ function TaskAppGroup({
   const [open, setOpen] = useState(defaultOpen);
   const pending = tasks.filter((t) => !t.completed_at).length;
   return (
-    <div className="rounded-md border p-4">
+    <div className="rounded-md border bg-card p-4 shadow-card">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}

@@ -98,8 +98,8 @@ export async function DesempenhoSection({
 export function DesempenhoSkeleton() {
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-      <div className="h-80 animate-pulse rounded-lg border bg-card" />
-      <div className="h-80 animate-pulse rounded-lg border bg-card" />
+      <div className="h-80 animate-pulse rounded-lg border bg-card shadow-card" />
+      <div className="h-80 animate-pulse rounded-lg border bg-card shadow-card" />
     </div>
   );
 }

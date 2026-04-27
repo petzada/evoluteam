@@ -110,7 +110,7 @@ export function CycleResults({
         </Select>
       </div>
 
-      <div className="rounded-md border">
+      <div className="rounded-md border bg-card shadow-card">
         <Table>
           <TableHeader>
             <TableRow>

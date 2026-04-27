@@ -17,7 +17,7 @@ export function PdiCard({ plan, showEmployee = true }: { plan: PlanRow; showEmpl
   return (
     <Link
       href={`/pdi/${plan.id}`}
-      className="block rounded-md border p-4 text-sm hover:bg-muted/30 transition-colors"
+      className="block rounded-md border bg-card p-4 text-sm shadow-card hover:bg-muted/30 transition-colors"
     >
       <div className="flex items-start justify-between gap-3 mb-2">
         <div className="min-w-0">

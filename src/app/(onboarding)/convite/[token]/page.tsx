@@ -17,7 +17,7 @@ export default async function ConvitePage({ params }: Props) {
 
   if (!invite) {
     return (
-      <div className="w-full max-w-sm rounded-xl border bg-card p-8 shadow-sm text-center space-y-3">
+      <div className="w-full max-w-sm rounded-xl border bg-card p-8 shadow-card text-center space-y-3">
         <h2 className="text-lg font-semibold">Convite inválido</h2>
         <p className="text-sm text-muted-foreground">Este link não é válido. Peça um novo convite ao seu RH.</p>
       </div>
@@ -26,7 +26,7 @@ export default async function ConvitePage({ params }: Props) {
 
   if (invite.revoked_at) {
     return (
-      <div className="w-full max-w-sm rounded-xl border bg-card p-8 shadow-sm text-center space-y-3">
+      <div className="w-full max-w-sm rounded-xl border bg-card p-8 shadow-card text-center space-y-3">
         <h2 className="text-lg font-semibold">Convite inválido</h2>
         <p className="text-sm text-muted-foreground">Este convite foi revogado. Peça um novo ao seu RH.</p>
       </div>
@@ -35,7 +35,7 @@ export default async function ConvitePage({ params }: Props) {
 
   if (invite.accepted_at) {
     return (
-      <div className="w-full max-w-sm rounded-xl border bg-card p-8 shadow-sm text-center space-y-3">
+      <div className="w-full max-w-sm rounded-xl border bg-card p-8 shadow-card text-center space-y-3">
         <h2 className="text-lg font-semibold">Convite já utilizado</h2>
         <p className="text-sm text-muted-foreground">Este convite já foi aceito. Entre com seu e-mail e senha.</p>
         <a href="/login" className="text-sm text-primary hover:underline">Ir para o login</a>
@@ -45,7 +45,7 @@ export default async function ConvitePage({ params }: Props) {
 
   if (new Date(invite.expires_at) < new Date()) {
     return (
-      <div className="w-full max-w-sm rounded-xl border bg-card p-8 shadow-sm text-center space-y-3">
+      <div className="w-full max-w-sm rounded-xl border bg-card p-8 shadow-card text-center space-y-3">
         <h2 className="text-lg font-semibold">Convite expirado</h2>
         <p className="text-sm text-muted-foreground">Este convite expirou. Peça ao administrador para reenviar.</p>
       </div>

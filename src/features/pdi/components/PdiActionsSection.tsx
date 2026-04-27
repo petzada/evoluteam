@@ -248,7 +248,7 @@ export function PdiActionsSection({
           Nenhuma ação ainda. {canAddActions && 'Adicione a primeira para começar.'}
         </p>
       ) : (
-        <ul className="rounded-md border divide-y">
+        <ul className="rounded-md border bg-card shadow-card divide-y">
           {actions.map((a) => {
             const computed = computeActionStatus(a);
             const canUpdate =

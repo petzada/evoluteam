@@ -205,7 +205,7 @@ export function AssignmentResponder({
 
       <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
         <aside className="space-y-4">
-          <div className="rounded-md border p-4">
+          <div className="rounded-md border bg-card p-4 shadow-card">
             <div className="flex items-center gap-3 mb-3">
               <Avatar size="lg" className="size-12">
                 <AvatarFallback>{reviewee ? initials(reviewee.full_name) : '?'}</AvatarFallback>
@@ -222,7 +222,7 @@ export function AssignmentResponder({
             </Badge>
           </div>
 
-          <div className="rounded-md border p-4 space-y-2 text-sm">
+          <div className="rounded-md border bg-card p-4 space-y-2 text-sm shadow-card">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">
               Contexto
             </p>
@@ -244,7 +244,7 @@ export function AssignmentResponder({
             </div>
           </div>
 
-          <div className="rounded-md border p-4 text-sm">
+          <div className="rounded-md border bg-card p-4 text-sm shadow-card">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">
               Feedbacks no período
             </p>
@@ -305,7 +305,7 @@ export function AssignmentResponder({
                   ? competencies.find((c) => c.id === q.competency_id)?.name
                   : null;
                 return (
-                  <div key={q.id} className="rounded-md border p-4">
+                  <div key={q.id} className="rounded-md border bg-card p-4 shadow-card">
                     <div className="flex items-center gap-1.5 mb-2 text-xs">
                       <span className="font-semibold text-muted-foreground">{idx + 1}.</span>
                       <Badge variant={q.type === 'scale' ? 'default' : 'secondary'}>

@@ -56,7 +56,7 @@ export function AcceptInviteForm({ token, companyName, prefillName, prefillEmail
   }
 
   return (
-    <div className="w-full max-w-sm rounded-xl border bg-card p-8 shadow-sm">
+    <div className="w-full max-w-sm rounded-xl border bg-card p-8 shadow-card">
       <div className="mb-6 space-y-1">
         <h2 className="text-xl font-semibold">Aceitar convite</h2>
         <p className="text-sm text-muted-foreground">

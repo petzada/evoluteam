@@ -67,7 +67,7 @@ export function PdiCommentsSection({
             const isMine = actorEmployeeId && c.author_id === actorEmployeeId;
             const canDelete = isMine || canDeleteAny;
             return (
-              <li key={c.id} className="rounded-md border p-3">
+              <li key={c.id} className="rounded-md border bg-card p-3 shadow-card">
                 <div className="flex items-start gap-3">
                   <Avatar className="size-8">
                     <AvatarFallback>{c.author ? initials(c.author.full_name) : '?'}</AvatarFallback>

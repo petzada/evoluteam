@@ -289,7 +289,7 @@ export function EmployeeProfile({
         <TabsContent value="dados" className="mt-6">
           <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr] gap-6">
             <div className="space-y-1">
-              <section className="rounded-md border divide-y">
+              <section className="rounded-md border bg-card shadow-card divide-y">
                 <FieldRow label="Nome completo" value={employee.full_name} />
                 <FieldRow label="E-mail" value={employee.email} />
                 <FieldRow label="Telefone" value={employee.phone ?? '—'} />
@@ -337,7 +337,7 @@ export function EmployeeProfile({
 
             <aside className="space-y-4">
               {subordinatesCount > 0 && (
-                <section className="rounded-md border p-4">
+                <section className="rounded-md border bg-card p-4 shadow-card">
                   <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-3">
                     Liderados diretos ({subordinatesCount})
                   </p>
@@ -357,7 +357,7 @@ export function EmployeeProfile({
                 </section>
               )}
 
-              <section className="rounded-md border p-4">
+              <section className="rounded-md border bg-card p-4 shadow-card">
                 <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-3">
                   Acesso ao sistema
                 </p>
@@ -394,7 +394,7 @@ export function EmployeeProfile({
 
         <TabsContent value="acesso" className="mt-6 max-w-2xl">
           <div className="space-y-6">
-            <section className="rounded-md border divide-y">
+            <section className="rounded-md border bg-card shadow-card divide-y">
               <FieldRow label="E-mail" value={employee.email} />
               <FieldRow label="Papel atual" value={role ? ROLE_LABELS[role] : '—'} />
               <FieldRow label="Último login" value={lastSignInAt ? formatDateTime(lastSignInAt) : '—'} />
@@ -435,7 +435,7 @@ export function EmployeeProfile({
           ) : (
             <ol className="space-y-3">
               {activityLog.map((log) => (
-                <li key={log.id} className="flex gap-3 rounded-md border p-3 text-sm">
+                <li key={log.id} className="flex gap-3 rounded-md border bg-card p-3 text-sm shadow-card">
                   <div className="flex-1">
                     <p className="font-medium text-foreground">
                       {ACTIVITY_LABELS[log.action] ?? log.action}
@@ -470,7 +470,7 @@ export function EmployeeProfile({
                 const canView = canSeeResults || (isSelf && c.isReleased);
                 const resultHref = `/avaliacoes/${c.cycleId}/resultados/${employee.id}`;
                 return (
-                  <li key={c.cycleId} className="rounded-md border p-4">
+                  <li key={c.cycleId} className="rounded-md border bg-card p-4 shadow-card">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <Link

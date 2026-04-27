@@ -425,7 +425,7 @@ function DraggableCardWithMenu({
 
   return (
     <div ref={setNodeRef} style={style} className={cn(isDragging && 'opacity-30')}>
-      <div className="relative group bg-card border rounded-md shadow-sm">
+      <div className="relative group bg-card border rounded-md shadow-card">
         <div
           {...attributes}
           {...listeners}

@@ -207,7 +207,7 @@ export function CyclesList({ cycles, pending, isAdmin }: Props) {
                 <button
                   type="button"
                   onClick={() => router.push(`/avaliacoes/${c.id}`)}
-                  className="w-full text-left rounded-md border p-4 hover:bg-muted/30 transition-colors flex items-center gap-4"
+                  className="w-full text-left rounded-md border bg-card p-4 shadow-card hover:bg-muted/30 transition-colors flex items-center gap-4"
                 >
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">

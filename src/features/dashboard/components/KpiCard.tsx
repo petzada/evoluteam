@@ -14,11 +14,11 @@ interface KpiCardProps {
   tone?: Tone;
 }
 
-const TONE_CLASS: Record<Tone, string> = {
-  default: 'text-muted-foreground',
-  success: 'text-emerald-600 dark:text-emerald-400',
-  warning: 'text-amber-600 dark:text-amber-400',
-  danger: 'text-red-600 dark:text-red-400',
+const TONE_CLASS: Record<Tone, { icon: string; value: string }> = {
+  default: { icon: 'text-muted-foreground bg-muted', value: 'text-foreground' },
+  success: { icon: 'text-emerald-700 bg-emerald-100 dark:text-emerald-300 dark:bg-emerald-950/50', value: 'text-foreground' },
+  warning: { icon: 'text-amber-700 bg-amber-100 dark:text-amber-300 dark:bg-amber-950/50', value: 'text-foreground' },
+  danger: { icon: 'text-red-700 bg-red-100 dark:text-red-300 dark:bg-red-950/50', value: 'text-foreground' },
 };
 
 export function KpiCard({ label, icon: Icon, value, hint, href, tone = 'default' }: KpiCardProps) {
@@ -26,10 +26,12 @@ export function KpiCard({ label, icon: Icon, value, hint, href, tone = 'default'
     <Card className={cn('transition-colors', href && 'hover:border-primary/60 cursor-pointer')}>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground">{label}</CardTitle>
-        <Icon className={cn('h-4 w-4', TONE_CLASS[tone])} />
+        <span className={cn('inline-flex h-8 w-8 items-center justify-center rounded-lg', TONE_CLASS[tone].icon)}>
+          <Icon className="h-4 w-4" />
+        </span>
       </CardHeader>
       <CardContent>
-        <p className="text-2xl font-bold">{value}</p>
+        <p className={cn('text-2xl font-bold', TONE_CLASS[tone].value)}>{value}</p>
         {hint ? (
           <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
         ) : (

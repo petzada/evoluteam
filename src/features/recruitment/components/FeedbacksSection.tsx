@@ -140,7 +140,7 @@ function FeedbackGroup({
 }: GroupProps) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="rounded-md border p-4">
+    <div className="rounded-md border bg-card p-4 shadow-card">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}

@@ -41,10 +41,10 @@ export function RoleCards({ value, onChange, disabledRoles = [], disabledReason 
             onClick={() => { if (!isDisabled) onChange(role); }}
             title={tooltipText}
             className={cn(
-              'text-left flex items-start gap-2.5 rounded-md border p-3 transition-colors',
+              'text-left flex items-start gap-2.5 rounded-md border bg-card p-3 shadow-card transition-colors',
               isSelected
                 ? 'border-primary bg-primary/5'
-                : 'border-border bg-background hover:border-muted-foreground/40',
+                : 'border-border hover:border-muted-foreground/40',
               isDisabled && 'opacity-50 cursor-not-allowed hover:border-border',
             )}
           >

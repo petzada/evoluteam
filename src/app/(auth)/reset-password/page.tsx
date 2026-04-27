@@ -33,7 +33,7 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="w-full max-w-sm rounded-xl border bg-card p-8 shadow-sm">
+    <div className="w-full max-w-sm rounded-xl border bg-card p-8 shadow-card">
       <h2 className="mb-6 text-xl font-semibold">Nova senha</h2>
 
       <Form {...form}>

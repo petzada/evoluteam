@@ -119,7 +119,7 @@ export function CandidateProfile({
         </TabsList>
 
         <TabsContent value="dados" className="mt-6 max-w-3xl">
-          <section className="rounded-md border divide-y">
+          <section className="rounded-md border bg-card shadow-card divide-y">
             <FieldRow label="Nome" value={candidate.name} />
             <FieldRow label="E-mail" value={candidate.email} />
             <FieldRow label="Telefone" value={candidate.phone ?? '—'} />
@@ -145,7 +145,7 @@ export function CandidateProfile({
           </section>
 
           {candidate.notes && (
-            <section className="rounded-md border p-4 mt-4">
+            <section className="rounded-md border bg-card p-4 mt-4 shadow-card">
               <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">
                 Observações
               </p>
@@ -165,7 +165,7 @@ export function CandidateProfile({
           ) : (
             <ul className="space-y-3">
               {applications.map((app) => (
-                <li key={app.id} className="rounded-md border p-4">
+                <li key={app.id} className="rounded-md border bg-card p-4 shadow-card">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <Link
@@ -194,7 +194,7 @@ export function CandidateProfile({
           ) : (
             <ol className="space-y-3">
               {history.map((h) => (
-                <li key={h.id} className="flex gap-3 rounded-md border p-3 text-sm">
+                <li key={h.id} className="flex gap-3 rounded-md border bg-card p-3 text-sm shadow-card">
                   <div className="flex-1">
                     <p className="font-medium text-foreground">{describeHistoryEvent(h)}</p>
                     <p className="text-xs text-muted-foreground mt-0.5">

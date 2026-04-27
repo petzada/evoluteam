@@ -34,7 +34,7 @@ export function WizardShell({ step, children }: Props) {
           );
         })}
       </div>
-      <div className="rounded-xl border bg-card p-6 shadow-sm">{children}</div>
+      <div className="rounded-xl border bg-card p-6 shadow-card">{children}</div>
     </div>
   );
 }
