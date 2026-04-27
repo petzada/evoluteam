@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -14,11 +14,15 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
+import {
   JobOpeningInputSchema, type JobOpeningInput,
   JOB_OPENING_EMPLOYMENT_TYPES, JOB_OPENING_WORKPLACE_TYPES,
   JOB_OPENING_EMPLOYMENT_TYPE_LABELS, JOB_OPENING_WORKPLACE_TYPE_LABELS,
 } from '../schema';
 import { createJobOpening, updateJobOpening } from '../actions/jobOpenings';
+import { createTaxonomy } from '@/features/taxonomies/actions';
 
 interface TaxonomyItem { id: string; name: string }
 interface ManagerItem { id: string; full_name: string }
@@ -43,9 +47,13 @@ interface Props {
   positions: TaxonomyItem[];
   managers: ManagerItem[];
   initial?: JobOpeningInitial | null;
+  canCreateDepartments?: boolean;
+  canCreatePositions?: boolean;
 }
 
 const NONE = '__none__';
+const CREATE_DEPARTMENT = '__create_department__';
+const CREATE_POSITION = '__create_position__';
 
 function defaultsFor(initial: JobOpeningInitial | null | undefined): JobOpeningInput {
   return {
@@ -61,10 +69,39 @@ function defaultsFor(initial: JobOpeningInitial | null | undefined): JobOpeningI
   };
 }
 
-export function JobOpeningSheet({ open, onOpenChange, departments, positions, managers, initial }: Props) {
+export function JobOpeningSheet({
+  open,
+  onOpenChange,
+  departments,
+  positions,
+  managers,
+  initial,
+  canCreateDepartments = false,
+  canCreatePositions = false,
+}: Props) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [createdDepartments, setCreatedDepartments] = useState<TaxonomyItem[]>([]);
+  const [createdPositions, setCreatedPositions] = useState<TaxonomyItem[]>([]);
+  const [createDepartmentOpen, setCreateDepartmentOpen] = useState(false);
+  const [createPositionOpen, setCreatePositionOpen] = useState(false);
+  const [newDepartmentName, setNewDepartmentName] = useState('');
+  const [newPositionName, setNewPositionName] = useState('');
+  const [creatingDepartment, setCreatingDepartment] = useState(false);
+  const [creatingPosition, setCreatingPosition] = useState(false);
   const isEdit = !!initial;
+
+  const localDepartments = useMemo(() => {
+    const existing = new Set(departments.map((item) => item.id));
+    const fresh = createdDepartments.filter((item) => !existing.has(item.id));
+    return [...departments, ...fresh].sort((a, b) => a.name.localeCompare(b.name));
+  }, [departments, createdDepartments]);
+
+  const localPositions = useMemo(() => {
+    const existing = new Set(positions.map((item) => item.id));
+    const fresh = createdPositions.filter((item) => !existing.has(item.id));
+    return [...positions, ...fresh].sort((a, b) => a.name.localeCompare(b.name));
+  }, [positions, createdPositions]);
 
   const form = useForm<JobOpeningInput>({
     resolver: zodResolver(JobOpeningInputSchema),
@@ -141,14 +178,24 @@ export function JobOpeningSheet({ open, onOpenChange, departments, positions, ma
               render={({ field }) => {
                 const items = [
                   { value: NONE, label: 'Nenhum' },
-                  ...departments.map((d) => ({ value: d.id, label: d.name })),
+                  ...localDepartments.map((d) => ({ value: d.id, label: d.name })),
+                  ...(canCreateDepartments
+                    ? [{ value: CREATE_DEPARTMENT, label: '+ Criar novo departamento' }]
+                    : []),
                 ];
                 return (
                   <FormItem>
                     <FormLabel>Departamento</FormLabel>
                     <Select
                       value={field.value ?? NONE}
-                      onValueChange={(v) => field.onChange(v === NONE ? null : v)}
+                      onValueChange={(v) => {
+                        if (v === CREATE_DEPARTMENT) {
+                          setNewDepartmentName('');
+                          setCreateDepartmentOpen(true);
+                          return;
+                        }
+                        field.onChange(v === NONE ? null : v);
+                      }}
                       items={items}
                     >
                       <FormControl>
@@ -171,14 +218,24 @@ export function JobOpeningSheet({ open, onOpenChange, departments, positions, ma
               render={({ field }) => {
                 const items = [
                   { value: NONE, label: 'Nenhum' },
-                  ...positions.map((p) => ({ value: p.id, label: p.name })),
+                  ...localPositions.map((p) => ({ value: p.id, label: p.name })),
+                  ...(canCreatePositions
+                    ? [{ value: CREATE_POSITION, label: '+ Criar novo cargo' }]
+                    : []),
                 ];
                 return (
                   <FormItem>
                     <FormLabel>Cargo</FormLabel>
                     <Select
                       value={field.value ?? NONE}
-                      onValueChange={(v) => field.onChange(v === NONE ? null : v)}
+                      onValueChange={(v) => {
+                        if (v === CREATE_POSITION) {
+                          setNewPositionName('');
+                          setCreatePositionOpen(true);
+                          return;
+                        }
+                        field.onChange(v === NONE ? null : v);
+                      }}
                       items={items}
                     >
                       <FormControl>
@@ -315,6 +372,132 @@ export function JobOpeningSheet({ open, onOpenChange, departments, positions, ma
           </form>
         </Form>
       </SheetContent>
+
+      <Dialog open={createDepartmentOpen} onOpenChange={setCreateDepartmentOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Novo departamento</DialogTitle>
+            <DialogDescription>Fica disponível imediatamente para seleção.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <label className="text-sm font-medium" htmlFor="job-opening-new-department">Nome *</label>
+            <Input
+              id="job-opening-new-department"
+              autoFocus
+              value={newDepartmentName}
+              onChange={(e) => setNewDepartmentName(e.target.value)}
+              placeholder="Ex: Operações"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  void createDepartment();
+                }
+              }}
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              type="button"
+              onClick={() => setCreateDepartmentOpen(false)}
+              disabled={creatingDepartment}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              onClick={() => void createDepartment()}
+              disabled={creatingDepartment || newDepartmentName.trim().length < 2}
+            >
+              {creatingDepartment ? 'Criando…' : 'Criar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={createPositionOpen} onOpenChange={setCreatePositionOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Novo cargo</DialogTitle>
+            <DialogDescription>Fica disponível imediatamente para seleção.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <label className="text-sm font-medium" htmlFor="job-opening-new-position">Nome *</label>
+            <Input
+              id="job-opening-new-position"
+              autoFocus
+              value={newPositionName}
+              onChange={(e) => setNewPositionName(e.target.value)}
+              placeholder="Ex: Analista de Operações"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  void createPosition();
+                }
+              }}
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              type="button"
+              onClick={() => setCreatePositionOpen(false)}
+              disabled={creatingPosition}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              onClick={() => void createPosition()}
+              disabled={creatingPosition || newPositionName.trim().length < 2}
+            >
+              {creatingPosition ? 'Criando…' : 'Criar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Sheet>
   );
+
+  async function createDepartment() {
+    const name = newDepartmentName.trim();
+    if (name.length < 2) {
+      toast.error('Nome muito curto.');
+      return;
+    }
+    setCreatingDepartment(true);
+    const result = await createTaxonomy('department', { name });
+    setCreatingDepartment(false);
+    if (result.error || !result.id) {
+      toast.error(result.error ?? 'Erro ao criar departamento.');
+      return;
+    }
+
+    const item = { id: result.id, name };
+    setCreatedDepartments((prev) => [...prev, item]);
+    form.setValue('departmentId', result.id, { shouldDirty: true });
+    setCreateDepartmentOpen(false);
+    toast.success('Departamento criado e selecionado.');
+  }
+
+  async function createPosition() {
+    const name = newPositionName.trim();
+    if (name.length < 2) {
+      toast.error('Nome muito curto.');
+      return;
+    }
+    setCreatingPosition(true);
+    const result = await createTaxonomy('position', { name });
+    setCreatingPosition(false);
+    if (result.error || !result.id) {
+      toast.error(result.error ?? 'Erro ao criar cargo.');
+      return;
+    }
+
+    const item = { id: result.id, name };
+    setCreatedPositions((prev) => [...prev, item]);
+    form.setValue('positionId', result.id, { shouldDirty: true });
+    setCreatePositionOpen(false);
+    toast.success('Cargo criado e selecionado.');
+  }
 }

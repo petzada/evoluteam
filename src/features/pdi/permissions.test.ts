@@ -32,6 +32,10 @@ describe('canCreatePdi', () => {
     expect(canCreatePdi(admin, orphan)).toBe(true);
     expect(canCreatePdi(manager, orphan)).toBe(false);
   });
+  it('auto-PDI sem gestor é permitido', () => {
+    const orphanSelf = { id: 'e-emp', manager_id: null };
+    expect(canCreatePdi(employee, orphanSelf)).toBe(true);
+  });
 });
 
 describe('canViewPdi', () => {

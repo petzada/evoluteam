@@ -4,6 +4,7 @@ import {
   getJobOpeningById, listHiringManagerOptions,
 } from '@/features/recruitment/queries/jobOpenings';
 import { canManageJobOpenings } from '@/features/recruitment/permissions';
+import { canDo } from '@/features/permissions/permissions';
 import { getActorContext } from '@/features/auth/context';
 import { EditarVagaClient } from './EditarVagaClient';
 
@@ -45,6 +46,8 @@ export default async function EditarVagaPage({ params }: { params: Params }) {
       departments={departments}
       positions={positions}
       managers={managers}
+      canCreateDepartments={canDo(actor, 'departamentos', 'edit')}
+      canCreatePositions={canDo(actor, 'cargos', 'edit')}
     />
   );
 }

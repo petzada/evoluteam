@@ -11,9 +11,17 @@ interface Props {
   departments: TaxonomyItem[];
   positions: TaxonomyItem[];
   managers: ManagerItem[];
+  canCreateDepartments: boolean;
+  canCreatePositions: boolean;
 }
 
-export function NovaVagaClient({ departments, positions, managers }: Props) {
+export function NovaVagaClient({
+  departments,
+  positions,
+  managers,
+  canCreateDepartments,
+  canCreatePositions,
+}: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(true);
 
@@ -29,6 +37,8 @@ export function NovaVagaClient({ departments, positions, managers }: Props) {
       departments={departments}
       positions={positions}
       managers={managers}
+      canCreateDepartments={canCreateDepartments}
+      canCreatePositions={canCreatePositions}
       initial={null}
     />
   );

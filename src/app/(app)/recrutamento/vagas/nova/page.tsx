@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { getDepartments, getPositions } from '@/features/employees/queries';
 import { canManageJobOpenings } from '@/features/recruitment/permissions';
 import { listHiringManagerOptions } from '@/features/recruitment/queries/jobOpenings';
+import { canDo } from '@/features/permissions/permissions';
 import { getActorContext } from '@/features/auth/context';
 import { NovaVagaClient } from './NovaVagaClient';
 
@@ -20,5 +21,13 @@ export default async function NovaVagaPage() {
     listHiringManagerOptions(profile.company_id),
   ]);
 
-  return <NovaVagaClient departments={departments} positions={positions} managers={managers} />;
+  return (
+    <NovaVagaClient
+      departments={departments}
+      positions={positions}
+      managers={managers}
+      canCreateDepartments={canDo(actor, 'departamentos', 'edit')}
+      canCreatePositions={canDo(actor, 'cargos', 'edit')}
+    />
+  );
 }

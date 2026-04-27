@@ -42,8 +42,7 @@ export default async function PdiRoute() {
       .order('created_at', { ascending: false }),
   ]);
 
-  const hasManager = !!employee?.manager_id;
-  const canCreateAny = isAdmin || hasTeam || (!!actorEmployeeId && hasManager);
+  const canCreateAny = isAdmin || hasTeam || !!actorEmployeeId;
 
   return (
     <PdisPage

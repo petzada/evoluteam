@@ -59,6 +59,17 @@ export async function listTeamFeedbacks(descendantIds: string[]): Promise<Feedba
   return (data ?? []) as unknown as FeedbackRow[];
 }
 
+export async function listCompanyFeedbacks(companyId: string): Promise<FeedbackRow[]> {
+  const supabase = await createServerSupabaseClient();
+  const { data } = await supabase
+    .from('feedbacks')
+    .select(BASE_SELECT)
+    .eq('company_id', companyId)
+    .is('deleted_at', null)
+    .order('created_at', { ascending: false });
+  return (data ?? []) as unknown as FeedbackRow[];
+}
+
 export async function listFeedbacksForEmployee(employeeId: string): Promise<FeedbackRow[]> {
   const supabase = await createServerSupabaseClient();
   const { data } = await supabase

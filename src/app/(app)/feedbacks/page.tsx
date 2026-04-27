@@ -1,6 +1,7 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import {
-  countUnreadFeedbacks, listMyReceivedFeedbacks, listMySentFeedbacks, listTeamFeedbacks,
+  countUnreadFeedbacks, listMyReceivedFeedbacks, listMySentFeedbacks,
+  listTeamFeedbacks, listCompanyFeedbacks,
 } from '@/features/feedbacks/queries';
 import { FeedbacksPage } from '@/features/feedbacks/components/FeedbacksPage';
 import { getEmployeeDescendants } from '@/features/employees/queries';
@@ -18,15 +19,17 @@ export default async function FeedbacksRoute({
   const supabase = await createServerSupabaseClient();
   const actor = { role: profile.role, ...gate };
   const currentEmployeeId = employee?.id ?? null;
+  const canReadCompany = canDo(actor, 'feedbacks', 'view');
 
   const descendants = currentEmployeeId
     ? await getEmployeeDescendants(currentEmployeeId)
     : [];
 
-  const [received, sent, team, unread, employees, { data: competencies }] = await Promise.all([
+  const [received, sent, team, company, unread, employees, { data: competencies }] = await Promise.all([
     currentEmployeeId ? listMyReceivedFeedbacks(currentEmployeeId) : Promise.resolve([]),
     currentEmployeeId ? listMySentFeedbacks(currentEmployeeId) : Promise.resolve([]),
     descendants.length > 0 ? listTeamFeedbacks(descendants) : Promise.resolve([]),
+    canReadCompany ? listCompanyFeedbacks(profile.company_id) : Promise.resolve([]),
     currentEmployeeId ? countUnreadFeedbacks(currentEmployeeId) : Promise.resolve(0),
     getEligibleEmployees(profile.company_id),
     supabase
@@ -43,6 +46,8 @@ export default async function FeedbacksRoute({
       sent={sent}
       team={team}
       hasTeam={descendants.length > 0}
+      company={company}
+      canReadCompany={canReadCompany}
       employees={employees as Parameters<typeof FeedbacksPage>[0]['employees']}
       competencies={competencies ?? []}
       currentEmployeeId={currentEmployeeId}

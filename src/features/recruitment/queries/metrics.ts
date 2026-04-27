@@ -356,11 +356,51 @@ export async function getFunnel(f: MetricsFilter): Promise<FunnelStageRow[]> {
 }
 
 export type OriginBreakdown = {
+  // Bucket tecnico da origem; para "outro" vira "outro:<valor-normalizado>".
   source: string;
   label: string;
   candidates: number;
   hired: number;
 };
+
+const OTHER_UNINFORMED_BUCKET = 'outro:nao_informado';
+const OTHER_UNINFORMED_LABEL = 'Outro (não informado)';
+
+function normalizeOtherSource(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const compact = value.trim().replace(/\s+/g, ' ');
+  if (!compact) return null;
+  return compact.toLocaleLowerCase('pt-BR');
+}
+
+function formatOtherSourceLabel(normalized: string): string {
+  return normalized
+    .split(' ')
+    .map((part) => part.charAt(0).toLocaleUpperCase('pt-BR') + part.slice(1))
+    .join(' ');
+}
+
+function toOriginBucket(
+  source: string | null | undefined,
+  sourceOther: string | null | undefined,
+): { source: string; label: string } {
+  const safeSource = source ?? 'manual';
+  if (safeSource !== 'outro') {
+    return {
+      source: safeSource,
+      label: CANDIDATE_SOURCE_LABELS[safeSource as CandidateSource] ?? safeSource,
+    };
+  }
+
+  const normalized = normalizeOtherSource(sourceOther);
+  if (!normalized) {
+    return { source: OTHER_UNINFORMED_BUCKET, label: OTHER_UNINFORMED_LABEL };
+  }
+  return {
+    source: `outro:${normalized}`,
+    label: `Outro: ${formatOtherSourceLabel(normalized)}`,
+  };
+}
 
 export async function getOriginsBreakdown(f: MetricsFilter): Promise<OriginBreakdown[]> {
   const supabase = await createServerSupabaseClient();
@@ -378,11 +418,6 @@ export async function getOriginsBreakdown(f: MetricsFilter): Promise<OriginBreak
       .eq('company_id', f.companyId)
       .in('job_opening_id', jobIds);
     candidateIdsFromJobs = new Set((apps ?? []).map((a) => a.candidate_id));
-  }
-
-  function labelFor(source: string, sourceOther: string | null): string {
-    if (source === 'outro' && sourceOther) return sourceOther;
-    return CANDIDATE_SOURCE_LABELS[source as CandidateSource] ?? source;
   }
 
   // P4 decisão C: dois recortes independentes no mesmo período.
@@ -414,29 +449,29 @@ export async function getOriginsBreakdown(f: MetricsFilter): Promise<OriginBreak
 
   const map = new Map<string, OriginBreakdown>();
   for (const c of cands) {
-    const key = c.source ?? 'manual';
-    const entry = map.get(key) ?? {
-      source: key,
-      label: labelFor(key, c.source_other ?? null),
+    const bucket = toOriginBucket(c.source ?? null, c.source_other ?? null);
+    const entry = map.get(bucket.source) ?? {
+      source: bucket.source,
+      label: bucket.label,
       candidates: 0,
       hired: 0,
     };
     entry.candidates += 1;
-    map.set(key, entry);
+    map.set(bucket.source, entry);
   }
 
   for (const h of hiredApps ?? []) {
     const cand = h.candidate as unknown as { source: string; source_other: string | null } | null;
     if (!cand) continue;
-    const key = cand.source ?? 'manual';
-    const entry = map.get(key) ?? {
-      source: key,
-      label: labelFor(key, cand.source_other ?? null),
+    const bucket = toOriginBucket(cand.source ?? null, cand.source_other ?? null);
+    const entry = map.get(bucket.source) ?? {
+      source: bucket.source,
+      label: bucket.label,
       candidates: 0,
       hired: 0,
     };
     entry.hired += 1;
-    map.set(key, entry);
+    map.set(bucket.source, entry);
   }
 
   return Array.from(map.values())

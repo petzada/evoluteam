@@ -1226,7 +1226,7 @@ CREATE POLICY feedbacks_select ON feedbacks FOR SELECT USING (
         OR (
           visibility = 'visivel_para_rh'
           AND (
-            public.my_role() = 'admin_rh'
+            public.my_role() IN ('admin_rh', 'director')
             OR public.has_screen_permission('feedbacks', 'view')
           )
         )

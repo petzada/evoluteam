@@ -28,7 +28,9 @@ interface Props {
   received: FeedbackRow[];
   sent: FeedbackRow[];
   team: FeedbackRow[];
+  company: FeedbackRow[];
   hasTeam: boolean;
+  canReadCompany: boolean;
   employees: Employee[];
   competencies: { id: string; name: string }[];
   currentEmployeeId: string | null;
@@ -49,7 +51,7 @@ function filterByPeriod<T extends { created_at: string }>(rows: T[], period: Per
 }
 
 export function FeedbacksPage({
-  received, sent, team, hasTeam, employees, competencies,
+  received, sent, team, company, hasTeam, canReadCompany, employees, competencies,
   currentEmployeeId, isAdmin, initialOpenSheet, unreadCount,
 }: Props) {
   const searchParams = useSearchParams();
@@ -77,6 +79,7 @@ export function FeedbacksPage({
   const filteredReceived = useMemo(() => applyFilters(received), [applyFilters, received]);
   const filteredSent = useMemo(() => applyFilters(sent), [applyFilters, sent]);
   const filteredTeam = useMemo(() => applyFilters(team), [applyFilters, team]);
+  const filteredCompany = useMemo(() => applyFilters(company), [applyFilters, company]);
 
   // Marca automaticamente como lido quando abre a página pela 1ª vez
   useEffect(() => {
@@ -151,6 +154,7 @@ export function FeedbacksPage({
           </TabsTrigger>
           <TabsTrigger value="sent">Enviados</TabsTrigger>
           {hasTeam && <TabsTrigger value="team">Minha equipe</TabsTrigger>}
+          {canReadCompany && <TabsTrigger value="company">Empresa</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="received" className="mt-6">
@@ -177,6 +181,17 @@ export function FeedbacksPage({
             <FeedbackList
               items={filteredTeam}
               emptyMessage="Nenhum feedback visível da sua equipe."
+              perspective="team"
+              isAdmin={isAdmin}
+            />
+          </TabsContent>
+        )}
+
+        {canReadCompany && (
+          <TabsContent value="company" className="mt-6">
+            <FeedbackList
+              items={filteredCompany}
+              emptyMessage="Nenhum feedback visível no escopo da empresa."
               perspective="team"
               isAdmin={isAdmin}
             />

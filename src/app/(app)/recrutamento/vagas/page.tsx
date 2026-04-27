@@ -5,6 +5,7 @@ import {
   listHiringManagerOptions,
 } from '@/features/recruitment/queries/jobOpenings';
 import { canManageJobOpenings, canViewAllJobOpenings, canViewAssignedJobOpenings } from '@/features/recruitment/permissions';
+import { canDo } from '@/features/permissions/permissions';
 import { JobOpeningsTable } from '@/features/recruitment/components/JobOpeningsTable';
 import { getActorContext } from '@/features/auth/context';
 
@@ -35,6 +36,8 @@ export default async function VagasPage() {
       positions={positions}
       managers={managers}
       canCreate={canManageJobOpenings(actor)}
+      canCreateDepartments={canDo(actor, 'departamentos', 'edit')}
+      canCreatePositions={canDo(actor, 'cargos', 'edit')}
     />
   );
 }

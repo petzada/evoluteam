@@ -199,7 +199,7 @@ export function PdiSheet({
                       )}
                       {filteredEmployees.length === 0 && (
                         <p className="text-xs text-muted-foreground italic">
-                          {isAdmin ? 'Nenhum colaborador encontrado.' : 'Você não possui liderados diretos.'}
+                          {isAdmin ? 'Nenhum colaborador encontrado.' : 'Nenhum colaborador disponível no seu escopo.'}
                         </p>
                       )}
                     </div>

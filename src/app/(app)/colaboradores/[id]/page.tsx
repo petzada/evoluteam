@@ -100,6 +100,7 @@ export default async function EmployeeProfilePage({
 
   const canCreatePdiHere =
     canDo({ role: actorRole, ...gate }, 'pdi', 'edit')
+    || (actorEmployeeId !== null && employee.id === actorEmployeeId)
     || (actorEmployeeId !== null && employee.manager?.id === actorEmployeeId);
 
   // canSeeResults: quem tem avaliacoes.view ve tudo; gestor vê descendentes;

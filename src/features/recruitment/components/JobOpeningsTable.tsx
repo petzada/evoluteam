@@ -29,9 +29,19 @@ interface Props {
   positions: TaxonomyItem[];
   managers: ManagerItem[];
   canCreate: boolean;
+  canCreateDepartments: boolean;
+  canCreatePositions: boolean;
 }
 
-export function JobOpeningsTable({ jobs, departments, positions, managers, canCreate }: Props) {
+export function JobOpeningsTable({
+  jobs,
+  departments,
+  positions,
+  managers,
+  canCreate,
+  canCreateDepartments,
+  canCreatePositions,
+}: Props) {
   const router = useRouter();
   const [sheetOpen, setSheetOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -186,6 +196,8 @@ export function JobOpeningsTable({ jobs, departments, positions, managers, canCr
           departments={departments}
           positions={positions}
           managers={managers}
+          canCreateDepartments={canCreateDepartments}
+          canCreatePositions={canCreatePositions}
           initial={null}
         />
       )}
@@ -203,6 +215,8 @@ export function JobOpeningEditSheetWrapper(props: Props & { editInitial: JobOpen
       departments={rest.departments}
       positions={rest.positions}
       managers={rest.managers}
+      canCreateDepartments={rest.canCreateDepartments}
+      canCreatePositions={rest.canCreatePositions}
       initial={editInitial}
     />
   );

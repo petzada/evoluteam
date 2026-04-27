@@ -67,6 +67,14 @@ describe('canViewFeedback', () => {
     )).toBe(true);
   });
 
+  it('director lê visivel_para_rh mesmo fora da cadeia', () => {
+    expect(canViewFeedback(
+      director,
+      { ...base, visibility: 'visivel_para_rh' },
+      [],
+    )).toBe(true);
+  });
+
   it('admin NÃO lê visivel_para_gestor se não for gestor', () => {
     expect(canViewFeedback(
       admin,

@@ -7,6 +7,7 @@ import { notify } from '@/lib/notifications';
 import { getActor } from '@/features/permissions/actor';
 import { canDo } from '@/features/permissions/permissions';
 import type { Actor } from '@/features/permissions/types';
+import { canCommentOnPdi } from './permissions';
 import {
   PdiInputSchema, PdiActionInputSchema, PdiActionStatusSchema, PdiCommentSchema,
   type PdiInput, type PdiActionInput, type PdiCommentInput,
@@ -14,13 +15,6 @@ import {
 } from './schema';
 
 type Ctx = Actor;
-
-async function getActorEmployeeForManagerCheck(
-  admin: ReturnType<typeof createAdminSupabaseClient>,
-  ctx: Ctx,
-): Promise<string | null> {
-  return ctx.employeeId;
-}
 
 export async function createPdi(input: PdiInput) {
   const ctx = await getActor();
@@ -44,17 +38,13 @@ export async function createPdi(input: PdiInput) {
     return { error: 'Não é possível criar PDI para colaborador desligado.' };
   }
 
-  const actorEmployeeId = await getActorEmployeeForManagerCheck(admin, ctx);
+  const actorEmployeeId = ctx.employeeId;
   const isManager = actorEmployeeId && target.manager_id === actorEmployeeId;
   const isSelf = actorEmployeeId && target.id === actorEmployeeId;
   const isAdmin = canDo(ctx, 'pdi', 'edit');
   if (!isAdmin && !isManager && !isSelf) {
     return { error: 'Sem permissão para criar PDI para este colaborador.' };
   }
-  if (!target.manager_id) {
-    return { error: 'O colaborador precisa ter um gestor direto definido para ter PDI.' };
-  }
-
   if (value.competencyId) {
     const { data: comp } = await admin
       .from('competencies')
@@ -534,6 +524,12 @@ export async function addComment(planId: string, input: PdiCommentInput) {
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Dados inválidos.' };
 
   const admin = createAdminSupabaseClient();
+  const { data: ancestorsRaw } = await admin
+    .rpc('get_employee_ancestors', { emp_id: plan.employee_id });
+  const ancestors = (ancestorsRaw ?? []).map((row) => row.id);
+  if (!canCommentOnPdi(ctx, plan, ancestors)) {
+    return { error: 'Sem permissão.' };
+  }
 
   const { data: inserted, error } = await admin
     .from('development_plan_comments')

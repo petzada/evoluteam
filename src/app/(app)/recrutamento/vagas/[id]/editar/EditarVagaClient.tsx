@@ -14,9 +14,18 @@ interface Props {
   departments: TaxonomyItem[];
   positions: TaxonomyItem[];
   managers: ManagerItem[];
+  canCreateDepartments: boolean;
+  canCreatePositions: boolean;
 }
 
-export function EditarVagaClient({ initial, departments, positions, managers }: Props) {
+export function EditarVagaClient({
+  initial,
+  departments,
+  positions,
+  managers,
+  canCreateDepartments,
+  canCreatePositions,
+}: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(true);
   function onOpenChange(v: boolean) {
@@ -30,6 +39,8 @@ export function EditarVagaClient({ initial, departments, positions, managers }: 
       departments={departments}
       positions={positions}
       managers={managers}
+      canCreateDepartments={canCreateDepartments}
+      canCreatePositions={canCreatePositions}
       initial={initial}
     />
   );

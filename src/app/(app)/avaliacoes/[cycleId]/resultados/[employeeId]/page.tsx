@@ -85,6 +85,7 @@ export default async function ResultadoIndividualPage({
 
   const canCreatePdi =
     isAdmin
+    || (actorEmployeeId !== null && employeeId === actorEmployeeId)
     || (actorEmployeeId !== null && employeeRow.data?.manager_id === actorEmployeeId);
 
   // FT-8 P10: quem pode comentar = admin_rh, director ou ancestor do avaliado
