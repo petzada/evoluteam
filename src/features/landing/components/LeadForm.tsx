@@ -191,7 +191,7 @@ function Field({
       <Label htmlFor={htmlFor} className="text-slate-800">{label}</Label>
       {children}
       {error ? <p className="text-xs text-red-600">{error}</p> : null}
-      {!error && hint ? <p className="text-xs text-blue-700">{hint}</p> : null}
+      {!error && hint ? <p className="text-xs text-primary">{hint}</p> : null}
     </div>
   );
 }

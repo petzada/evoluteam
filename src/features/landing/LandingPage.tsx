@@ -19,7 +19,7 @@ import {
 } from './components/ProductMockups';
 
 const sectionClass = 'mx-auto max-w-[1200px] px-6 py-24 md:px-12 lg:py-[120px]';
-const eyebrowClass = 'text-xs font-semibold uppercase tracking-[0.22em] text-blue-600';
+const eyebrowClass = 'text-xs font-semibold uppercase tracking-[0.22em] text-primary';
 const h1Class = 'font-[Georgia,serif] text-5xl font-medium leading-[1.05] tracking-normal text-slate-950 sm:text-6xl lg:text-[76px]';
 const h2Class = 'font-[Georgia,serif] text-4xl font-medium leading-[1.12] tracking-normal text-slate-950 sm:text-5xl';
 const bodyClass = 'text-base leading-8 text-slate-600 sm:text-lg';
@@ -67,14 +67,14 @@ function SectionIntro({
   return (
     <div className={cn(align === 'center' && 'mx-auto max-w-3xl text-center')}>
       {eyebrow ? (
-        <p className={cn(eyebrowClass, light && 'text-blue-300')}>{eyebrow}</p>
+        <p className={cn(eyebrowClass, light && 'text-[#F09469]')}>{eyebrow}</p>
       ) : null}
       <h2 className={cn(h2Class, eyebrow && 'mt-4', light && 'text-white')}>
         {title}
         {italic ? (
           <>
             {' '}
-            <span className={cn('italic text-slate-500', light && 'text-blue-200')}>{italic}</span>
+            <span className={cn('italic text-slate-500', light && 'text-[#FCC9B0]')}>{italic}</span>
           </>
         ) : null}
       </h2>
@@ -92,7 +92,7 @@ function BulletList({ items, light = false }: { items: string[]; light?: boolean
     <ul className="mt-8 grid gap-3">
       {items.map((item) => (
         <li key={item} className={cn('flex gap-3 text-sm leading-7 text-slate-600', light && 'text-slate-300')}>
-          <Minus className={cn('mt-3 size-3 shrink-0 text-blue-600', light && 'text-blue-300')} />
+          <Minus className={cn('mt-3 size-3 shrink-0 text-primary', light && 'text-[#F09469]')} />
           <span>{item}</span>
         </li>
       ))}
@@ -109,7 +109,7 @@ export function LandingPage() {
         <section className="border-b border-slate-200 bg-[#fcf8f8]">
           <div className="mx-auto max-w-[1200px] px-6 pb-16 pt-16 text-center md:px-12 lg:pb-20 lg:pt-20">
             <div className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-4 py-2">
-              <span className="size-2 rounded-full bg-blue-600" />
+              <span className="size-2 rounded-full bg-primary" />
               <span className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-600">
                 Performance · Feedback · Desenvolvimento
               </span>
@@ -132,7 +132,7 @@ export function LandingPage() {
             <div className="mx-auto mt-10 grid max-w-4xl gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {trustItems.map((item) => (
                 <div key={item.label} className="flex items-center justify-center gap-2 text-sm text-slate-600">
-                  <item.icon className="size-4 text-blue-600" />
+                  <item.icon className="size-4 text-primary" />
                   {item.label}
                 </div>
               ))}
@@ -199,9 +199,9 @@ export function LandingPage() {
                   )}
                 >
                   {step.featured ? (
-                    <div className="absolute right-0 top-0 h-28 w-28 -translate-y-14 translate-x-14 rounded-bl-full bg-blue-600/20" />
+                    <div className="absolute right-0 top-0 h-28 w-28 -translate-y-14 translate-x-14 rounded-bl-full bg-primary/20" />
                   ) : null}
-                  <p className={cn('text-xs font-semibold uppercase tracking-[0.22em]', step.featured ? 'text-blue-300' : 'text-slate-500')}>
+                  <p className={cn('text-xs font-semibold uppercase tracking-[0.22em]', step.featured ? 'text-[#F09469]' : 'text-slate-500')}>
                     {step.eyebrow}
                   </p>
                   <h3 className="mt-5 font-[Georgia,serif] text-3xl">{step.title}</h3>
@@ -258,7 +258,7 @@ export function LandingPage() {
               <p>Você pode continuar usando planilha. Ela só não vai te ajudar na parte que importa.</p>
             </div>
             <div className="mt-9 flex items-center gap-3">
-              <div className="flex size-11 items-center justify-center rounded-full bg-blue-600 text-sm font-semibold text-white">
+              <div className="flex size-11 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
                 MP
               </div>
               <div>
@@ -311,13 +311,13 @@ export function LandingPage() {
                 {pricingFeatures.map((feature) => (
                   <article key={feature.title} className="grid gap-3 border-b border-slate-200 pb-5 last:border-0 last:pb-0 sm:grid-cols-[1fr_auto]">
                     <div className="flex gap-3">
-                      <feature.icon className={cn('mt-1 size-5 shrink-0 text-blue-600', feature.featured && 'text-slate-950')} />
+                      <feature.icon className={cn('mt-1 size-5 shrink-0 text-primary', feature.featured && 'text-slate-950')} />
                       <div>
                         <h4 className="font-[Georgia,serif] text-xl text-slate-950">{feature.title}</h4>
                         <p className="mt-1 text-sm leading-6 text-slate-600">{feature.body}</p>
                       </div>
                     </div>
-                    <span className={cn('h-fit rounded-full border border-blue-100 bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700', feature.featured && 'border-slate-950 bg-slate-950 text-white')}>
+                    <span className={cn('h-fit rounded-full border border-accent bg-accent px-2 py-1 text-xs font-semibold text-accent-foreground', feature.featured && 'border-slate-950 bg-slate-950 text-white')}>
                       {feature.tag}
                     </span>
                   </article>
@@ -347,7 +347,7 @@ export function LandingPage() {
                   'Plano de implantação para o primeiro ciclo',
                 ].map((item) => (
                   <li key={item} className="flex gap-3 text-sm leading-7 text-slate-300">
-                    <Check className="mt-1 size-5 shrink-0 text-blue-300" />
+                    <Check className="mt-1 size-5 shrink-0 text-[#F09469]" />
                     {item}
                   </li>
                 ))}

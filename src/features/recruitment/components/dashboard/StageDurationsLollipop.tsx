@@ -10,6 +10,13 @@ interface Props {
 
 const CHART_HEIGHT = 170;
 const PADDING_TOP = 16;
+const DURATION_COLORS = {
+  normalLine: 'rgb(240 148 105 / 0.5)',
+  normalDot: '#F09469',
+  emptyLine: 'rgb(240 148 105 / 0.22)',
+  bottleneckLine: 'rgb(194 65 12 / 0.55)',
+  bottleneckDot: '#7C2D12',
+};
 
 /**
  * Lollipop vertical de tempo mediano por etapa (spec 16 §7.7).
@@ -42,15 +49,15 @@ export function StageDurationsLollipop({ durations }: Props) {
                 render={
                   <div className="flex flex-1 min-w-0 flex-col items-center justify-end group cursor-default">
                     <div
-                      className={cn(
-                        'w-[3px] rounded-t-sm',
-                        !hasData
-                          ? 'bg-primary/20'
+                      className="w-[3px] rounded-t-sm"
+                      style={{
+                        height: h,
+                        background: !hasData
+                          ? DURATION_COLORS.emptyLine
                           : d.isBottleneck
-                            ? 'bg-destructive/40'
-                            : 'bg-primary/40',
-                      )}
-                      style={{ height: h }}
+                            ? DURATION_COLORS.bottleneckLine
+                            : DURATION_COLORS.normalLine,
+                      }}
                     />
                     <div
                       className={cn(
@@ -58,9 +65,12 @@ export function StageDurationsLollipop({ durations }: Props) {
                         !hasData
                           ? 'bg-background text-primary border-2 border-primary'
                           : d.isBottleneck
-                            ? 'bg-destructive text-white'
-                            : 'bg-primary text-white',
+                            ? 'text-white'
+                            : 'text-primary-foreground',
                       )}
+                      style={hasData ? {
+                        background: d.isBottleneck ? DURATION_COLORS.bottleneckDot : DURATION_COLORS.normalDot,
+                      } : undefined}
                     >
                       {hasData ? d.medianDays : '—'}
                     </div>
@@ -100,7 +110,7 @@ export function StageDurationsLollipop({ durations }: Props) {
                     </p>
                   )}
                   {hasData && d.isBottleneck && (
-                    <p className="text-[10px] text-destructive font-medium pt-1 border-t">
+                    <p className="text-[10px] font-medium pt-1 border-t" style={{ color: DURATION_COLORS.bottleneckDot }}>
                       ⚠ gargalo: mais que 5 dias
                     </p>
                   )}
@@ -112,11 +122,11 @@ export function StageDurationsLollipop({ durations }: Props) {
       </div>
       <div className="mt-auto pt-3 flex gap-3 text-[9.5px] text-muted-foreground">
         <span className="flex items-center gap-1">
-          <span className="inline-block h-2 w-2 rounded-full bg-primary" />
+          <span className="inline-block h-2 w-2 rounded-full" style={{ background: DURATION_COLORS.normalDot }} />
           normal
         </span>
         <span className="flex items-center gap-1">
-          <span className="inline-block h-2 w-2 rounded-full bg-destructive" />
+          <span className="inline-block h-2 w-2 rounded-full" style={{ background: DURATION_COLORS.bottleneckDot }} />
           gargalo (&gt; 5d)
         </span>
         <span className="flex items-center gap-1">

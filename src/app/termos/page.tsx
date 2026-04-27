@@ -10,7 +10,7 @@ export default function TermsPage() {
   return (
     <main className="min-h-screen bg-white px-5 py-12 text-slate-950">
       <div className="mx-auto max-w-3xl">
-        <Link href="/" className="text-sm font-semibold text-blue-600">
+        <Link href="/" className="text-sm font-semibold text-primary">
           evoluteam
         </Link>
         <h1 className="mt-10 font-[Georgia,serif] text-4xl">Termos de uso</h1>
@@ -20,7 +20,7 @@ export default function TermsPage() {
           </p>
           <p>
             Para dúvidas comerciais ou contratuais, fale com a gente em{' '}
-            <a href="mailto:contato@evoluteam.com" className="font-medium text-blue-600">
+            <a href="mailto:contato@evoluteam.com" className="font-medium text-primary">
               contato@evoluteam.com
             </a>
             .

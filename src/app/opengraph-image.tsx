@@ -35,7 +35,7 @@ export default function OpenGraphImage() {
             }}
           >
             <span style={{ display: 'flex', color: '#FFFFFF' }}>e</span>
-            <span style={{ display: 'flex', color: '#3B82F6' }}>t</span>
+            <span style={{ display: 'flex', color: '#F09469' }}>t</span>
           </div>
           <div style={{ display: 'flex', fontSize: 32, fontWeight: 500, color: '#64748B' }}>
             evolu.team
@@ -53,7 +53,7 @@ export default function OpenGraphImage() {
             }}
           >
             <span style={{ display: 'flex', color: '#FFFFFF' }}>Evolu</span>
-            <span style={{ display: 'flex', color: '#3B82F6' }}>team</span>
+            <span style={{ display: 'flex', color: '#F09469' }}>team</span>
           </div>
           <div
             style={{
@@ -71,7 +71,7 @@ export default function OpenGraphImage() {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <div style={{ display: 'flex', width: 48, height: 4, background: '#3B82F6' }} />
+          <div style={{ display: 'flex', width: 48, height: 4, background: '#F09469' }} />
           <div style={{ display: 'flex', fontSize: 24, color: '#64748B', fontWeight: 500 }}>
             Avaliações · Feedback · PDI · Recrutamento
           </div>

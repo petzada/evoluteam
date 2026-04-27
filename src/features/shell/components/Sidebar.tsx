@@ -159,7 +159,7 @@ export function Sidebar({
         ) : (
           <span className="text-lg font-bold tracking-tight">
             <span className="text-white">Evolu</span>
-            <span className="text-blue-500">team</span>
+            <span className="text-[#F09469]">team</span>
           </span>
         )}
       </div>

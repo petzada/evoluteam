@@ -38,7 +38,7 @@ function Shell({
             <p className="text-xs font-medium text-slate-500">Evoluteam</p>
             <h3 className="mt-1 font-[Georgia,serif] text-xl text-slate-950">{title}</h3>
           </div>
-          <div className="rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700">
+          <div className="rounded-md bg-accent px-2 py-1 text-xs font-medium text-accent-foreground">
             ativo
           </div>
         </div>
@@ -97,15 +97,15 @@ export function HeroProductMockup() {
                 className={cn(
                   'rounded-md border p-3.5',
                   item.active
-                    ? 'border-blue-600 bg-blue-600 text-white'
+                    ? 'border-primary bg-primary text-primary-foreground'
                     : 'border-slate-200 bg-white text-slate-950',
                 )}
               >
-                <p className={cn('text-[11px] font-semibold tracking-[0.16em]', item.active ? 'text-blue-100' : 'text-blue-600')}>
+                <p className={cn('text-[11px] font-semibold tracking-[0.16em]', item.active ? 'text-primary-foreground/80' : 'text-primary')}>
                   {item.label}
                 </p>
                 <h5 className="mt-1.5 font-[Georgia,serif] text-xl">{item.title}</h5>
-                <p className={cn('mt-1 text-sm leading-6', item.active ? 'text-blue-50' : 'text-slate-600')}>
+                <p className={cn('mt-1 text-sm leading-6', item.active ? 'text-primary-foreground/90' : 'text-slate-600')}>
                   {item.body}
                 </p>
               </div>
@@ -128,7 +128,7 @@ export function FeedbackMockup() {
               className={cn(
                 'rounded-md border px-3 py-2 text-center text-xs font-medium',
                 index === 1
-                  ? 'border-blue-200 bg-blue-50 text-blue-700'
+                  ? 'border-primary/40 bg-primary/10 text-primary'
                   : 'border-slate-200 bg-white text-slate-600',
               )}
             >
@@ -146,7 +146,7 @@ export function FeedbackMockup() {
           <div className="rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-600">
             Competência: Comunicação
           </div>
-          <button className="inline-flex h-9 items-center justify-center gap-2 rounded-md bg-blue-600 px-4 text-sm font-medium text-white">
+          <button className="inline-flex h-9 items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground">
             <Send className="size-4" />
             Enviar
           </button>
@@ -162,7 +162,7 @@ export function ReviewMockup() {
       <div className="grid gap-4 lg:grid-cols-[1fr_0.72fr]">
         <div>
           <div className="mb-4 h-2 overflow-hidden rounded-full bg-slate-100">
-            <div className="h-full w-1/2 rounded-full bg-blue-600" />
+            <div className="h-full w-1/2 rounded-full bg-primary" />
           </div>
           <p className="mb-2 text-xs font-medium text-slate-500">Pergunta 4 de 8</p>
           <h4 className="font-[Georgia,serif] text-xl leading-tight text-slate-950">
@@ -175,7 +175,7 @@ export function ReviewMockup() {
                 className={cn(
                   'flex aspect-square items-center justify-center rounded-md border text-sm font-semibold',
                   score === 4
-                    ? 'border-blue-600 bg-blue-600 text-white'
+                    ? 'border-primary bg-primary text-primary-foreground'
                     : 'border-slate-200 bg-white text-slate-500',
                 )}
               >
@@ -186,7 +186,7 @@ export function ReviewMockup() {
         </div>
         <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
           <div className="mb-3 flex items-center gap-2 text-xs font-medium text-slate-500">
-            <MessageSquareText className="size-4 text-blue-600" />
+            <MessageSquareText className="size-4 text-primary" />
             Contexto do ano
           </div>
           {[
@@ -214,7 +214,7 @@ export function PdiMockup({ eyebrow = 'plano/id' }: { eyebrow?: string }) {
               <p className="text-xs font-medium text-slate-500">Ana Souza</p>
               <h4 className="mt-1 font-[Georgia,serif] text-xl">Comunicação executiva</h4>
             </div>
-            <div className="rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700">
+            <div className="rounded-md bg-accent px-2 py-1 text-xs font-medium text-accent-foreground">
               em progresso
             </div>
           </div>
@@ -230,7 +230,7 @@ export function PdiMockup({ eyebrow = 'plano/id' }: { eyebrow?: string }) {
             icon: TrendingUp,
             title: 'Praticar síntese em reuniões de liderança',
             meta: '70%',
-            color: 'text-blue-600',
+            color: 'text-primary',
           },
           {
             icon: Clock3,

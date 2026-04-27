@@ -2,7 +2,7 @@ import type { PipelineSnapshotStage } from '@/lib/supabase/types';
 
 export function stageColumnBorder(kind: PipelineSnapshotStage['kind']): string {
   switch (kind) {
-    case 'entry':          return 'border-t-blue-600';
+    case 'entry':          return 'border-t-primary';
     case 'intermediate':   return 'border-t-slate-300';
     case 'hired_terminal': return 'border-t-emerald-600';
   }

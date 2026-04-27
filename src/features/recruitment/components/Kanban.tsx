@@ -540,7 +540,7 @@ function CandidateCard({ app, feedbackCount, scorecardCount, taskState, isDraggi
           </span>
         )}
         {scorecardCount > 0 && (
-          <span className="bg-blue-100 text-blue-800 rounded-full px-1.5 py-0.5 inline-flex items-center gap-1 font-medium">
+          <span className="bg-accent text-accent-foreground rounded-full px-1.5 py-0.5 inline-flex items-center gap-1 font-medium">
             <Star className="h-2.5 w-2.5" /> {scorecardCount}
           </span>
         )}

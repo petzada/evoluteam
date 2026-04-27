@@ -16,7 +16,7 @@ export interface EmployeeInviteProps {
   expiresAt: Date;
 }
 
-const linkStyle = { color: '#2563EB', textDecoration: 'underline' };
+const linkStyle = { color: '#F09469', textDecoration: 'underline' };
 const boldStyle = { color: '#171717', fontWeight: 600 };
 
 function firstName(fullName: string): string {

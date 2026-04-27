@@ -8,15 +8,15 @@ interface Props {
 }
 
 const DONUT_COLORS = [
-  '#0A66C2', // LinkedIn (azul LinkedIn oficial — distinto do primary #2563EB)
-  '#8b5cf6', // Indicação (violeta)
-  '#10b981', // Indeed (verde)
-  '#0ea5e9', // Gupy (azul claro)
-  '#eab308', // Instagram (amarelo)
-  '#ec4899', // WhatsApp (rosa)
-  '#64748b', // site_empresa (ardósia)
-  '#a3a3a3', // manual (cinza)
-  '#78716c', // outro (pedra)
+  '#F09469',
+  '#7C2D12',
+  '#F97316',
+  '#9A3412',
+  '#FDBA74',
+  '#C2410C',
+  '#FB923C',
+  '#B45309',
+  '#EA580C',
 ];
 
 interface DatumWithColor extends OriginBreakdown {
@@ -107,7 +107,7 @@ function DonutCol({
         )}
         {hasData && (
           <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-            <span className={`text-lg font-bold leading-none ${variant === 'hired' ? 'text-emerald-700' : 'text-foreground'}`}>
+            <span className={`text-lg font-bold leading-none ${variant === 'hired' ? 'text-primary' : 'text-foreground'}`}>
               {total}
             </span>
             <span className="text-[9px] text-muted-foreground mt-0.5">total</span>

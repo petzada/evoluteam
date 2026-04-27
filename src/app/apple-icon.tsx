@@ -22,7 +22,7 @@ export default function AppleIcon() {
         }}
       >
         <span style={{ display: 'flex', color: '#FFFFFF' }}>e</span>
-        <span style={{ display: 'flex', color: '#3B82F6' }}>t</span>
+        <span style={{ display: 'flex', color: '#F09469' }}>t</span>
       </div>
     ),
     { ...size },

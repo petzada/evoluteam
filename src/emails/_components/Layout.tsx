@@ -64,7 +64,7 @@ export function Layout({ preheader, footerMessage, children }: LayoutProps) {
           <Section>
             <Text style={wordmarkStyle}>
               <span style={{ color: '#0F172A' }}>Evolu</span>
-              <span style={{ color: '#2563EB' }}>team</span>
+              <span style={{ color: '#F09469' }}>team</span>
             </Text>
           </Section>
           {children}
