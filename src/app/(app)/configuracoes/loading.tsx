@@ -1,10 +1,12 @@
-export default function Loading() {
+﻿import { Skeleton } from '@/components/ui/skeleton';
+
+export default function LoadingConfiguracoesFallback() {
   return (
     <div className="space-y-4">
-      <div className="h-8 w-48 animate-pulse rounded bg-muted" />
+      <Skeleton className="h-8 w-44" />
       <div className="space-y-3 rounded-lg border bg-card p-4">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="h-12 animate-pulse rounded bg-muted" />
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="h-10 w-full" />
         ))}
       </div>
     </div>
