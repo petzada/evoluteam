@@ -1,29 +1,41 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { z } from 'zod';
 import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 import { logActivity } from '@/lib/activity';
 import { notify } from '@/lib/notifications';
 import { getActor } from '@/features/permissions/actor';
 import { canDo } from '@/features/permissions/permissions';
+import { listCompanyFeedbacksPage } from './queries';
 import { FeedbackInputSchema, type FeedbackInput } from './schema';
 import { enforceVisibilityForType } from './permissions';
 
+const LoadCompanyFeedbacksPageInputSchema = z.object({
+  page: z.number().int().min(0).optional(),
+  pageSize: z.number().int().min(1).max(50).optional(),
+  typeFilter: z.array(z.string().min(1)).optional(),
+  competencyFilter: z.array(z.string().min(1)).optional(),
+  period: z.enum(['all', '30d', '6m', '1y']).optional(),
+});
+
+type LoadCompanyFeedbacksPageInput = z.input<typeof LoadCompanyFeedbacksPageInputSchema>;
+
 export async function sendFeedback(input: FeedbackInput) {
   const ctx = await getActor();
-  if (!ctx) return { error: 'Não autenticado.' };
-  if (!ctx.employeeId) return { error: 'Você precisa ser um colaborador para enviar feedback.' };
-  if (ctx.employeeStatus === 'terminated') return { error: 'Colaboradores desligados não podem enviar feedback.' };
+  if (!ctx) return { error: 'NÃ£o autenticado.' };
+  if (!ctx.employeeId) return { error: 'VocÃª precisa ser um colaborador para enviar feedback.' };
+  if (ctx.employeeStatus === 'terminated') return { error: 'Colaboradores desligados nÃ£o podem enviar feedback.' };
 
   const parsed = FeedbackInputSchema.safeParse(input);
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? 'Dados inválidos.' };
+    return { error: parsed.error.issues[0]?.message ?? 'Dados invÃ¡lidos.' };
   }
   const value = parsed.data;
   const visibility = enforceVisibilityForType(value.type, value.visibility);
 
   if (value.recipientId === ctx.employeeId) {
-    return { error: 'Você não pode enviar feedback para si mesmo.' };
+    return { error: 'VocÃª nÃ£o pode enviar feedback para si mesmo.' };
   }
 
   const admin = createAdminSupabaseClient();
@@ -34,9 +46,9 @@ export async function sendFeedback(input: FeedbackInput) {
     .eq('id', value.recipientId)
     .eq('company_id', ctx.companyId)
     .maybeSingle();
-  if (!recipient) return { error: 'Destinatário não encontrado.' };
+  if (!recipient) return { error: 'DestinatÃ¡rio nÃ£o encontrado.' };
   if (recipient.status === 'terminated') {
-    return { error: 'Não é possível enviar feedback para colaborador desligado.' };
+    return { error: 'NÃ£o Ã© possÃ­vel enviar feedback para colaborador desligado.' };
   }
 
   const { data: inserted, error } = await admin
@@ -62,7 +74,7 @@ export async function sendFeedback(input: FeedbackInput) {
       userId: recipient.user_id,
       type: 'feedback_received',
       title: 'Novo feedback',
-      body: 'Você recebeu um feedback.',
+      body: 'VocÃª recebeu um feedback.',
       linkUrl: '/feedbacks',
       entityType: 'feedback',
       entityId: inserted.id,
@@ -90,7 +102,7 @@ export async function sendFeedback(input: FeedbackInput) {
 
 export async function markFeedbackAsRead(feedbackId: string) {
   const ctx = await getActor();
-  if (!ctx || !ctx.employeeId) return { error: 'Não autenticado.' };
+  if (!ctx || !ctx.employeeId) return { error: 'NÃ£o autenticado.' };
 
   const admin = createAdminSupabaseClient();
   const { data: fb } = await admin
@@ -98,8 +110,8 @@ export async function markFeedbackAsRead(feedbackId: string) {
     .select('id, recipient_id, read_at')
     .eq('id', feedbackId)
     .maybeSingle();
-  if (!fb) return { error: 'Feedback não encontrado.' };
-  if (fb.recipient_id !== ctx.employeeId) return { error: 'Sem permissão.' };
+  if (!fb) return { error: 'Feedback nÃ£o encontrado.' };
+  if (fb.recipient_id !== ctx.employeeId) return { error: 'Sem permissÃ£o.' };
   if (fb.read_at) return { ok: true };
 
   await admin
@@ -113,8 +125,8 @@ export async function markFeedbackAsRead(feedbackId: string) {
 
 export async function deleteFeedback(feedbackId: string) {
   const ctx = await getActor();
-  if (!ctx) return { error: 'Não autenticado.' };
-  if (!canDo(ctx, 'feedbacks', 'edit')) return { error: 'Sem permissão.' };
+  if (!ctx) return { error: 'NÃ£o autenticado.' };
+  if (!canDo(ctx, 'feedbacks', 'edit')) return { error: 'Sem permissÃ£o.' };
 
   const admin = createAdminSupabaseClient();
   const now = new Date().toISOString();
@@ -124,7 +136,7 @@ export async function deleteFeedback(feedbackId: string) {
     .eq('id', feedbackId)
     .eq('company_id', ctx.companyId)
     .maybeSingle();
-  if (!fb) return { error: 'Feedback não encontrado.' };
+  if (!fb) return { error: 'Feedback nÃ£o encontrado.' };
 
   await admin
     .from('feedbacks')
@@ -145,4 +157,15 @@ export async function deleteFeedback(feedbackId: string) {
     revalidatePath(`/colaboradores/${fb.recipient_id}`);
   }
   return { ok: true };
+}
+
+export async function loadCompanyFeedbacksPage(input: LoadCompanyFeedbacksPageInput = {}) {
+  const ctx = await getActor();
+  if (!ctx) return { error: 'Nao autenticado.' };
+  if (!canDo(ctx, 'feedbacks', 'view')) return { error: 'Sem permissao.' };
+
+  const parsed = LoadCompanyFeedbacksPageInputSchema.safeParse(input);
+  if (!parsed.success) return { error: 'Filtros invalidos.' };
+
+  return listCompanyFeedbacksPage(ctx.companyId, parsed.data);
 }

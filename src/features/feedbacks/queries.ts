@@ -17,6 +17,23 @@ export type FeedbackRow = {
   competency: { id: string; name: string } | null;
 };
 
+export type FeedbackPeriodFilter = 'all' | '30d' | '6m' | '1y';
+
+export type ListCompanyFeedbacksPageInput = {
+  page?: number;
+  pageSize?: number;
+  typeFilter?: string[];
+  competencyFilter?: string[];
+  period?: FeedbackPeriodFilter;
+};
+
+export type CompanyFeedbacksPage = {
+  rows: FeedbackRow[];
+  page: number;
+  pageSize: number;
+  hasMore: boolean;
+};
+
 const BASE_SELECT = `
   id, company_id, sender_id, recipient_id, type, competency_id, message, visibility,
   read_at, created_at, deleted_at,
@@ -24,6 +41,15 @@ const BASE_SELECT = `
   recipient:employees!recipient_id(id, full_name, status, position:positions(id, name)),
   competency:competencies(id, name)
 `;
+
+const NO_COMPETENCY_FILTER_VALUE = '__none__';
+const DEFAULT_PAGE_SIZE = 20;
+const MAX_PAGE_SIZE = 50;
+const PERIOD_DAYS: Record<Exclude<FeedbackPeriodFilter, 'all'>, number> = {
+  '30d': 30,
+  '6m': 183,
+  '1y': 365,
+};
 
 export async function listMyReceivedFeedbacks(employeeId: string): Promise<FeedbackRow[]> {
   const supabase = await createServerSupabaseClient();
@@ -59,15 +85,57 @@ export async function listTeamFeedbacks(descendantIds: string[]): Promise<Feedba
   return (data ?? []) as unknown as FeedbackRow[];
 }
 
-export async function listCompanyFeedbacks(companyId: string): Promise<FeedbackRow[]> {
+export async function listCompanyFeedbacksPage(
+  companyId: string,
+  input: ListCompanyFeedbacksPageInput = {},
+): Promise<CompanyFeedbacksPage> {
   const supabase = await createServerSupabaseClient();
-  const { data } = await supabase
+  const page = Math.max(0, Math.trunc(input.page ?? 0));
+  const pageSize = Math.min(MAX_PAGE_SIZE, Math.max(1, Math.trunc(input.pageSize ?? DEFAULT_PAGE_SIZE)));
+  const typeFilter = Array.from(new Set(input.typeFilter ?? [])).filter(Boolean);
+  const competencyFilter = Array.from(new Set(input.competencyFilter ?? [])).filter(Boolean);
+  const period = input.period ?? 'all';
+
+  let query = supabase
     .from('feedbacks')
     .select(BASE_SELECT)
     .eq('company_id', companyId)
     .is('deleted_at', null)
     .order('created_at', { ascending: false });
-  return (data ?? []) as unknown as FeedbackRow[];
+
+  if (typeFilter.length > 0) {
+    query = query.in('type', typeFilter);
+  }
+
+  if (competencyFilter.length > 0) {
+    const competencyIds = competencyFilter.filter((value) => value !== NO_COMPETENCY_FILTER_VALUE);
+    const includesNone = competencyFilter.includes(NO_COMPETENCY_FILTER_VALUE);
+    if (includesNone && competencyIds.length > 0) {
+      query = query.or(`competency_id.is.null,competency_id.in.(${competencyIds.join(',')})`);
+    } else if (includesNone) {
+      query = query.is('competency_id', null);
+    } else {
+      query = query.in('competency_id', competencyIds);
+    }
+  }
+
+  if (period !== 'all') {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - PERIOD_DAYS[period]);
+    query = query.gte('created_at', cutoff.toISOString());
+  }
+
+  const from = page * pageSize;
+  const to = from + pageSize;
+  const { data } = await query.range(from, to);
+  const rows = (data ?? []) as unknown as FeedbackRow[];
+
+  return {
+    rows: rows.slice(0, pageSize),
+    page,
+    pageSize,
+    hasMore: rows.length > pageSize,
+  };
 }
 
 export async function listFeedbacksForEmployee(employeeId: string): Promise<FeedbackRow[]> {

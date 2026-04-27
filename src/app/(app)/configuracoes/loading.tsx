@@ -1,14 +1,5 @@
-﻿import { Skeleton } from '@/components/ui/skeleton';
+import { RouteLoadingSkeleton } from '@/components/RouteLoadingSkeleton';
 
-export default function LoadingConfiguracoesFallback() {
-  return (
-    <div className="space-y-4">
-      <Skeleton className="h-8 w-44" />
-      <div className="space-y-3 rounded-lg border bg-card p-4">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} className="h-10 w-full" />
-        ))}
-      </div>
-    </div>
-  );
+export default function Loading() {
+  return <RouteLoadingSkeleton variant="list" />;
 }
