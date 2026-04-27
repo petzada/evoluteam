@@ -1,5 +1,6 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { getEmployeeDescendants } from '@/features/employees/queries';
+import { cache } from 'react';
 
 export type CycleRow = {
   id: string;
@@ -176,19 +177,59 @@ export async function getAssignmentAnswers(assignmentId: string) {
   return data ?? [];
 }
 
-export async function getCycleProgress(cycleId: string) {
+export type CycleProgress = {
+  total: number;
+  submitted: number;
+  inProgress: number;
+  pending: number;
+  cancelled: number;
+};
+
+const EMPTY_CYCLE_PROGRESS: CycleProgress = {
+  total: 0,
+  submitted: 0,
+  inProgress: 0,
+  pending: 0,
+  cancelled: 0,
+};
+
+const getCycleProgressMapCached = cache(async (cycleIdsKey: string): Promise<Map<string, CycleProgress>> => {
+  const cycleIds = cycleIdsKey ? cycleIdsKey.split(',') : [];
+  if (cycleIds.length === 0) return new Map();
+
   const supabase = await createServerSupabaseClient();
   const { data } = await supabase
     .from('review_assignments')
-    .select('status')
-    .eq('cycle_id', cycleId);
-  const rows = data ?? [];
-  const total = rows.length;
-  const submitted = rows.filter((r) => r.status === 'submitted').length;
-  const inProgress = rows.filter((r) => r.status === 'in_progress').length;
-  const pending = rows.filter((r) => r.status === 'pending').length;
-  const cancelled = rows.filter((r) => r.status === 'cancelled').length;
-  return { total, submitted, inProgress, pending, cancelled };
+    .select('cycle_id, status')
+    .in('cycle_id', cycleIds);
+
+  const result = new Map<string, CycleProgress>();
+  for (const id of cycleIds) {
+    result.set(id, { ...EMPTY_CYCLE_PROGRESS });
+  }
+
+  for (const row of data ?? []) {
+    const progress = result.get(row.cycle_id);
+    if (!progress) continue;
+    progress.total += 1;
+    if (row.status === 'submitted') progress.submitted += 1;
+    else if (row.status === 'in_progress') progress.inProgress += 1;
+    else if (row.status === 'pending') progress.pending += 1;
+    else if (row.status === 'cancelled') progress.cancelled += 1;
+  }
+
+  return result;
+});
+
+export function getCycleProgressMap(cycleIds: readonly string[]): Promise<Map<string, CycleProgress>> {
+  if (cycleIds.length === 0) return Promise.resolve(new Map());
+  const normalizedIds = Array.from(new Set(cycleIds));
+  return getCycleProgressMapCached(normalizedIds.join(','));
+}
+
+export async function getCycleProgress(cycleId: string): Promise<CycleProgress> {
+  const map = await getCycleProgressMap([cycleId]);
+  return map.get(cycleId) ?? { ...EMPTY_CYCLE_PROGRESS };
 }
 
 export type CompetencyScore = {

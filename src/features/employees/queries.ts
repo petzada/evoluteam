@@ -1,4 +1,5 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { cache } from 'react';
 
 export async function listEmployees(
   companyId: string,
@@ -78,31 +79,39 @@ export async function getEmployee(
   return data as unknown as EmployeeFullRecord;
 }
 
-export async function getPositions(companyId: string, opts: { includeArchived?: boolean } = {}) {
+const _getPositionsCached = cache(async (companyId: string, includeArchived: boolean) => {
   const supabase = await createServerSupabaseClient();
   let query = supabase
     .from('positions')
     .select('id, name, is_archived')
     .eq('company_id', companyId)
     .order('name');
-  if (!opts.includeArchived) query = query.eq('is_archived', false);
+  if (!includeArchived) query = query.eq('is_archived', false);
   const { data } = await query;
   return data ?? [];
+});
+
+export function getPositions(companyId: string, opts: { includeArchived?: boolean } = {}) {
+  return _getPositionsCached(companyId, opts.includeArchived ?? false);
 }
 
-export async function getDepartments(companyId: string, opts: { includeArchived?: boolean } = {}) {
+const _getDepartmentsCached = cache(async (companyId: string, includeArchived: boolean) => {
   const supabase = await createServerSupabaseClient();
   let query = supabase
     .from('departments')
     .select('id, name, is_archived')
     .eq('company_id', companyId)
     .order('name');
-  if (!opts.includeArchived) query = query.eq('is_archived', false);
+  if (!includeArchived) query = query.eq('is_archived', false);
   const { data } = await query;
   return data ?? [];
+});
+
+export function getDepartments(companyId: string, opts: { includeArchived?: boolean } = {}) {
+  return _getDepartmentsCached(companyId, opts.includeArchived ?? false);
 }
 
-export async function getCompanyProfileRoles(companyId: string) {
+export const getCompanyProfileRoles = cache(async (companyId: string) => {
   const supabase = await createServerSupabaseClient();
   const { data } = await supabase
     .from('profiles')
@@ -113,7 +122,7 @@ export async function getCompanyProfileRoles(companyId: string) {
     map[p.id] = p.role as 'admin_rh' | 'director' | 'user';
   }
   return map;
-}
+});
 
 export async function getProfile(userId: string) {
   const supabase = await createServerSupabaseClient();
@@ -135,11 +144,11 @@ export async function getEmployeeByUserId(userId: string) {
   return data;
 }
 
-export async function getEmployeeDescendants(employeeId: string) {
+export const getEmployeeDescendants = cache(async (employeeId: string) => {
   const supabase = await createServerSupabaseClient();
   const { data } = await supabase.rpc('get_employee_descendants', { root_id: employeeId });
   return (data ?? []).map((x) => x.id);
-}
+});
 
 export async function getEmployeeAncestors(employeeId: string) {
   const supabase = await createServerSupabaseClient();

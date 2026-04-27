@@ -1,5 +1,5 @@
 import {
-  listCycles, getCycleProgress, getAssignmentsForReviewer,
+  listCycles, getCycleProgressMap, getAssignmentsForReviewer,
   listCycleIdsInvolvingEmployee,
 } from '@/features/reviews/queries';
 import { CyclesList, type AssignmentForUser } from '@/features/reviews/components/CyclesList';
@@ -21,10 +21,7 @@ export default async function AvaliacoesPage() {
   }
 
   const cycles = await listCycles(profile.company_id, { scopedIds, includeArchived: true });
-  const progressPairs = await Promise.all(
-    cycles.map(async (c) => [c.id, await getCycleProgress(c.id)] as const),
-  );
-  const progressById = new Map(progressPairs);
+  const progressById = await getCycleProgressMap(cycles.map((c) => c.id));
   const cyclesWithProgress = cycles.map((c) => ({
     ...c,
     progress: progressById.get(c.id),

@@ -1,4 +1,5 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { cache } from 'react';
 import type { JobOpeningStatus, JobOpeningEmploymentType, JobOpeningWorkplaceType } from '../schema';
 import type { PipelineSnapshotStage } from '../pipeline-snapshot';
 
@@ -83,7 +84,7 @@ export type HiringManagerOption = {
  * Lista employees elegíveis como hiring_manager em formulários de vaga.
  * Por ora, retorna todos employees ativos da company.
  */
-export async function listHiringManagerOptions(companyId: string): Promise<HiringManagerOption[]> {
+export const listHiringManagerOptions = cache(async (companyId: string): Promise<HiringManagerOption[]> => {
   const supabase = await createServerSupabaseClient();
   const { data } = await supabase
     .from('employees')
@@ -92,7 +93,7 @@ export async function listHiringManagerOptions(companyId: string): Promise<Hirin
     .eq('status', 'active')
     .order('full_name', { ascending: true });
   return (data ?? []) as HiringManagerOption[];
-}
+});
 
 export async function hasOpenJobAsHiringManager(
   companyId: string,
