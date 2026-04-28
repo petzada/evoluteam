@@ -240,7 +240,7 @@ export async function getFunnel(f: MetricsFilter): Promise<FunnelStageRow[]> {
   // Filtra pelo company + escopo de vaga/candidato (applications permitidas)
   let appsQ = supabase
     .from('job_applications')
-    .select('id, status')
+    .select('id, status, updated_at')
     .eq('company_id', f.companyId);
   if (jobIds) appsQ = appsQ.in('job_opening_id', jobIds);
   if (candidateIds) appsQ = appsQ.in('candidate_id', candidateIds);
@@ -256,6 +256,26 @@ export async function getFunnel(f: MetricsFilter): Promise<FunnelStageRow[]> {
     const set = perStage.get(h.to_stage_id) ?? new Set<string>();
     set.add(h.application_id);
     perStage.set(h.to_stage_id, set);
+  }
+
+  // Para a etapa terminal de contratado, alinhamos o recorte temporal com
+  // o card de origens (job_applications.updated_at).
+  const { data: stageKinds } = await supabase
+    .from('recruitment_stages')
+    .select('id, kind')
+    .in('id', stages.map((s) => s.id));
+  const hiredTerminalStageId = stageKinds?.find((s) => s.kind === 'hired_terminal')?.id ?? null;
+  if (hiredTerminalStageId) {
+    const hiredInPeriod = new Set<string>();
+    for (const app of appsOfCompany ?? []) {
+      if ((app.status as string) !== 'hired') continue;
+      const updatedAt = new Date(app.updated_at as string);
+      if (Number.isNaN(updatedAt.getTime())) continue;
+      if (f.from && updatedAt < f.from) continue;
+      if (f.to && updatedAt > f.to) continue;
+      hiredInPeriod.add(app.id);
+    }
+    perStage.set(hiredTerminalStageId, hiredInPeriod);
   }
 
   // Cria mapa stageId -> position pra comparar "avanços"

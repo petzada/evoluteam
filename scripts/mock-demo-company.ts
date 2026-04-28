@@ -1040,8 +1040,10 @@ async function seedRecruitment(
     const id = randomUUID();
     const fullName = faker.person.fullName();
     const source = candidateSource();
-    const createdAt = randDateBetween(addDays(ANCHOR_DATE, -95), addDays(ANCHOR_DATE, -8));
     const hiredIndex = hiredSlotIndices.indexOf(index);
+    const createdAt = hiredIndex >= 0
+      ? addDays(ANCHOR_DATE, -24 + (hiredIndex * 2))
+      : randDateBetween(addDays(ANCHOR_DATE, -95), addDays(ANCHOR_DATE, -8));
     return {
       id,
       stageName,
