@@ -168,7 +168,7 @@ Legenda: **MANTER** = elemento atual fica como está · **REMOVER** = corte expl
 
 ### Footer
 - **MANTER** branco com `border-t border-outline-variant`
-- **MANTER** layout 4 colunas (`md:grid-cols-4`): brand `col-span-2` + 3 colunas de `footerColumns` (Produto / Empresa / Legal)
+- **MUDAR** layout para 4 colunas iguais (`md:grid-cols-4`): brand · Produto · Empresa · Legal (sem `col-span-2` no brand)
 - **MANTER** headings semibold das 3 colunas
 - **MANTER** bottom bar com separador `border-t` contendo copyright à esquerda + email à direita
 - **MUDAR** logo: Georgia → Newsreader
@@ -183,12 +183,18 @@ Legenda: **MANTER** = elemento atual fica como está · **REMOVER** = corte expl
 - `src/app/globals.css` — confirmar token `--color-outline-variant` existe; adicionar se faltar
 
 **Componentes:**
-- `src/features/landing/LandingPage.tsx` — refator orquestral (estrutura de seções, fundos, espaçamentos, fontes serif, cortes listados acima)
+- `src/features/landing/LandingPage.tsx` — refator orquestral (estrutura de seções, fundos, espaçamentos, fontes serif, cortes listados acima, footer 4 colunas iguais)
 - `src/features/landing/components/LandingHeader.tsx` — Newsreader no logo, CTA `bg-[#0a0a0a]`, remover setinha do CTA
-- `src/features/landing/components/ProductMockups.tsx` — sem mudanças internas; o wrapper duplicado fica em `LandingPage.tsx` envolvendo Feedback/Review
+- `src/features/landing/components/ProductMockups.tsx` — substituído por `next/image` apontando para `public/landing/mockups/{Hero,Feedback,Review,Pdi}Mockup.webp`; wrappers externos com border + shadow continuam em `LandingPage.tsx`
 - `src/features/landing/components/LeadForm.tsx` — CTA submit preto
 - `src/features/landing/components/FaqAccordion.tsx` — refino visual (bordas)
 - `src/features/landing/content.ts` — atualizar email mailto de "Contato" para `marcio@marct.co`
+
+**Assets:**
+- `public/landing/mockups/HeroProductMockup.webp` — print do dashboard (~1295×804)
+- `public/landing/mockups/FeedbackMockup.webp` — print da tela de novo feedback (~1297×807)
+- `public/landing/mockups/ReviewMockup.webp` — print da tela de avaliação (~1294×806)
+- `public/landing/mockups/PdiMockup.webp` — print da tela de PDI (~1296×808)
 
 **Não tocar:**
 - Lógica de auth/redirect em `src/app/page.tsx`

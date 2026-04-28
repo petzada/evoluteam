@@ -328,8 +328,8 @@ export function LandingPage() {
       </main>
 
       <footer className="border-t border-outline-variant bg-white">
-        <div className="mx-auto grid max-w-[1200px] gap-12 px-6 py-16 md:grid-cols-4 md:px-12">
-          <div className="md:col-span-2">
+        <div className="mx-auto grid max-w-[1200px] gap-12 px-6 py-16 sm:grid-cols-2 md:grid-cols-4 md:px-12">
+          <div>
             <p className="font-serif-landing text-2xl font-bold tracking-tighter text-slate-950">evoluteam</p>
           </div>
           {footerColumns.map((column) => (
