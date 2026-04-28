@@ -16,6 +16,60 @@ interface Props {
   data: Datum[];
 }
 
+const MAX_CHARS_PER_LINE = 12;
+const MAX_LINES = 2;
+
+function wrapLabel(raw: string): string[] {
+  const words = raw.split(/\s+/).filter(Boolean);
+  const lines: string[] = [];
+  let current = '';
+  for (const word of words) {
+    const candidate = current ? `${current} ${word}` : word;
+    if (candidate.length <= MAX_CHARS_PER_LINE) {
+      current = candidate;
+      continue;
+    }
+    if (current) lines.push(current);
+    current = word;
+    if (lines.length === MAX_LINES - 1 && current.length > MAX_CHARS_PER_LINE) {
+      // sobra cabe na última linha — vamos truncar lá embaixo
+      break;
+    }
+  }
+  if (current) lines.push(current);
+  // trunca a última linha se ainda exceder
+  if (lines.length > 0) {
+    const lastIdx = Math.min(lines.length, MAX_LINES) - 1;
+    if (lines[lastIdx].length > MAX_CHARS_PER_LINE) {
+      lines[lastIdx] = `${lines[lastIdx].slice(0, MAX_CHARS_PER_LINE - 1)}…`;
+    }
+  }
+  return lines.slice(0, MAX_LINES);
+}
+
+interface TickProps {
+  x?: number;
+  y?: number;
+  payload?: { value: string };
+}
+
+function MultilineTick({ x = 0, y = 0, payload }: TickProps) {
+  const value = payload?.value ?? '';
+  const lines = wrapLabel(value);
+  return (
+    <g transform={`translate(${x},${y + 8})`}>
+      <title>{value}</title>
+      <text textAnchor="middle" fill="currentColor" fontSize={11}>
+        {lines.map((line, i) => (
+          <tspan key={i} x={0} dy={i === 0 ? 0 : 12}>
+            {line}
+          </tspan>
+        ))}
+      </text>
+    </g>
+  );
+}
+
 export function DepartmentBarsChart({ data }: Props) {
   const router = useRouter();
 
@@ -35,16 +89,17 @@ export function DepartmentBarsChart({ data }: Props) {
       <ResponsiveContainer width="100%" height="100%">
         <BarChart
           data={chartData}
-          margin={{ top: 16, right: 16, bottom: 24, left: 8 }}
+          margin={{ top: 16, right: 16, bottom: 36, left: 8 }}
           barCategoryGap={12}
         >
           <XAxis
             type="category"
             dataKey="name"
-            tick={{ fontSize: 11 }}
+            tick={<MultilineTick />}
             interval={0}
             axisLine={false}
             tickLine={false}
+            height={40}
           />
           <YAxis
             type="number"
