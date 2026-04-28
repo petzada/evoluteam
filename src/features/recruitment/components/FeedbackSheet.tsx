@@ -12,6 +12,7 @@ import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { onInvalidToast } from '@/lib/form';
 import {
   CandidateFeedbackInputSchema, type CandidateFeedbackInput,
   FEEDBACK_RECOMMENDATIONS, FEEDBACK_RECOMMENDATION_LABELS,
@@ -47,6 +48,8 @@ export function FeedbackSheet({ open, onOpenChange, context, initial }: Props) {
 
   const form = useForm<CandidateFeedbackInput>({
     resolver: zodResolver(CandidateFeedbackInputSchema),
+    mode: 'onSubmit',
+    reValidateMode: 'onChange',
     defaultValues: {
       content: initial?.content ?? '',
       recommendation: initial?.recommendation ?? null,
@@ -93,7 +96,7 @@ export function FeedbackSheet({ open, onOpenChange, context, initial }: Props) {
         </SheetHeader>
         <SheetBody>
           <Form {...form}>
-            <form id="recruitment-feedback-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form id="recruitment-feedback-form" onSubmit={form.handleSubmit(onSubmit, onInvalidToast(undefined, () => form.getValues()))} className="space-y-4">
             <FormField control={form.control} name="content" render={({ field }) => (
               <FormItem>
                 <FormLabel>Conteúdo *</FormLabel>

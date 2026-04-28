@@ -63,7 +63,10 @@ export function ResultCommentsSection({
 
   function handleSubmit() {
     const content = draft.trim();
-    if (!content) return;
+    if (!content) {
+      toast.error('Digite um comentário antes de publicar.');
+      return;
+    }
     startTransition(async () => {
       const r = await createResultComment({ cycleId, revieweeEmployeeId, content });
       if ('error' in r) {
@@ -84,7 +87,10 @@ export function ResultCommentsSection({
   function handleEditSave() {
     if (!editingId) return;
     const content = editDraft.trim();
-    if (!content) return;
+    if (!content) {
+      toast.error('Digite um comentário antes de salvar.');
+      return;
+    }
     startTransition(async () => {
       const r = await updateResultComment({ commentId: editingId, content });
       if ('error' in r) {
@@ -219,7 +225,7 @@ export function ResultCommentsSection({
             <span className="text-[11px] text-muted-foreground">
               Visível para: a pessoa avaliada · cadeia de gestão · Administrador · Diretores
             </span>
-            <Button size="sm" onClick={handleSubmit} disabled={pending || !draft.trim()}>
+            <Button size="sm" onClick={handleSubmit} disabled={pending}>
               {pending ? 'Publicando…' : 'Publicar'}
             </Button>
           </div>

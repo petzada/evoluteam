@@ -85,10 +85,22 @@ export function PdiActionsSection({
   }
 
   async function handleCreate() {
-    if (!title.trim() || !dueDate || !responsibleId) return;
+    const trimmedTitle = title.trim();
+    if (!trimmedTitle) {
+      toast.error('Informe o título da ação.');
+      return;
+    }
+    if (!dueDate) {
+      toast.error('Informe o prazo da ação.');
+      return;
+    }
+    if (!responsibleId) {
+      toast.error('Selecione um responsável para a ação.');
+      return;
+    }
     setSaving(true);
     const r = await addAction(planId, {
-      title: title.trim(),
+      title: trimmedTitle,
       dueDate,
       responsibleEmployeeId: responsibleId,
     });
@@ -138,10 +150,22 @@ export function PdiActionsSection({
   }
   async function saveEdit() {
     if (!editingId) return;
-    if (!editTitle.trim() || !editDueDate || !editResponsibleId) return;
+    const trimmedTitle = editTitle.trim();
+    if (!trimmedTitle) {
+      toast.error('Informe o título da ação.');
+      return;
+    }
+    if (!editDueDate) {
+      toast.error('Informe o prazo da ação.');
+      return;
+    }
+    if (!editResponsibleId) {
+      toast.error('Selecione um responsável para a ação.');
+      return;
+    }
     setSaving(true);
     const r = await updateAction(editingId, {
-      title: editTitle.trim(),
+      title: trimmedTitle,
       dueDate: editDueDate,
       responsibleEmployeeId: editResponsibleId,
     });
@@ -236,7 +260,7 @@ export function PdiActionsSection({
           </div>
           <div className="flex justify-end gap-2">
             <Button variant="ghost" size="sm" onClick={resetForm} disabled={saving}>Cancelar</Button>
-            <Button size="sm" onClick={handleCreate} disabled={saving || !title.trim() || !dueDate || !responsibleId}>
+            <Button size="sm" onClick={handleCreate} disabled={saving}>
               {saving ? 'Salvando…' : 'Adicionar'}
             </Button>
           </div>
@@ -321,7 +345,7 @@ export function PdiActionsSection({
                     <Button
                       size="sm"
                       onClick={saveEdit}
-                      disabled={saving || !editTitle.trim() || !editDueDate || !editResponsibleId}
+                      disabled={saving}
                     >
                       {saving ? 'Salvando…' : 'Salvar'}
                     </Button>

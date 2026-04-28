@@ -29,13 +29,19 @@ export function PdiHeaderEditForm({ plan, competencies, cycles, onClose }: Props
   const availableCompetencies = competencies;
 
   async function handleSave() {
-    if (objective.trim().length < 10) {
-      toast.error('Objetivo deve ter pelo menos 10 caracteres.');
+    const trimmedObjective = objective.trim();
+    if (trimmedObjective.length < 10) {
+      const remaining = 10 - trimmedObjective.length;
+      toast.error(`Objetivo deve ter pelo menos 10 caracteres (faltam ${remaining}).`);
+      return;
+    }
+    if (!dueDate) {
+      toast.error('Informe o prazo do PDI.');
       return;
     }
     setSaving(true);
     const r = await updatePdiHeader(plan.id, {
-      objective: objective.trim(),
+      objective: trimmedObjective,
       dueDate,
       competencyId: competencyId === '__none__' ? null : competencyId,
       cycleId: cycleId === '__none__' ? null : cycleId,
@@ -106,7 +112,7 @@ export function PdiHeaderEditForm({ plan, competencies, cycles, onClose }: Props
       </div>
       <div className="flex justify-end gap-2">
         <Button variant="ghost" size="sm" onClick={onClose} disabled={saving}>Cancelar</Button>
-        <Button size="sm" onClick={handleSave} disabled={saving || objective.trim().length < 10 || !dueDate}>
+        <Button size="sm" onClick={handleSave} disabled={saving}>
           {saving ? 'Salvando…' : 'Salvar'}
         </Button>
       </div>

@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { onInvalidToast } from '@/lib/form';
 import { OnboardingStep2Schema, type OnboardingStep2Input } from '../schema';
 
 interface Props {
@@ -16,6 +17,8 @@ interface Props {
 export function OnboardingStep2Profile({ defaultValues, onNext, onBack }: Props) {
   const form = useForm<OnboardingStep2Input>({
     resolver: zodResolver(OnboardingStep2Schema),
+    mode: 'onSubmit',
+    reValidateMode: 'onChange',
     defaultValues: {
       fullName: '',
       positionName: '',
@@ -28,7 +31,7 @@ export function OnboardingStep2Profile({ defaultValues, onNext, onBack }: Props)
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onNext)} className="space-y-4">
+      <form onSubmit={form.handleSubmit(onNext, onInvalidToast(undefined, () => form.getValues()))} className="space-y-4">
         <FormField control={form.control} name="fullName" render={({ field }) => (
           <FormItem>
             <FormLabel>Seu nome completo *</FormLabel>

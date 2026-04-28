@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
+import { onInvalidToast } from '@/lib/form';
 import {
   JobOpeningInputSchema, type JobOpeningInput,
   JOB_OPENING_EMPLOYMENT_TYPES, JOB_OPENING_WORKPLACE_TYPES,
@@ -105,6 +106,8 @@ export function JobOpeningSheet({
 
   const form = useForm<JobOpeningInput>({
     resolver: zodResolver(JobOpeningInputSchema),
+    mode: 'onSubmit',
+    reValidateMode: 'onChange',
     defaultValues: defaultsFor(initial),
   });
 
@@ -141,7 +144,7 @@ export function JobOpeningSheet({
         </SheetHeader>
         <SheetBody>
           <Form {...form}>
-            <form id="job-opening-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form id="job-opening-form" onSubmit={form.handleSubmit(onSubmit, onInvalidToast(undefined, () => form.getValues()))} className="space-y-4">
             <FormField
               control={form.control}
               name="title"
@@ -410,7 +413,7 @@ export function JobOpeningSheet({
             <Button
               type="button"
               onClick={() => void createDepartment()}
-              disabled={creatingDepartment || newDepartmentName.trim().length < 2}
+              disabled={creatingDepartment}
             >
               {creatingDepartment ? 'Criando…' : 'Criar'}
             </Button>
@@ -452,7 +455,7 @@ export function JobOpeningSheet({
             <Button
               type="button"
               onClick={() => void createPosition()}
-              disabled={creatingPosition || newPositionName.trim().length < 2}
+              disabled={creatingPosition}
             >
               {creatingPosition ? 'Criando…' : 'Criar'}
             </Button>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { toast } from 'sonner';
 import { ArrowDown, ArrowUp, Pencil, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -59,7 +60,11 @@ export function Step4Form({ competencies, value, onChange, onBack, onNext }: Pro
 
   function saveEditing() {
     if (!editing) return;
-    if (editing.draft.questionText.trim().length < 3) return;
+    if (editing.draft.questionText.trim().length < 3) {
+      const remaining = 3 - editing.draft.questionText.trim().length;
+      toast.error(`A pergunta deve ter pelo menos 3 caracteres (faltam ${remaining}).`);
+      return;
+    }
     const next = [...value];
     next[editing.index] = editing.draft;
     onChange(next.map((q, i) => ({ ...q, questionOrder: i })));
@@ -220,7 +225,7 @@ export function Step4Form({ competencies, value, onChange, onBack, onNext }: Pro
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditing(null)}>Cancelar</Button>
-            <Button onClick={saveEditing} disabled={!editing?.draft.questionText.trim() || editing.draft.questionText.trim().length < 3}>
+            <Button onClick={saveEditing}>
               Salvar
             </Button>
           </DialogFooter>

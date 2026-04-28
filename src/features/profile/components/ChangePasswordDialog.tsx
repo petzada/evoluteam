@@ -11,6 +11,7 @@ import {
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { onInvalidToast } from '@/lib/form';
 import { changePassword } from '../actions';
 
 const Schema = z.object({
@@ -29,6 +30,8 @@ export function ChangePasswordDialog() {
 
   const form = useForm<FormInput>({
     resolver: zodResolver(Schema),
+    mode: 'onSubmit',
+    reValidateMode: 'onChange',
     defaultValues: { password: '', confirmPassword: '' },
   });
 
@@ -54,7 +57,7 @@ export function ChangePasswordDialog() {
           <DialogTitle>Alterar senha</DialogTitle>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 mt-2">
+          <form onSubmit={form.handleSubmit(onSubmit, onInvalidToast(undefined, () => form.getValues()))} className="space-y-4 mt-2">
             <FormField control={form.control} name="password" render={({ field }) => (
               <FormItem>
                 <FormLabel>Nova senha</FormLabel>

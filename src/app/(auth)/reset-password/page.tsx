@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { onInvalidToast } from '@/lib/form';
 import { ResetPasswordSchema, type ResetPasswordInput } from '@/features/auth/schema';
 import { resetPassword } from '@/features/auth/actions';
 
@@ -17,6 +18,8 @@ export default function ResetPasswordPage() {
 
   const form = useForm<ResetPasswordInput>({
     resolver: zodResolver(ResetPasswordSchema),
+    mode: 'onSubmit',
+    reValidateMode: 'onChange',
     defaultValues: { password: '', confirmPassword: '' },
   });
 
@@ -37,7 +40,7 @@ export default function ResetPasswordPage() {
       <h2 className="mb-8 text-2xl font-semibold tracking-tight text-slate-950">Nova senha</h2>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={form.handleSubmit(onSubmit, onInvalidToast(undefined, () => form.getValues()))} className="space-y-4">
           <FormField control={form.control} name="password" render={({ field }) => (
             <FormItem>
               <FormLabel>Nova senha</FormLabel>

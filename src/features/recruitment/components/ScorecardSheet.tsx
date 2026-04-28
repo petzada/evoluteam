@@ -13,6 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { onInvalidToast } from '@/lib/form';
 import {
   ScorecardInputSchema, type ScorecardInput,
   SCORECARD_DIMENSION_LABELS, SALARY_EXPECTATIONS, SALARY_EXPECTATION_LABELS,
@@ -70,6 +71,8 @@ export function ScorecardSheet({ open, onOpenChange, context, initial }: Props) 
 
   const form = useForm<ScorecardInput>({
     resolver: zodResolver(ScorecardInputSchema),
+    mode: 'onSubmit',
+    reValidateMode: 'onChange',
     defaultValues: defaultsFor(initial),
   });
 
@@ -113,7 +116,7 @@ export function ScorecardSheet({ open, onOpenChange, context, initial }: Props) 
         </SheetHeader>
         <SheetBody>
           <Form {...form}>
-            <form id="scorecard-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+            <form id="scorecard-form" onSubmit={form.handleSubmit(onSubmit, onInvalidToast(undefined, () => form.getValues()))} className="space-y-5">
             <section className="space-y-3">
               <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                 Ratings (1–5)

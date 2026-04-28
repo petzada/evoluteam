@@ -14,6 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import { onInvalidToast } from '@/lib/form';
 import {
   FeedbackInputSchema,
   FEEDBACK_TYPES, FEEDBACK_VISIBILITIES,
@@ -56,6 +57,8 @@ export function FeedbackSheet({
 
   const form = useForm<FeedbackInput>({
     resolver: zodResolver(FeedbackInputSchema),
+    mode: 'onSubmit',
+    reValidateMode: 'onChange',
     defaultValues: EMPTY_DEFAULTS,
   });
 
@@ -121,7 +124,7 @@ export function FeedbackSheet({
 
         <SheetBody>
           <Form {...form}>
-            <form id="feedback-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+            <form id="feedback-form" onSubmit={form.handleSubmit(onSubmit, onInvalidToast(undefined, () => form.getValues()))} className="space-y-5">
               <FormField control={form.control} name="recipientId" render={({ field }) => (
                 <FormItem className="min-w-0">
                   <FormLabel>Para quem *</FormLabel>
@@ -312,7 +315,7 @@ export function FeedbackSheet({
           <Button
             type="submit"
             form="feedback-form"
-            disabled={loading || !recipientId || message.trim().length < 20}
+            disabled={loading}
           >
             {loading ? 'Enviando…' : 'Enviar feedback'}
           </Button>

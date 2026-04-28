@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { onInvalidToast } from '@/lib/form';
 import { LoginSchema, type LoginInput } from '@/features/auth/schema';
 import { signIn } from '@/features/auth/actions';
 
@@ -16,6 +17,8 @@ export default function LoginPage() {
 
   const form = useForm<LoginInput>({
     resolver: zodResolver(LoginSchema),
+    mode: 'onSubmit',
+    reValidateMode: 'onChange',
     defaultValues: { email: '', password: '', rememberMe: true },
   });
 
@@ -34,7 +37,7 @@ export default function LoginPage() {
       <h2 className="mb-8 text-2xl font-semibold tracking-tight text-slate-950">Entrar</h2>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={form.handleSubmit(onSubmit, onInvalidToast(undefined, () => form.getValues()))} className="space-y-4">
           <FormField control={form.control} name="email" render={({ field }) => (
             <FormItem>
               <FormLabel>E-mail</FormLabel>

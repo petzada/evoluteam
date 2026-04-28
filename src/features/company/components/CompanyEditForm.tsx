@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -8,6 +8,7 @@ import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { onInvalidToast } from '@/lib/form';
 import { CompanySchema, type CompanyInput, SEGMENTS, TEAM_SIZES } from '../schema';
 import { updateCompany } from '../actions';
 
@@ -21,6 +22,8 @@ export function CompanyEditForm({ defaultValues, readOnly = false }: Props) {
 
   const form = useForm<CompanyInput>({
     resolver: zodResolver(CompanySchema),
+    mode: 'onSubmit',
+    reValidateMode: 'onChange',
     defaultValues,
   });
 
@@ -46,7 +49,7 @@ export function CompanyEditForm({ defaultValues, readOnly = false }: Props) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 max-w-lg">
+      <form onSubmit={form.handleSubmit(onSubmit, onInvalidToast(undefined, () => form.getValues()))} className="space-y-4 max-w-lg">
         {readOnly && (
           <p className="rounded-md border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
             Voce tem acesso de auditoria nesta tela. Edicao de empresa e exclusiva de Administrador.

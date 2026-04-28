@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { onInvalidToast } from '@/lib/form';
 import {
   CandidateInputSchema, type CandidateInput,
   CANDIDATE_SOURCES, CANDIDATE_SOURCE_LABELS,
@@ -58,6 +59,8 @@ export function CandidateSheet({ open, onOpenChange, initial, redirectAfterCreat
 
   const form = useForm<CandidateInput>({
     resolver: zodResolver(CandidateInputSchema),
+    mode: 'onSubmit',
+    reValidateMode: 'onChange',
     defaultValues: defaultsFor(initial),
   });
 
@@ -96,7 +99,7 @@ export function CandidateSheet({ open, onOpenChange, initial, redirectAfterCreat
         </SheetHeader>
         <SheetBody>
           <Form {...form}>
-            <form id="candidate-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form id="candidate-form" onSubmit={form.handleSubmit(onSubmit, onInvalidToast(undefined, () => form.getValues()))} className="space-y-4">
             <FormField control={form.control} name="name" render={({ field }) => (
               <FormItem>
                 <FormLabel>Nome *</FormLabel>

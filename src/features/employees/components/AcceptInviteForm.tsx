@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { onInvalidToast } from '@/lib/form';
 import { acceptInvite } from '../actions';
 import { signIn } from '@/features/auth/actions';
 
@@ -34,6 +35,8 @@ export function AcceptInviteForm({ token, companyName, prefillName, prefillEmail
 
   const form = useForm<FormInput>({
     resolver: zodResolver(Schema),
+    mode: 'onSubmit',
+    reValidateMode: 'onChange',
     defaultValues: { fullName: prefillName, password: '', confirmPassword: '' },
   });
 
@@ -65,7 +68,7 @@ export function AcceptInviteForm({ token, companyName, prefillName, prefillEmail
       </div>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={form.handleSubmit(onSubmit, onInvalidToast(undefined, () => form.getValues()))} className="space-y-4">
           <FormField control={form.control} name="fullName" render={({ field }) => (
             <FormItem>
               <FormLabel>Nome completo</FormLabel>

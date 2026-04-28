@@ -32,7 +32,10 @@ export function PdiCommentsSection({
   const [saving, setSaving] = useState(false);
 
   async function handleSubmit() {
-    if (body.trim().length === 0) return;
+    if (body.trim().length === 0) {
+      toast.error('Digite um comentário antes de enviar.');
+      return;
+    }
     setSaving(true);
     const r = await addComment(planId, { body: body.trim() });
     setSaving(false);
@@ -109,7 +112,7 @@ export function PdiCommentsSection({
           />
           <div className="mt-2 flex items-center justify-between">
             <p className="text-xs text-muted-foreground">{body.length}/2000</p>
-            <Button size="sm" onClick={handleSubmit} disabled={saving || body.trim().length === 0}>
+            <Button size="sm" onClick={handleSubmit} disabled={saving}>
               {saving ? 'Enviando…' : 'Comentar'}
             </Button>
           </div>

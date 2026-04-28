@@ -84,6 +84,10 @@ export function AccessForm({
   }
 
   function handleSubmit() {
+    if (!dirty) {
+      toast('Nenhuma alteração para salvar.');
+      return;
+    }
     // Confirmacao extra se for escalada a admin_rh.
     if (role === 'admin_rh' && initialRole !== 'admin_rh') {
       setConfirmAdmin(true);
@@ -134,7 +138,7 @@ export function AccessForm({
         <Button
           type="button"
           onClick={handleSubmit}
-          disabled={!dirty || pending}
+          disabled={pending}
         >
           {pending ? 'Salvando…' : 'Salvar acesso'}
         </Button>

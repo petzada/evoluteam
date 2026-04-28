@@ -10,6 +10,7 @@ import {
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { onInvalidToast } from '@/lib/form';
 import { TaxonomyInputSchema, type TaxonomyInput } from '../schema';
 import { createTaxonomy, updateTaxonomy } from '../actions';
 
@@ -36,6 +37,8 @@ export function TaxonomySheet({ kind, open, onOpenChange, existing }: Props) {
 
   const form = useForm<TaxonomyInput>({
     resolver: zodResolver(TaxonomyInputSchema),
+    mode: 'onSubmit',
+    reValidateMode: 'onChange',
     defaultValues: { name: '' },
   });
 
@@ -71,7 +74,7 @@ export function TaxonomySheet({ kind, open, onOpenChange, existing }: Props) {
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form id="taxonomy-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form id="taxonomy-form" onSubmit={form.handleSubmit(onSubmit, onInvalidToast(undefined, () => form.getValues()))} className="space-y-4">
             <FormField control={form.control} name="name" render={({ field }) => (
               <FormItem>
                 <FormLabel>Nome *</FormLabel>

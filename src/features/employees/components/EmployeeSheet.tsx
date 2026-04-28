@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
+import { onInvalidToast } from '@/lib/form';
 import { EmployeeSchema, type EmployeeInput } from '../schema';
 import { createEmployee, updateEmployee } from '../actions';
 import { createTaxonomy } from '@/features/taxonomies/actions';
@@ -142,6 +143,8 @@ export function EmployeeSheet({
 
   const form = useForm<EmployeeInput>({
     resolver: zodResolver(EmployeeSchema),
+    mode: 'onSubmit',
+    reValidateMode: 'onChange',
     defaultValues: EMPTY_DEFAULTS,
   });
 
@@ -227,7 +230,7 @@ export function EmployeeSheet({
 
         <SheetBody>
           <Form {...form}>
-            <form id="employee-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+            <form id="employee-form" onSubmit={form.handleSubmit(onSubmit, onInvalidToast(undefined, () => form.getValues()))} className="space-y-5">
               <FormField control={form.control} name="fullName" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Nome completo *</FormLabel>
@@ -491,7 +494,7 @@ export function EmployeeSheet({
             <Button variant="outline" type="button" onClick={() => setCreateDeptOpen(false)} disabled={creatingDept}>
               Cancelar
             </Button>
-            <Button type="button" onClick={() => void createDept()} disabled={creatingDept || newDeptName.trim().length < 2}>
+            <Button type="button" onClick={() => void createDept()} disabled={creatingDept}>
               {creatingDept ? 'Criando…' : 'Criar'}
             </Button>
           </DialogFooter>
@@ -521,7 +524,7 @@ export function EmployeeSheet({
             <Button variant="outline" type="button" onClick={() => setCreatePositionOpen(false)} disabled={creatingPosition}>
               Cancelar
             </Button>
-            <Button type="button" onClick={() => void createPosition()} disabled={creatingPosition || newPositionName.trim().length < 2}>
+            <Button type="button" onClick={() => void createPosition()} disabled={creatingPosition}>
               {creatingPosition ? 'Criando…' : 'Criar'}
             </Button>
           </DialogFooter>

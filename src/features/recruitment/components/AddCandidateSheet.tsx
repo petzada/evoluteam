@@ -15,6 +15,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { onInvalidToast } from '@/lib/form';
 import {
   CandidateInputSchema, type CandidateInput,
   CANDIDATE_SOURCES, CANDIDATE_SOURCE_LABELS,
@@ -54,6 +55,8 @@ export function AddCandidateSheet({ open, onOpenChange, jobOpeningId, searchCand
 
   const form = useForm<CandidateInput>({
     resolver: zodResolver(CandidateInputSchema),
+    mode: 'onSubmit',
+    reValidateMode: 'onChange',
     defaultValues: EMPTY_DEFAULTS,
   });
   const source = useWatch({ control: form.control, name: 'source' });
@@ -128,7 +131,7 @@ export function AddCandidateSheet({ open, onOpenChange, jobOpeningId, searchCand
 
           <TabsContent value="novo" className="flex-1 overflow-y-auto px-6 py-5 mt-0">
             <Form {...form}>
-              <form id="add-candidate-form" onSubmit={form.handleSubmit(onSubmitNew)} className="space-y-4">
+              <form id="add-candidate-form" onSubmit={form.handleSubmit(onSubmitNew, onInvalidToast(undefined, () => form.getValues()))} className="space-y-4">
                 <FormField control={form.control} name="name" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Nome *</FormLabel>

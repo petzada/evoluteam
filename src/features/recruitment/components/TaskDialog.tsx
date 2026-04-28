@@ -12,6 +12,7 @@ import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { onInvalidToast } from '@/lib/form';
 import { TaskInputSchema, type TaskInput } from '../schema';
 import { createTask, updateTask } from '../actions/tasks';
 
@@ -59,6 +60,8 @@ export function TaskDialog({
 
   const form = useForm<TaskInput>({
     resolver: zodResolver(TaskInputSchema),
+    mode: 'onSubmit',
+    reValidateMode: 'onChange',
     defaultValues: defaultsFor(initial, defaultResponsibleId),
   });
 
@@ -94,7 +97,7 @@ export function TaskDialog({
           )}
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3 pt-2">
+          <form onSubmit={form.handleSubmit(onSubmit, onInvalidToast(undefined, () => form.getValues()))} className="space-y-3 pt-2">
             <FormField control={form.control} name="title" render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-xs">O que precisa ser feito? *</FormLabel>

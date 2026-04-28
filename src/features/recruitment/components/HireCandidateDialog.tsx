@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { statusClass } from '@/lib/status-colors';
+import { onInvalidToast } from '@/lib/form';
 import { HireCandidateInputSchema, type HireCandidateInput } from '../schema';
 import { hireCandidate, type HireEligibility } from '../actions/hire';
 
@@ -70,6 +71,8 @@ function HireCandidateDialogInner({
 
   const form = useForm<HireCandidateInput>({
     resolver: zodResolver(HireCandidateInputSchema),
+    mode: 'onSubmit',
+    reValidateMode: 'onChange',
     defaultValues: defaultsFor(context, null),
   });
 
@@ -120,7 +123,7 @@ function HireCandidateDialogInner({
             </DialogHeader>
 
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-2">
+              <form onSubmit={form.handleSubmit(onSubmit, onInvalidToast(undefined, () => form.getValues()))} className="space-y-4 pt-2">
                 <section className="space-y-2">
                   <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                     Dados pessoais

@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { onInvalidToast } from '@/lib/form';
 import { ForgotPasswordSchema, type ForgotPasswordInput } from '@/features/auth/schema';
 import { requestPasswordReset } from '@/features/auth/actions';
 
@@ -16,6 +17,8 @@ export default function ForgotPasswordPage() {
 
   const form = useForm<ForgotPasswordInput>({
     resolver: zodResolver(ForgotPasswordSchema),
+    mode: 'onSubmit',
+    reValidateMode: 'onChange',
     defaultValues: { email: '' },
   });
 
@@ -46,7 +49,7 @@ export default function ForgotPasswordPage() {
       <p className="mb-8 text-sm text-muted-foreground">Informe seu e-mail para receber o link.</p>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={form.handleSubmit(onSubmit, onInvalidToast(undefined, () => form.getValues()))} className="space-y-4">
           <FormField control={form.control} name="email" render={({ field }) => (
             <FormItem>
               <FormLabel>E-mail</FormLabel>

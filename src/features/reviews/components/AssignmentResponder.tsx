@@ -168,6 +168,12 @@ export function AssignmentResponder({
   });
 
   async function handleSubmit() {
+    if (missingRequired.length > 0) {
+      toast.error(
+        `Existem ${missingRequired.length} pergunta${missingRequired.length === 1 ? '' : 's'} obrigatória${missingRequired.length === 1 ? '' : 's'} pendente${missingRequired.length === 1 ? '' : 's'}.`,
+      );
+      return;
+    }
     setSubmitting(true);
     // Force flush pendentes
     for (const q of questions) {
@@ -377,8 +383,16 @@ export function AssignmentResponder({
                 Salvar e sair
               </Button>
               <Button
-                onClick={() => setConfirmOpen(true)}
-                disabled={missingRequired.length > 0 || submitting}
+                onClick={() => {
+                  if (missingRequired.length > 0) {
+                    toast.error(
+                      `Existem ${missingRequired.length} pergunta${missingRequired.length === 1 ? '' : 's'} obrigatória${missingRequired.length === 1 ? '' : 's'} pendente${missingRequired.length === 1 ? '' : 's'}.`,
+                    );
+                    return;
+                  }
+                  setConfirmOpen(true);
+                }}
+                disabled={submitting}
               >
                 Enviar avaliação
               </Button>

@@ -6,6 +6,7 @@ import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { onInvalidToast } from '@/lib/form';
 import { OnboardingStep1Schema, type OnboardingStep1Input, SEGMENTS, TEAM_SIZES } from '../schema';
 
 interface Props {
@@ -16,12 +17,14 @@ interface Props {
 export function OnboardingStep1Company({ defaultValues, onNext }: Props) {
   const form = useForm<OnboardingStep1Input>({
     resolver: zodResolver(OnboardingStep1Schema),
+    mode: 'onSubmit',
+    reValidateMode: 'onChange',
     defaultValues: { name: '', cnpj: '', segment: undefined, teamSize: undefined, ...defaultValues },
   });
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onNext)} className="space-y-4">
+      <form onSubmit={form.handleSubmit(onNext, onInvalidToast(undefined, () => form.getValues()))} className="space-y-4">
         <FormField control={form.control} name="name" render={({ field }) => (
           <FormItem>
             <FormLabel>Nome da empresa *</FormLabel>

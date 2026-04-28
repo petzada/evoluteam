@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { onInvalidToast } from '@/lib/form';
 import { PdiInputSchema, type PdiInput } from '../schema';
 import { createPdi } from '../actions';
 
@@ -68,12 +69,13 @@ export function PdiSheet({
 
   const form = useForm<PdiInput>({
     resolver: zodResolver(PdiInputSchema),
+    mode: 'onSubmit',
+    reValidateMode: 'onChange',
     defaultValues: EMPTY_DEFAULTS,
   });
 
   const employeeId = useWatch({ control: form.control, name: 'employeeId' });
   const objective = useWatch({ control: form.control, name: 'objective' });
-  const dueDate = useWatch({ control: form.control, name: 'dueDate' });
 
   useEffect(() => {
     if (!open) return;
@@ -125,11 +127,6 @@ export function PdiSheet({
     }
   }
 
-  const canSubmit =
-    !!employeeId
-    && objective.trim().length >= 10
-    && dueDate.length > 0;
-
   const activeCycles = cycles.filter((c) => c.status === 'published' || c.status === 'closed');
 
   return (
@@ -144,7 +141,7 @@ export function PdiSheet({
 
         <SheetBody>
           <Form {...form}>
-            <form id="pdi-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+            <form id="pdi-form" onSubmit={form.handleSubmit(onSubmit, onInvalidToast(undefined, () => form.getValues()))} className="space-y-5">
               <FormField control={form.control} name="employeeId" render={({ field }) => (
                 <FormItem className="min-w-0">
                   <FormLabel>Colaborador *</FormLabel>
@@ -296,7 +293,7 @@ export function PdiSheet({
           <Button variant="outline" type="button" onClick={() => onOpenChange(false)} disabled={loading}>
             Cancelar
           </Button>
-          <Button type="submit" form="pdi-form" disabled={loading || !canSubmit}>
+          <Button type="submit" form="pdi-form" disabled={loading}>
             {loading ? 'Criando…' : 'Criar PDI'}
           </Button>
         </SheetFooter>
