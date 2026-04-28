@@ -162,7 +162,7 @@ export function Sidebar({
         )}
       </div>
 
-      <nav className={cn('flex-1 overflow-y-auto py-4 space-y-6', collapsed ? 'px-2' : 'px-3')}>
+      <nav className={cn('flex-1 overflow-y-auto scrollbar-none py-4 space-y-6', collapsed ? 'px-2' : 'px-3')}>
         <ul className="space-y-0.5">{renderItem(homeItem)}</ul>
 
         <div>
