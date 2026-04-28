@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 import { Search } from 'lucide-react';
 import {
-  Sheet, SheetContent, SheetTitle, SheetDescription,
+  Sheet, SheetContent, SheetHeader, SheetBody, SheetFooter, SheetTitle, SheetDescription,
 } from '@/components/ui/sheet';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -111,38 +111,38 @@ export function FeedbackSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-[440px] sm:max-w-[440px] p-0 gap-0 flex flex-col">
-        <div className="px-6 py-5 border-b">
+      <SheetContent className="w-[440px] sm:max-w-[440px]">
+        <SheetHeader>
           <SheetTitle className="text-base font-semibold">Novo feedback</SheetTitle>
-          <SheetDescription className="text-xs text-muted-foreground mt-1">
+          <SheetDescription className="text-xs text-muted-foreground">
             Feedback é imutável após envio. Não é possível editar ou deletar depois.
           </SheetDescription>
-        </div>
+        </SheetHeader>
 
-        <div className="flex-1 overflow-y-auto px-6 py-5">
+        <SheetBody>
           <Form {...form}>
             <form id="feedback-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
               <FormField control={form.control} name="recipientId" render={({ field }) => (
-                <FormItem>
+                <FormItem className="min-w-0">
                   <FormLabel>Para quem *</FormLabel>
                   {selectedRecipient ? (
-                    <div className="flex items-center justify-between rounded-md border px-3 py-2 text-sm">
-                      <div>
-                        <p className="font-medium">{selectedRecipient.full_name}</p>
-                        <p className="text-xs text-muted-foreground">
+                    <div className="flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm min-w-0">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium truncate">{selectedRecipient.full_name}</p>
+                        <p className="text-xs text-muted-foreground truncate">
                           {selectedRecipient.position?.name ?? selectedRecipient.email}
                         </p>
                       </div>
                       <button
                         type="button"
                         onClick={() => field.onChange('')}
-                        className="text-xs text-muted-foreground hover:text-foreground"
+                        className="text-xs text-muted-foreground hover:text-foreground shrink-0"
                       >
                         Trocar
                       </button>
                     </div>
                   ) : (
-                    <div className="space-y-2">
+                    <div className="space-y-2 min-w-0">
                       <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input
@@ -153,13 +153,13 @@ export function FeedbackSheet({
                         />
                       </div>
                       {filteredRecipients.length > 0 && (
-                        <ul className="max-h-48 overflow-auto rounded-md border">
+                        <ul className="max-h-48 overflow-y-auto rounded-md border">
                           {filteredRecipients.map((e) => (
                             <li key={e.id}>
                               <button
                                 type="button"
                                 onClick={() => field.onChange(e.id)}
-                                className="w-full flex items-start gap-2 px-3 py-2 text-left text-sm hover:bg-muted"
+                                className="w-full min-w-0 flex items-start gap-2 px-3 py-2 text-left text-sm hover:bg-muted"
                               >
                                 <div className="flex-1 min-w-0">
                                   <p className="font-medium truncate">{e.full_name}</p>
@@ -303,9 +303,9 @@ export function FeedbackSheet({
               )}
             </form>
           </Form>
-        </div>
+        </SheetBody>
 
-        <div className="px-6 py-4 border-t bg-muted/30 flex gap-2 justify-end">
+        <SheetFooter>
           <Button variant="outline" type="button" onClick={() => onOpenChange(false)} disabled={loading}>
             Cancelar
           </Button>
@@ -316,7 +316,7 @@ export function FeedbackSheet({
           >
             {loading ? 'Enviando…' : 'Enviar feedback'}
           </Button>
-        </div>
+        </SheetFooter>
       </SheetContent>
     </Sheet>
   );
