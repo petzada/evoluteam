@@ -156,9 +156,9 @@ export function Sidebar({
     >
       <div className="flex h-14 items-center justify-center px-4 border-b border-sidebar-border">
         {collapsed ? (
-          <BrandMonogram tone="light" size="sm" />
+          <BrandMonogram tone="light" size="md" />
         ) : (
-          <BrandWordmark tone="light" size="sm" />
+          <BrandWordmark tone="light" size="md" />
         )}
       </div>
 
