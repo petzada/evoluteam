@@ -33,8 +33,8 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="w-full max-w-sm rounded-xl border bg-card p-8 shadow-card">
-      <h2 className="mb-6 text-xl font-semibold">Nova senha</h2>
+    <div className="w-full max-w-sm">
+      <h2 className="mb-8 text-2xl font-semibold tracking-tight text-slate-950">Nova senha</h2>
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -52,7 +52,7 @@ export default function ResetPasswordPage() {
               <FormMessage />
             </FormItem>
           )} />
-          <Button type="submit" className="w-full" disabled={loading}>
+          <Button type="submit" className="h-10 w-full rounded-xl bg-[#181d26] text-white hover:bg-slate-800" disabled={loading}>
             {loading ? 'Salvando…' : 'Redefinir senha'}
           </Button>
         </form>

@@ -30,8 +30,8 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="w-full max-w-sm rounded-xl border bg-card p-8 shadow-card">
-      <h2 className="mb-6 text-xl font-semibold">Entrar</h2>
+    <div className="w-full max-w-sm">
+      <h2 className="mb-8 text-2xl font-semibold tracking-tight text-slate-950">Entrar</h2>
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -47,7 +47,7 @@ export default function LoginPage() {
             <FormItem>
               <div className="flex items-center justify-between">
                 <FormLabel>Senha</FormLabel>
-                <Link href="/forgot-password" className="text-xs text-muted-foreground hover:text-primary">
+                <Link href="/forgot-password" className="text-xs text-muted-foreground transition hover:text-[#181d26]">
                   Esqueci minha senha
                 </Link>
               </div>
@@ -64,10 +64,10 @@ export default function LoginPage() {
                   type="checkbox"
                   checked={field.value ?? false}
                   onChange={field.onChange}
-                  className="h-4 w-4 accent-primary cursor-pointer"
+                  className="h-4 w-4 cursor-pointer accent-primary"
                 />
               </FormControl>
-              <label htmlFor="rememberMe" className="text-sm text-muted-foreground cursor-pointer select-none">
+              <label htmlFor="rememberMe" className="cursor-pointer select-none text-sm text-muted-foreground">
                 Lembrar-me neste dispositivo
               </label>
             </FormItem>
@@ -75,14 +75,14 @@ export default function LoginPage() {
 
           {error && <p className="text-sm text-destructive">{error}</p>}
 
-          <Button type="submit" className="w-full" disabled={loading}>
+          <Button type="submit" className="h-10 w-full rounded-xl bg-[#181d26] text-white hover:bg-slate-800" disabled={loading}>
             {loading ? 'Entrando…' : 'Entrar'}
           </Button>
         </form>
       </Form>
 
       <p className="mt-6 text-center text-xs text-muted-foreground">
-        Não tem acesso? Fale com o seu RH.
+        Não tem acesso? Fale com seu RH.
       </p>
     </div>
   );
