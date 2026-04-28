@@ -1,7 +1,7 @@
 'use client';
 
 import {
-  Sheet, SheetContent, SheetTitle, SheetDescription, SheetHeader,
+  Sheet, SheetContent, SheetBody, SheetHeader, SheetTitle, SheetDescription,
 } from '@/components/ui/sheet';
 import { AccessForm } from './AccessForm';
 import type { Role, ScreenPermissions } from '../types';
@@ -26,23 +26,25 @@ export function AccessSheet({
 }: Props) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="sm:max-w-md p-5 pt-6 overflow-y-auto">
-        <SheetHeader className="mb-4 px-0">
+      <SheetContent side="right" className="w-[440px] sm:max-w-[440px]">
+        <SheetHeader>
           <SheetTitle>Gerenciar acesso</SheetTitle>
           <SheetDescription className="text-xs">
             {fullName} · <span className="text-muted-foreground">{email}</span>
           </SheetDescription>
         </SheetHeader>
 
-        <AccessForm
-          profileId={profileId}
-          initialRole={initialRole}
-          initialScreenPermissions={initialScreenPermissions}
-          currentActorRole={currentActorRole}
-          actorIsAdmin={actorIsAdmin}
-          actorScreenPermissions={actorScreenPermissions}
-          onSuccess={() => onOpenChange(false)}
-        />
+        <SheetBody>
+          <AccessForm
+            profileId={profileId}
+            initialRole={initialRole}
+            initialScreenPermissions={initialScreenPermissions}
+            currentActorRole={currentActorRole}
+            actorIsAdmin={actorIsAdmin}
+            actorScreenPermissions={actorScreenPermissions}
+            onSuccess={() => onOpenChange(false)}
+          />
+        </SheetBody>
       </SheetContent>
     </Sheet>
   );

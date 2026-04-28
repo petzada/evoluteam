@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 import {
-  Sheet, SheetContent, SheetTitle, SheetDescription,
+  Sheet, SheetContent, SheetHeader, SheetBody, SheetFooter, SheetTitle, SheetDescription,
 } from '@/components/ui/sheet';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
@@ -95,8 +95,8 @@ export function ScorecardSheet({ open, onOpenChange, context, initial }: Props) 
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-[480px] sm:max-w-[480px] p-0 flex flex-col">
-        <div className="p-6 pb-4 border-b">
+      <SheetContent className="w-[480px] sm:max-w-[480px]">
+        <SheetHeader>
           <SheetTitle>{isEdit ? 'Editar scorecard' : 'Preencher scorecard'}</SheetTitle>
           {context && (
             <SheetDescription className="text-xs space-y-0.5 pt-1">
@@ -110,9 +110,10 @@ export function ScorecardSheet({ open, onOpenChange, context, initial }: Props) 
               </span>
             </SheetDescription>
           )}
-        </div>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 overflow-y-auto p-6 space-y-5">
+        </SheetHeader>
+        <SheetBody>
+          <Form {...form}>
+            <form id="scorecard-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
             <section className="space-y-3">
               <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                 Ratings (1–5)
@@ -207,14 +208,16 @@ export function ScorecardSheet({ open, onOpenChange, context, initial }: Props) 
               </FormItem>
             )} />
 
-            <div className="flex justify-end gap-2 pt-2 border-t -mx-6 px-6 py-4 mt-6">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-              <Button type="submit" disabled={loading}>
-                {loading ? 'Salvando…' : isEdit ? 'Salvar' : 'Registrar scorecard'}
-              </Button>
-            </div>
-          </form>
-        </Form>
+            </form>
+          </Form>
+        </SheetBody>
+
+        <SheetFooter>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button type="submit" form="scorecard-form" disabled={loading}>
+            {loading ? 'Salvando…' : isEdit ? 'Salvar' : 'Registrar scorecard'}
+          </Button>
+        </SheetFooter>
       </SheetContent>
     </Sheet>
   );

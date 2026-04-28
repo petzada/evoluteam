@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 import {
-  Sheet, SheetContent, SheetTitle, SheetDescription,
+  Sheet, SheetContent, SheetHeader, SheetBody, SheetFooter, SheetTitle, SheetDescription,
 } from '@/components/ui/sheet';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
@@ -75,8 +75,8 @@ export function FeedbackSheet({ open, onOpenChange, context, initial }: Props) {
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-[440px] sm:max-w-[440px] p-0 flex flex-col">
-        <div className="p-6 pb-4 border-b">
+      <SheetContent className="w-[440px] sm:max-w-[440px]">
+        <SheetHeader>
           <SheetTitle>{isEdit ? 'Editar feedback' : 'Dar feedback sobre candidato'}</SheetTitle>
           {context && (
             <SheetDescription className="text-xs space-y-0.5 pt-1">
@@ -90,9 +90,10 @@ export function FeedbackSheet({ open, onOpenChange, context, initial }: Props) {
               </span>
             </SheetDescription>
           )}
-        </div>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 overflow-y-auto p-6 space-y-4">
+        </SheetHeader>
+        <SheetBody>
+          <Form {...form}>
+            <form id="recruitment-feedback-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField control={form.control} name="content" render={({ field }) => (
               <FormItem>
                 <FormLabel>Conteúdo *</FormLabel>
@@ -134,14 +135,16 @@ export function FeedbackSheet({ open, onOpenChange, context, initial }: Props) {
                 <FormMessage />
               </FormItem>
             )} />
-            <div className="flex justify-end gap-2 pt-2 border-t -mx-6 px-6 py-4 mt-6">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-              <Button type="submit" disabled={loading}>
-                {loading ? 'Salvando…' : isEdit ? 'Salvar' : 'Registrar feedback'}
-              </Button>
-            </div>
-          </form>
-        </Form>
+            </form>
+          </Form>
+        </SheetBody>
+
+        <SheetFooter>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button type="submit" form="recruitment-feedback-form" disabled={loading}>
+            {loading ? 'Salvando…' : isEdit ? 'Salvar' : 'Registrar feedback'}
+          </Button>
+        </SheetFooter>
       </SheetContent>
     </Sheet>
   );

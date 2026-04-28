@@ -6,7 +6,7 @@ import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 import {
-  Sheet, SheetContent, SheetTitle, SheetDescription,
+  Sheet, SheetContent, SheetHeader, SheetBody, SheetFooter, SheetTitle, SheetDescription,
 } from '@/components/ui/sheet';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -213,19 +213,19 @@ export function EmployeeSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-[440px] sm:max-w-[440px] p-0 gap-0 flex flex-col">
-        <div className="px-6 py-5 border-b">
+      <SheetContent className="w-[440px] sm:max-w-[440px]">
+        <SheetHeader>
           <SheetTitle className="text-base font-semibold">
             {isEdit ? 'Editar colaborador' : 'Novo colaborador'}
           </SheetTitle>
-          <SheetDescription className="text-xs text-muted-foreground mt-1">
+          <SheetDescription className="text-xs text-muted-foreground">
             {isEdit
               ? 'Atualize os dados do colaborador. Mudanças entram em vigor imediatamente.'
               : 'Cadastre o colaborador e envie o convite por e-mail.'}
           </SheetDescription>
-        </div>
+        </SheetHeader>
 
-        <div className="flex-1 overflow-y-auto px-6 py-5">
+        <SheetBody>
           <Form {...form}>
             <form id="employee-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
               <FormField control={form.control} name="fullName" render={({ field }) => (
@@ -456,16 +456,16 @@ export function EmployeeSheet({
               )}
             </form>
           </Form>
-        </div>
+        </SheetBody>
 
-        <div className="px-6 py-4 border-t bg-muted/30 flex gap-2 justify-end">
+        <SheetFooter>
           <Button variant="outline" type="button" onClick={() => onOpenChange(false)} disabled={loading}>
             Cancelar
           </Button>
           <Button type="submit" form="employee-form" disabled={loading || !canManageEmployees}>
             {loading ? 'Salvando…' : ctaLabel}
           </Button>
-        </div>
+        </SheetFooter>
       </SheetContent>
 
       <Dialog open={createDeptOpen} onOpenChange={setCreateDeptOpen}>

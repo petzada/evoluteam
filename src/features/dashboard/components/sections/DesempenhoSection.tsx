@@ -53,7 +53,7 @@ export async function DesempenhoSection({
         <CardHeader>
           <CardTitle className="text-base">Média por departamento</CardTitle>
         </CardHeader>
-        <CardContent className="flex-1 flex flex-col">
+        <CardContent>
           {deptAverages.length > 0 ? (
             <DepartmentBarsChart data={deptAverages} />
           ) : (

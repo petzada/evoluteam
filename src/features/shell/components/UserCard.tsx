@@ -1,5 +1,6 @@
 'use client';
 
+import { useTransition } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
@@ -20,6 +21,7 @@ interface UserCardProps {
 export function UserCard({ fullName, companyName, avatarUrl }: UserCardProps) {
   const router = useRouter();
   const { collapsed } = useSidebar();
+  const [, startTransition] = useTransition();
   const initials = fullName.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase();
   const displayName = formatSidebarName(fullName);
 
@@ -53,7 +55,7 @@ export function UserCard({ fullName, companyName, avatarUrl }: UserCardProps) {
           <DropdownMenuSeparator />
           <DropdownMenuItem
             className="text-destructive focus:text-destructive"
-            onClick={() => signOut()}
+            onClick={() => startTransition(() => void signOut())}
           >
             <LogOut className="mr-2 h-4 w-4" />
             Sair

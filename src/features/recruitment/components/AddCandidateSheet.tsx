@@ -7,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 import { Search } from 'lucide-react';
 import {
-  Sheet, SheetContent, SheetTitle, SheetDescription,
+  Sheet, SheetContent, SheetHeader, SheetFooter, SheetTitle, SheetDescription,
 } from '@/components/ui/sheet';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -107,14 +107,18 @@ export function AddCandidateSheet({ open, onOpenChange, jobOpeningId, searchCand
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-[460px] sm:max-w-[460px] p-0 flex flex-col">
-        <div className="p-6 pb-4 border-b">
+      <SheetContent className="w-[460px] sm:max-w-[460px]">
+        <SheetHeader>
           <SheetTitle>Adicionar candidato à vaga</SheetTitle>
           <SheetDescription>
             Cadastre um novo candidato ou vincule um do banco global.
           </SheetDescription>
-        </div>
-        <Tabs value={tab} onValueChange={(v) => setTab(v as 'novo' | 'existente')} className="flex-1 overflow-hidden flex flex-col">
+        </SheetHeader>
+        <Tabs
+          value={tab}
+          onValueChange={(v) => setTab(v as 'novo' | 'existente')}
+          className="flex-1 min-h-0 overflow-hidden flex flex-col"
+        >
           <div className="px-6 pt-4">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="novo">Cadastrar novo</TabsTrigger>
@@ -122,9 +126,9 @@ export function AddCandidateSheet({ open, onOpenChange, jobOpeningId, searchCand
             </TabsList>
           </div>
 
-          <TabsContent value="novo" className="flex-1 overflow-y-auto p-6 pt-4 mt-0">
+          <TabsContent value="novo" className="flex-1 overflow-y-auto px-6 py-5 mt-0">
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmitNew)} className="space-y-4">
+              <form id="add-candidate-form" onSubmit={form.handleSubmit(onSubmitNew)} className="space-y-4">
                 <FormField control={form.control} name="name" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Nome *</FormLabel>
@@ -186,17 +190,11 @@ export function AddCandidateSheet({ open, onOpenChange, jobOpeningId, searchCand
                     <FormMessage />
                   </FormItem>
                 )} />
-                <div className="flex justify-end gap-2 pt-2 border-t -mx-6 px-6 py-4 mt-4">
-                  <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-                  <Button type="submit" disabled={loading}>
-                    {loading ? 'Salvando…' : 'Cadastrar e vincular'}
-                  </Button>
-                </div>
               </form>
             </Form>
           </TabsContent>
 
-          <TabsContent value="existente" className="flex-1 overflow-y-auto p-6 pt-4 mt-0">
+          <TabsContent value="existente" className="flex-1 overflow-y-auto px-6 py-5 mt-0">
             <div className="space-y-3">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -238,6 +236,15 @@ export function AddCandidateSheet({ open, onOpenChange, jobOpeningId, searchCand
             </div>
           </TabsContent>
         </Tabs>
+
+        <SheetFooter>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          {tab === 'novo' && (
+            <Button type="submit" form="add-candidate-form" disabled={loading}>
+              {loading ? 'Salvando…' : 'Cadastrar e vincular'}
+            </Button>
+          )}
+        </SheetFooter>
       </SheetContent>
     </Sheet>
   );

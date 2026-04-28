@@ -31,7 +31,7 @@ export function DepartmentBarsChart({ data }: Props) {
   if (chartData.length === 0) return null;
 
   return (
-    <div className="w-full flex-1 min-h-72">
+    <div className="h-72 w-full">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart
           data={chartData}

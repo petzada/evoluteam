@@ -6,7 +6,7 @@ import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 import {
-  Sheet, SheetContent, SheetTitle, SheetDescription,
+  Sheet, SheetContent, SheetHeader, SheetBody, SheetFooter, SheetTitle, SheetDescription,
 } from '@/components/ui/sheet';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -87,15 +87,16 @@ export function CandidateSheet({ open, onOpenChange, initial, redirectAfterCreat
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-[440px] sm:max-w-[440px] p-0 flex flex-col">
-        <div className="p-6 pb-4 border-b">
+      <SheetContent className="w-[440px] sm:max-w-[440px]">
+        <SheetHeader>
           <SheetTitle>{isEdit ? 'Editar candidato' : 'Novo candidato'}</SheetTitle>
           <SheetDescription>
             {isEdit ? 'Atualize os dados do candidato.' : 'Cadastre um candidato no banco global.'}
           </SheetDescription>
-        </div>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 overflow-y-auto p-6 space-y-4">
+        </SheetHeader>
+        <SheetBody>
+          <Form {...form}>
+            <form id="candidate-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField control={form.control} name="name" render={({ field }) => (
               <FormItem>
                 <FormLabel>Nome *</FormLabel>
@@ -174,14 +175,16 @@ export function CandidateSheet({ open, onOpenChange, initial, redirectAfterCreat
                 <FormMessage />
               </FormItem>
             )} />
-            <div className="flex justify-end gap-2 pt-2 border-t -mx-6 px-6 py-4 mt-6">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-              <Button type="submit" disabled={loading}>
-                {loading ? 'Salvando…' : isEdit ? 'Salvar' : 'Cadastrar candidato'}
-              </Button>
-            </div>
-          </form>
-        </Form>
+            </form>
+          </Form>
+        </SheetBody>
+
+        <SheetFooter>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button type="submit" form="candidate-form" disabled={loading}>
+            {loading ? 'Salvando…' : isEdit ? 'Salvar' : 'Cadastrar candidato'}
+          </Button>
+        </SheetFooter>
       </SheetContent>
     </Sheet>
   );

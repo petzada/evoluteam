@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { MessageSquare, Star, ListChecks } from 'lucide-react';
 import {
-  Sheet, SheetContent, SheetTitle, SheetDescription,
+  Sheet, SheetContent, SheetHeader, SheetFooter, SheetTitle, SheetDescription,
 } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -179,19 +179,18 @@ export function CandidateQuickSheet({
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent
           side="right"
-          className="sm:max-w-[640px] w-full p-0 flex flex-col gap-0"
+          className="sm:max-w-[640px] w-full"
         >
-          {/* Header */}
-          <div className="px-6 pt-6 pb-5 border-b">
+          <SheetHeader>
             <SheetTitle className="text-lg font-bold tracking-tight">
               {application.candidate?.name ?? 'Candidato'}
             </SheetTitle>
             {application.candidate?.email && (
-              <SheetDescription className="text-xs text-muted-foreground mt-0.5">
+              <SheetDescription className="text-xs text-muted-foreground">
                 {application.candidate.email}
               </SheetDescription>
             )}
-            <div className="mt-2.5 flex items-center gap-2 flex-wrap text-sm">
+            <div className="mt-2 flex items-center gap-2 flex-wrap text-sm">
               <span className="text-foreground font-medium">
                 {application.job_opening?.title ?? 'Vaga'}
               </span>
@@ -203,9 +202,9 @@ export function CandidateQuickSheet({
                 {application.current_stage?.name ?? '—'}
               </Badge>
             </div>
-          </div>
+          </SheetHeader>
 
-          {/* Tabs + body (flex-1 pra empurrar footer pro fim) */}
+          {/* Tabs no body (flex-1 pra empurrar footer pro fim) */}
           <Tabs defaultValue="feedbacks" className="flex-1 flex flex-col min-h-0 gap-0">
             <TabsList variant="line" className="px-6 pt-2 border-b rounded-none justify-start h-auto bg-transparent">
               <TabsTrigger value="feedbacks" className="gap-1.5">
@@ -222,7 +221,7 @@ export function CandidateQuickSheet({
               </TabsTrigger>
             </TabsList>
 
-            <div className="flex-1 overflow-y-auto px-6 py-4 min-h-0">
+            <div className="flex-1 overflow-y-auto px-6 py-5 min-h-0">
               <TabsContent value="feedbacks" className="mt-0">
                 {feedbacks.length === 0 ? (
                   <p className="text-xs text-muted-foreground italic">
@@ -292,9 +291,8 @@ export function CandidateQuickSheet({
             </div>
           </Tabs>
 
-          {/* Footer — CTAs (padrão Sheet do produto) */}
           {canGiveFeedback && (
-            <div className="border-t px-6 py-4 flex items-center justify-end gap-2 bg-background">
+            <SheetFooter>
               <Button
                 variant="outline"
                 size="sm"
@@ -315,7 +313,7 @@ export function CandidateQuickSheet({
               >
                 <MessageSquare className="mr-1.5 h-4 w-4" /> Dar feedback
               </Button>
-            </div>
+            </SheetFooter>
           )}
         </SheetContent>
       </Sheet>
