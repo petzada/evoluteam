@@ -2,13 +2,9 @@ import type { LucideIcon } from 'lucide-react';
 import {
   BarChart3,
   ClipboardCheck,
-  FileText,
-  LockKeyhole,
   MessageSquareText,
   Route,
-  ShieldCheck,
   Sparkles,
-  Users,
 } from 'lucide-react';
 
 export const navItems = [
@@ -166,7 +162,7 @@ export const footerColumns = [
     title: 'Empresa',
     links: [
       { href: '#fundador', label: 'Sobre' },
-      { href: 'mailto:contato@evoluteam.com', label: 'Contato' },
+      { href: 'mailto:marcio@marct.co', label: 'Contato' },
     ],
   },
   {
@@ -178,9 +174,3 @@ export const footerColumns = [
   },
 ];
 
-export const trustItems = [
-  { icon: ShieldCheck, label: 'Dados separados por empresa' },
-  { icon: LockKeyhole, label: 'Permissões por papel' },
-  { icon: FileText, label: 'Histórico auditável' },
-  { icon: Users, label: 'RH, gestor e colaborador' },
-];

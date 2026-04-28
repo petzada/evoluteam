@@ -1,36 +1,26 @@
 import { ArrowRight, Check, Minus } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import {
-  featureBullets,
-  flowSteps,
-  footerColumns,
-  painPoints,
-  pricingFeatures,
-  trustItems,
-} from './content';
+import { featureBullets, flowSteps, footerColumns, painPoints, pricingFeatures } from './content';
 import { FaqAccordion } from './components/FaqAccordion';
 import { LandingHeader } from './components/LandingHeader';
 import { LeadForm } from './components/LeadForm';
-import {
-  FeedbackMockup,
-  HeroProductMockup,
-  PdiMockup,
-  ReviewMockup,
-} from './components/ProductMockups';
+import { FeedbackMockup, HeroProductMockup, PdiMockup, ReviewMockup } from './components/ProductMockups';
 
 const sectionClass = 'mx-auto max-w-[1200px] px-6 py-24 md:px-12 lg:py-[120px]';
 const eyebrowClass = 'text-xs font-semibold uppercase tracking-[0.22em] text-primary';
-const h1Class = 'font-[Georgia,serif] text-5xl font-medium leading-[1.05] tracking-normal text-slate-950 sm:text-6xl lg:text-[76px]';
-const h2Class = 'font-[Georgia,serif] text-4xl font-medium leading-[1.12] tracking-normal text-slate-950 sm:text-5xl';
 const bodyClass = 'text-base leading-8 text-slate-600 sm:text-lg';
+const serifH1 = 'font-serif-landing text-[48px] font-medium leading-[1.1] tracking-[-0.02em] text-slate-950';
+const serifH2 = 'font-serif-landing text-[32px] font-medium leading-tight text-slate-950 sm:leading-[1.2]';
 
 function CtaLink({
   href = '#demo',
   variant = 'dark',
+  showArrow = false,
   children,
 }: {
   href?: string;
   variant?: 'dark' | 'outline' | 'light';
+  showArrow?: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -38,13 +28,13 @@ function CtaLink({
       href={href}
       className={cn(
         'inline-flex h-12 items-center justify-center gap-2 rounded px-7 text-sm font-semibold transition active:scale-[0.99]',
-        variant === 'dark' && 'bg-slate-950 text-white hover:bg-slate-800',
+        variant === 'dark' && 'bg-[#0a0a0a] text-white hover:bg-neutral-800',
         variant === 'outline' && 'border border-slate-300 bg-transparent text-slate-950 hover:bg-slate-100',
         variant === 'light' && 'bg-white text-slate-950 hover:bg-slate-100',
       )}
     >
       {children}
-      <ArrowRight className="size-4" />
+      {showArrow ? <ArrowRight className="size-4" /> : null}
     </a>
   );
 }
@@ -56,6 +46,7 @@ function SectionIntro({
   body,
   align = 'left',
   light = false,
+  asH1 = false,
 }: {
   eyebrow?: string;
   title: string;
@@ -63,13 +54,17 @@ function SectionIntro({
   body?: string;
   align?: 'left' | 'center';
   light?: boolean;
+  asH1?: boolean;
 }) {
+  const TitleTag = asH1 ? 'h1' : 'h2';
   return (
     <div className={cn(align === 'center' && 'mx-auto max-w-3xl text-center')}>
       {eyebrow ? (
         <p className={cn(eyebrowClass, light && 'text-[#F09469]')}>{eyebrow}</p>
       ) : null}
-      <h2 className={cn(h2Class, eyebrow && 'mt-4', light && 'text-white')}>
+      <TitleTag
+        className={cn(serifH2, eyebrow && 'mt-4', light && 'text-white', asH1 && 'text-[48px] font-medium leading-[1.1] tracking-[-0.02em]')}
+      >
         {title}
         {italic ? (
           <>
@@ -77,9 +72,16 @@ function SectionIntro({
             <span className={cn('italic text-slate-500', light && 'text-[#FCC9B0]')}>{italic}</span>
           </>
         ) : null}
-      </h2>
+      </TitleTag>
       {body ? (
-        <p className={cn(bodyClass, 'mt-5', align === 'center' && 'mx-auto max-w-2xl', light && 'text-slate-300')}>
+        <p
+          className={cn(
+            bodyClass,
+            'mt-5',
+            align === 'center' && 'mx-auto max-w-2xl',
+            light && 'text-slate-300',
+          )}
+        >
           {body}
         </p>
       ) : null}
@@ -107,35 +109,19 @@ export function LandingPage() {
 
       <main>
         <section className="border-b border-slate-200 bg-[#fcf8f8]">
-          <div className="mx-auto max-w-[1200px] px-6 pb-16 pt-16 text-center md:px-12 lg:pb-20 lg:pt-20">
-            <div className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-4 py-2">
-              <span className="size-2 rounded-full bg-primary" />
-              <span className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-600">
-                Performance · Feedback · Desenvolvimento
-              </span>
-            </div>
-
-            <h1 className={cn(h1Class, 'mx-auto mt-7 max-w-4xl text-balance')}>
+          <div className="mx-auto max-w-[1200px] px-6 py-16 text-center md:px-12 lg:px-12 lg:py-[120px]">
+            <h1 className={cn(serifH1, 'mx-auto max-w-4xl text-balance')}>
               Avaliar é fácil. <span className="italic text-slate-500">Desenvolver</span> é difícil.
             </h1>
-            <p className="mx-auto mt-6 max-w-2xl text-balance text-xl leading-9 text-slate-600">
+            <p className="font-serif-landing mx-auto mt-6 max-w-2xl text-balance text-2xl font-normal leading-[1.4] text-slate-600">
               O Evoluteam reúne feedback contínuo, ciclo de avaliação e plano de ação em um único fluxo, para que cada nota vire um próximo passo claro.
             </p>
 
             <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-              <CtaLink>Agendar demonstração</CtaLink>
-              <CtaLink href="#produto" variant="outline">
+              <CtaLink showArrow>Agendar demonstração</CtaLink>
+              <CtaLink showArrow href="#produto" variant="outline">
                 Explorar produto
               </CtaLink>
-            </div>
-
-            <div className="mx-auto mt-10 grid max-w-4xl gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {trustItems.map((item) => (
-                <div key={item.label} className="flex items-center justify-center gap-2 text-sm text-slate-600">
-                  <item.icon className="size-4 text-primary" />
-                  {item.label}
-                </div>
-              ))}
             </div>
 
             <div className="mt-10">
@@ -144,76 +130,73 @@ export function LandingPage() {
           </div>
         </section>
 
-        <section id="produto" className="border-b border-slate-200 bg-white">
-          <div className={cn(sectionClass, 'grid gap-16 md:grid-cols-[1fr_0.78fr] md:items-center')}>
+        <section id="produto" className="border-t border-outline-variant border-b border-slate-200 bg-white">
+          <div className={cn(sectionClass, 'grid gap-16 md:grid-cols-2 md:items-center')}>
             <div className="space-y-10">
               <div>
-                <p className={eyebrowClass}>O problema</p>
-                <h2 className={cn(h2Class, 'mt-4')}>
+                <h2 className={cn(serifH2, 'text-slate-950')}>
                   A planilha é só o sintoma. <span className="italic text-slate-500">O problema é outro.</span>
                 </h2>
                 <p className={cn(bodyClass, 'mt-5 max-w-2xl')}>
-                  Empresas em crescimento já tentaram formulários, documentos soltos e ferramentas grandes demais. No fim do ciclo, as mesmas tensões voltam.
+                  Empresas em crescimento já tentaram formulários, documentos soltos e ferramentas grandes demais. No fim do ciclo, as mesmas
+                  tensões voltam.
                 </p>
               </div>
               <div className="grid gap-8">
                 {painPoints.map((point) => (
                   <article key={point.number} className="flex gap-6 border-t border-slate-200 pt-7">
-                    <span className="font-[Georgia,serif] text-3xl text-slate-300">{point.number}</span>
+                    <span className="font-serif-landing text-[32px] font-medium text-[#c4c7c8]">{point.number}</span>
                     <div>
-                      <h3 className="font-[Georgia,serif] text-2xl leading-tight text-slate-950">
-                        {point.title}
-                      </h3>
-                      <p className="mt-2 text-base leading-7 text-slate-600">{point.body}</p>
+                      <h3 className="font-serif-landing text-[32px] font-medium leading-tight text-slate-950">{point.title}</h3>
+                      <p className="mt-2 text-lg leading-[1.6] text-on-surface-variant">{point.body}</p>
                     </div>
                   </article>
                 ))}
               </div>
             </div>
-            <div className="border-l border-slate-200 py-8 pl-8 md:pl-14">
-              <blockquote className="max-w-md font-[Georgia,serif] text-3xl italic leading-[1.35] text-slate-800">
+            <div className="border-l border-outline-variant py-8 pl-8 md:pl-16">
+              <blockquote className="font-serif-landing max-w-md text-2xl font-normal italic leading-[1.4] text-slate-800">
                 “A maior parte das avaliações termina em uma planilha arquivada. O Evoluteam existe pra mudar essa última parte.”
               </blockquote>
             </div>
           </div>
         </section>
 
-        <section id="como-funciona" className="border-b border-slate-200 bg-[#fafafa]">
+        <section id="como-funciona" className="border-t border-outline-variant border-b border-slate-200 bg-white">
           <div className={sectionClass}>
             <SectionIntro
-              eyebrow="A solução"
               title="Feedback, ciclo e PDI"
               italic="no mesmo fluxo."
               body="Cada peça alimenta a próxima. Nada se perde entre ferramentas, nada vira memória, nada fica sem próximo passo."
               align="center"
             />
-            <div className="mt-14 grid gap-6 md:grid-cols-3">
+            <div className="mt-14 grid gap-6 md:grid-cols-3 md:gap-8">
               {flowSteps.map((step) => (
                 <article
                   key={step.title}
                   className={cn(
-                    'relative overflow-hidden rounded border p-8',
+                    'relative overflow-hidden rounded-lg border p-8',
                     step.featured
-                      ? 'border-slate-900 bg-slate-950 text-white'
-                      : 'border-slate-200 bg-white text-slate-950',
+                      ? 'border-[#333] bg-[#0a0a0a] text-white'
+                      : 'border-outline-variant bg-white text-slate-950',
                   )}
                 >
                   {step.featured ? (
-                    <div className="absolute right-0 top-0 h-28 w-28 -translate-y-14 translate-x-14 rounded-bl-full bg-primary/20" />
+                    <div className="absolute right-0 top-0 h-32 w-32 -translate-y-16 translate-x-16 rounded-bl-full bg-primary opacity-10" />
                   ) : null}
-                  <p className={cn('text-xs font-semibold uppercase tracking-[0.22em]', step.featured ? 'text-[#F09469]' : 'text-slate-500')}>
+                  <p
+                    className={cn(
+                      'text-xs font-semibold uppercase tracking-widest',
+                      step.featured ? 'text-[#F09469]' : 'text-slate-500',
+                    )}
+                  >
                     {step.eyebrow}
                   </p>
-                  <h3 className="mt-5 font-[Georgia,serif] text-3xl">{step.title}</h3>
-                  <p className={cn('mt-4 text-sm leading-7', step.featured ? 'text-slate-300' : 'text-slate-600')}>
-                    {step.body}
-                  </p>
+                  <h3 className="mt-5 font-serif-landing text-[32px] font-medium leading-tight">{step.title}</h3>
+                  <p className={cn('mt-4 text-base leading-[1.5]', step.featured ? 'text-neutral-400' : 'text-slate-600')}>{step.body}</p>
                 </article>
               ))}
             </div>
-            <p className="mx-auto mt-12 max-w-2xl text-center font-[Georgia,serif] text-xl italic leading-8 text-slate-500">
-              Toda avaliação termina em uma decisão. Nenhuma termina em uma planilha.
-            </p>
           </div>
         </section>
 
@@ -224,6 +207,7 @@ export function LandingPage() {
           body="Qualquer pessoa registra um feedback em segundos: elogio, ponto de melhoria ou contexto. No ciclo seguinte, tudo aparece ao lado do formulário de avaliação."
           bullets={featureBullets.feedback}
           mockup={<FeedbackMockup />}
+          muted
         />
 
         <FeatureSection
@@ -250,82 +234,69 @@ export function LandingPage() {
         <section id="fundador" className="border-b border-slate-200 bg-white">
           <div className="mx-auto max-w-3xl px-6 py-24 md:px-12 lg:py-[120px]">
             <p className={eyebrowClass}>Carta do fundador</p>
-            <h2 className={cn(h2Class, 'mt-4')}>Por que construímos assim.</h2>
-            <div className="mt-8 space-y-6 font-[Georgia,serif] text-xl leading-9 text-slate-700">
-              <p>Quase toda empresa que já rodou um ciclo vive o mesmo fim: a pasta com os resultados entra no drive, o time volta ao trabalho, e na avaliação seguinte ninguém se lembra do que foi combinado.</p>
+            <h2 className={cn(serifH2, 'mt-4')}>Por que construímos assim.</h2>
+            <div className="mt-8 space-y-6 font-serif-landing text-lg leading-[1.7] text-slate-700">
+              <p>
+                <span className="italic text-slate-800">
+                  Quase toda empresa que já rodou um ciclo vive o mesmo fim:
+                </span>{' '}
+                a pasta com os resultados entra no drive, o time volta ao trabalho, e na avaliação seguinte ninguém se lembra do que foi
+                combinado.
+              </p>
               <p>O problema nunca foi a nota. Foi o que vem depois dela.</p>
-              <p>O Evoluteam começou como uma decisão simples: nenhuma avaliação deveria terminar sem um plano. Nenhum plano deveria existir sem o histórico que o originou.</p>
+              <p>
+                O Evoluteam começou como uma decisão simples: nenhuma avaliação deveria terminar sem um plano. Nenhum plano deveria existir
+                sem o histórico que o originou.
+              </p>
               <p>Você pode continuar usando planilha. Ela só não vai te ajudar na parte que importa.</p>
             </div>
-            <div className="mt-9 flex items-center gap-3">
-              <div className="flex size-11 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
-                MP
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-slate-950">Marcio Petigrosso</p>
-                <p className="text-sm text-slate-500">Fundador · Evoluteam</p>
-              </div>
+            <div className="mt-9">
+              <p className="font-serif-landing text-2xl font-normal italic text-slate-950">Marcio Petigrosso</p>
+              <p className="mt-1 text-sm text-slate-500">Fundador · Evoluteam</p>
             </div>
           </div>
         </section>
 
-        <section id="faq" className="border-b border-slate-200 bg-[#fafafa]">
+        <section id="faq" className="border-b border-slate-200 bg-white">
           <div className={cn(sectionClass, 'grid gap-14 lg:grid-cols-[320px_1fr]')}>
             <SectionIntro
               eyebrow="Dúvidas comuns"
-              title="Perguntas que"
-              italic="escutamos muito."
-              body="Se a sua pergunta não está aqui, a demo é o melhor lugar pra resposta."
+              title="Perguntas que escutamos muito"
+              body="Caso ainda fique alguma dúvida, entre em contato com nosso suporte."
             />
             <FaqAccordion />
           </div>
         </section>
 
         <section id="planos" className="border-b border-slate-200 bg-white">
-          <div className={cn(sectionClass, 'grid gap-16 md:grid-cols-[0.75fr_1fr] md:items-start')}>
-            <div className="md:sticky md:top-24">
-              <SectionIntro
-                eyebrow="Planos"
-                title="Um plano."
-                italic="Todas as funcionalidades."
-                body="Todo cliente acessa a plataforma inteira: ciclo, feedback, PDI e dashboard. A cobrança acompanha o tamanho da empresa, só isso."
-              />
-              <p className="mt-5 max-w-md text-base leading-8 text-slate-600">
-                Conta um pouco sobre a sua operação e a proposta vai para o seu e-mail com o escopo correto.
+          <div className={cn(sectionClass, 'grid gap-16 md:grid-cols-2 md:items-start')}>
+            <div>
+              <h1 className={serifH1}>
+                Um plano. <span className="italic text-slate-500">Todas as funcionalidades.</span>
+              </h1>
+              <p className={cn(bodyClass, 'mt-5 max-w-md')}>
+                Todo cliente acessa a plataforma inteira: ciclo, feedback, PDI e dashboard. A cobrança acompanha o tamanho da empresa, só
+                isso.
               </p>
               <div className="mt-8">
-                <CtaLink>Solicitar proposta</CtaLink>
+                <CtaLink href="#demo" showArrow={false}>
+                  Solicitar proposta
+                </CtaLink>
               </div>
-              <p className="mt-5 text-sm leading-6 text-slate-500">
-                Mensal ou anual · Nota fiscal emitida · Sem cobrança de implantação
-              </p>
             </div>
-            <div className="rounded border border-slate-200 bg-white p-8 md:p-10">
-              <div className="border-b border-slate-200 pb-8">
-                <h3 className="font-[Georgia,serif] text-3xl">Evoluteam</h3>
-                <p className="mt-3 text-base leading-7 text-slate-600">
-                  A plataforma completa, liberada desde o primeiro dia. Proposta sob consulta, ajustada à dimensão da sua operação.
-                </p>
+            <div className="rounded-lg border border-outline-variant bg-white p-8 md:p-12">
+              <div className="border-b border-outline-variant pb-8">
+                <h3 className="font-serif-landing text-2xl font-medium text-slate-950 sm:text-3xl">Plano Enterprise</h3>
+                <p className="mt-2 text-base leading-7 text-slate-600">Preço sob consulta, ajustado à dimensão da sua operação.</p>
               </div>
-              <div className="mt-8 grid gap-5">
+              <ul className="mt-8 space-y-4">
                 {pricingFeatures.map((feature) => (
-                  <article key={feature.title} className="grid gap-3 border-b border-slate-200 pb-5 last:border-0 last:pb-0 sm:grid-cols-[1fr_auto]">
-                    <div className="flex gap-3">
-                      <feature.icon className={cn('mt-1 size-5 shrink-0 text-primary', feature.featured && 'text-slate-950')} />
-                      <div>
-                        <h4 className="font-[Georgia,serif] text-xl text-slate-950">{feature.title}</h4>
-                        <p className="mt-1 text-sm leading-6 text-slate-600">{feature.body}</p>
-                      </div>
-                    </div>
-                    <span className={cn('h-fit rounded-full border border-accent bg-accent px-2 py-1 text-xs font-semibold text-accent-foreground', feature.featured && 'border-slate-950 bg-slate-950 text-white')}>
-                      {feature.tag}
-                    </span>
-                  </article>
+                  <li key={feature.title} className="flex gap-3 text-base text-slate-950">
+                    <Check className="mt-0.5 size-5 shrink-0 text-slate-900" />
+                    <span>{feature.title}</span>
+                  </li>
                 ))}
-              </div>
-              <p className="mt-8 border-t border-slate-200 pt-6 text-sm leading-7 text-slate-600">
-                Também incluído: papéis com permissões nativas, isolamento de dados por empresa e log de auditoria.
-              </p>
+              </ul>
             </div>
           </div>
         </section>
@@ -334,11 +305,9 @@ export function LandingPage() {
           <div className={cn(sectionClass, 'grid gap-14 lg:grid-cols-[0.85fr_1fr] lg:items-center')}>
             <div>
               <SectionIntro
-                eyebrow="Agendar demonstração"
-                title="O próximo ciclo"
-                italic="pode terminar diferente."
-                body="Uma conversa objetiva: mostramos o produto rodando, entendemos o ciclo atual e alinhamos a proposta. Nenhum compromisso."
                 light
+                title="O próximo ciclo pode terminar diferente."
+                body="Uma conversa objetiva: mostramos o produto rodando, entendemos o ciclo atual e alinhamos a proposta. Nenhum compromisso."
               />
               <ul className="mt-9 grid gap-4">
                 {[
@@ -358,13 +327,10 @@ export function LandingPage() {
         </section>
       </main>
 
-      <footer className="border-t border-slate-200 bg-white">
+      <footer className="border-t border-outline-variant bg-white">
         <div className="mx-auto grid max-w-[1200px] gap-12 px-6 py-16 md:grid-cols-4 md:px-12">
           <div className="md:col-span-2">
-            <p className="font-[Georgia,serif] text-2xl font-semibold tracking-tight text-slate-950">evoluteam</p>
-            <p className="mt-4 max-w-sm text-sm leading-6 text-slate-600">
-              Avaliação de desempenho, feedback contínuo e PDI no mesmo fluxo.
-            </p>
+            <p className="font-serif-landing text-2xl font-bold tracking-tighter text-slate-950">evoluteam</p>
           </div>
           {footerColumns.map((column) => (
             <div key={column.title}>
@@ -383,8 +349,8 @@ export function LandingPage() {
         </div>
         <div className="mx-auto flex max-w-[1200px] flex-col gap-2 border-t border-slate-200 px-6 py-5 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between md:px-12">
           <p>© 2026 Evoluteam · Todos os direitos reservados</p>
-          <a href="mailto:contato@evoluteam.com" className="hover:text-slate-950">
-            contato@evoluteam.com
+          <a href="mailto:marcio@marct.co" className="hover:text-slate-950">
+            marcio@marct.co
           </a>
         </div>
       </footer>
@@ -413,8 +379,10 @@ function FeatureSection({
   muted?: boolean;
   dark?: boolean;
 }) {
+  const bgClass = dark ? 'bg-[#0a0a0a]' : muted ? 'bg-[#fafafa]' : 'bg-white';
+
   return (
-    <section className={cn('border-b border-slate-200', dark ? 'bg-slate-950' : muted ? 'bg-[#fafafa]' : 'bg-white')}>
+    <section className={cn('border-b border-slate-200', bgClass)}>
       <div
         className={cn(
           sectionClass,
@@ -426,9 +394,11 @@ function FeatureSection({
           <SectionIntro eyebrow={eyebrow} title={title} italic={italic} body={body} light={dark} />
           <BulletList items={bullets} light={dark} />
         </div>
-        <div className={cn(dark && 'rounded-lg border border-white/10 bg-white/5 p-2')}>
-          {mockup}
-        </div>
+        {dark ? (
+          <div className="rounded-lg border border-white/10 bg-white/5 p-2">{mockup}</div>
+        ) : (
+          <div className="overflow-hidden rounded-lg border border-outline-variant bg-white p-2 shadow-sm">{mockup}</div>
+        )}
       </div>
     </section>
   );

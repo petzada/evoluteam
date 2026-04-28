@@ -71,7 +71,7 @@ export function LeadForm() {
   return (
     <form onSubmit={onSubmit} className="rounded border border-slate-200 bg-white p-6 text-slate-950 shadow-sm sm:p-8">
       <div className="mb-6 border-b border-slate-200 pb-6">
-        <h3 className="font-[Georgia,serif] text-3xl">Agendar demonstração</h3>
+        <h3 className="font-serif-landing text-3xl font-medium">Agendar demonstração</h3>
         <p className="mt-3 text-sm leading-6 text-slate-600">
           Conte o básico e retornamos com os próximos horários disponíveis.
         </p>
@@ -161,7 +161,7 @@ export function LeadForm() {
         </p>
       ) : null}
 
-      <Button type="submit" disabled={pending} className="mt-6 h-11 w-full rounded bg-slate-950 text-white hover:bg-slate-800">
+      <Button type="submit" disabled={pending} className="mt-6 h-11 w-full rounded bg-[#0a0a0a] text-white hover:bg-neutral-800">
         {pending ? <Loader2 className="size-4 animate-spin" /> : null}
         Agendar demonstração
         {!pending ? <ArrowRight className="size-4" /> : null}

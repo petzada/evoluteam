@@ -9,7 +9,7 @@ export function FaqAccordion() {
   const [openIndex, setOpenIndex] = useState(0);
 
   return (
-    <div className="divide-y divide-slate-200 border-y border-slate-200 bg-transparent">
+    <div className="divide-y divide-outline-variant border-y border-outline-variant bg-transparent">
       {faqItems.map((item, index) => {
         const open = index === openIndex;
         const panelId = `faq-panel-${index}`;
@@ -23,9 +23,7 @@ export function FaqAccordion() {
               aria-controls={panelId}
               onClick={() => setOpenIndex(open ? -1 : index)}
             >
-              <span className="font-[Georgia,serif] text-xl leading-tight text-slate-950">
-                {item.question}
-              </span>
+              <span className="font-serif-landing text-xl leading-tight text-slate-950">{item.question}</span>
               <ChevronDown
                 className={cn('size-5 shrink-0 text-slate-500 transition-transform', open && 'rotate-180')}
               />

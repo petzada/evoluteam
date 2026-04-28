@@ -27,7 +27,7 @@ export function MobileMenu() {
             <div className="flex items-center justify-between border-b border-slate-200 pb-4">
               <Link
                 href="/"
-                className="font-[Georgia,serif] text-2xl font-semibold tracking-tight text-slate-950"
+                className="font-serif-landing text-2xl font-bold tracking-tighter text-slate-950"
                 onClick={() => setOpen(false)}
               >
                 evoluteam
@@ -64,7 +64,7 @@ export function MobileMenu() {
               </Link>
               <a
                 href="#demo"
-                className="inline-flex h-11 items-center justify-center rounded bg-slate-950 text-sm font-medium text-white"
+                className="inline-flex h-11 items-center justify-center rounded bg-[#0a0a0a] text-sm font-medium text-white"
                 onClick={() => setOpen(false)}
               >
                 Agendar demo
