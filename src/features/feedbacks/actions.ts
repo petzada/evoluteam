@@ -65,6 +65,7 @@ export async function sendFeedback(input: FeedbackInput) {
     .select('id')
     .single();
   if (error || !inserted) {
+    console.error('[feedbacks.sendFeedback]', error?.message ?? 'no row returned');
     return { error: 'Erro ao enviar feedback.' };
   }
 

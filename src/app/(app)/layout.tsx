@@ -9,7 +9,7 @@ import { getActorContext } from '@/features/auth/context';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const ctx = await getActorContext();
-  const { profile, employee, isManager, isHiringManager, gate } = ctx;
+  const { user, profile, employee, isManager, isHiringManager, gate } = ctx;
 
   const isOperationalOnly = !canAccessDashboard({
     role: profile.role,
@@ -39,7 +39,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             }
           />
           <div className="flex flex-1 flex-col overflow-hidden">
-            <TopBar />
+            <TopBar userId={user.id} />
             <main className="flex-1 overflow-y-auto p-6">
               {children}
             </main>

@@ -39,7 +39,9 @@ export type ActorContext = {
 };
 
 export const getActorContext = cache(async (): Promise<ActorContext> => {
-  const DEBUG = process.env.NODE_ENV !== 'production';
+  // Opt-in: setar DEBUG_ACTOR=1 no .env.local para ver as marcas de tempo.
+  // Antes era ligado por padrao em dev, polui logs de QA/staging no Railway.
+  const DEBUG = process.env.DEBUG_ACTOR === '1';
   const t0 = Date.now();
   const mark = (label: string) => {
     if (DEBUG) console.log(`[actor] ${label}: ${Date.now() - t0}ms`);

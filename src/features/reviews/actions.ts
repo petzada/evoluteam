@@ -89,7 +89,10 @@ export async function createCycleDraft(input: {
     })
     .select('id')
     .single();
-  if (cycleErr || !cycle) return { error: 'Erro ao criar ciclo.' };
+  if (cycleErr || !cycle) {
+    console.error('[reviews.createCycleDraft]', cycleErr?.message ?? 'no row returned');
+    return { error: 'Erro ao criar ciclo.' };
+  }
 
   await upsertFormAndQuestions(cycle.id, ctx.companyId, input.questions);
 
@@ -486,7 +489,10 @@ export async function reassignReviewer(assignmentId: string, newReviewerEmployee
     .from('review_assignments')
     .update({ reviewer_id: newReviewerEmployeeId })
     .eq('id', assignmentId);
-  if (error) return { error: 'Erro ao reatribuir.' };
+  if (error) {
+    console.error('[reviews.reassignReviewer]', error.message);
+    return { error: 'Erro ao reatribuir.' };
+  }
 
   revalidatePath(`/avaliacoes/${a.cycle_id}`);
   return { ok: true };
@@ -535,7 +541,10 @@ export async function saveAnswerDraft(assignmentId: string, input: {
       text_value: input.textValue ?? null,
       answered_at: new Date().toISOString(),
     }, { onConflict: 'assignment_id,question_id' });
-  if (upsertErr) return { error: 'Erro ao salvar resposta.' };
+  if (upsertErr) {
+    console.error('[reviews.saveAnswerDraft]', upsertErr.message);
+    return { error: 'Erro ao salvar resposta.' };
+  }
 
   // Move para in_progress se estava pending
   if (a.status === 'pending') {

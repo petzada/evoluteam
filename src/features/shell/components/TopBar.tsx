@@ -1,16 +1,19 @@
-import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { getUnreadCount, listRecentNotifications } from '@/features/notifications/queries';
 import { NotificationBell } from '@/features/notifications/components/NotificationBell';
 import { Breadcrumbs } from './Breadcrumbs';
 import { SidebarToggleButton } from './SidebarToggleButton';
 
-export async function TopBar() {
-  const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
+interface TopBarProps {
+  userId: string;
+}
 
-  const [unread, notifications] = user
-    ? await Promise.all([getUnreadCount(user.id), listRecentNotifications(user.id)])
-    : [0, []];
+// userId vem por prop do (app)/layout — evita um auth.getUser() duplicado
+// por request (o layout ja resolveu via getActorContext).
+export async function TopBar({ userId }: TopBarProps) {
+  const [unread, notifications] = await Promise.all([
+    getUnreadCount(userId),
+    listRecentNotifications(userId),
+  ]);
 
   return (
     <header className="flex h-14 items-center border-b bg-background px-4 gap-3">
@@ -18,13 +21,11 @@ export async function TopBar() {
       <div className="h-5 w-px bg-border" />
       <Breadcrumbs />
       <div className="ml-auto" />
-      {user && (
-        <NotificationBell
-          userId={user.id}
-          initialUnread={unread}
-          initialNotifications={notifications}
-        />
-      )}
+      <NotificationBell
+        userId={userId}
+        initialUnread={unread}
+        initialNotifications={notifications}
+      />
     </header>
   );
 }

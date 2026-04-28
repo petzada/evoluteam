@@ -21,9 +21,20 @@ interface UserCardProps {
 export function UserCard({ fullName, companyName, avatarUrl }: UserCardProps) {
   const router = useRouter();
   const { collapsed } = useSidebar();
-  const [, startTransition] = useTransition();
+  const [isSigningOut, startTransition] = useTransition();
   const initials = fullName.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase();
   const displayName = formatSidebarName(fullName);
+
+  // signOut() termina com redirect('/login'), que internamente lanca NEXT_REDIRECT.
+  // Precisamos await dentro do startTransition para o React tratar o redirect corretamente
+  // como Server Action — o padrao antigo `() => void signOut()` joga a Promise fora,
+  // o cliente recebe um payload nao-RSC e quebra com "An unexpected response was received".
+  const handleSignOut = () => {
+    if (isSigningOut) return;
+    startTransition(async () => {
+      await signOut();
+    });
+  };
 
   return (
     <div className={cn('border-t border-sidebar-border py-3', collapsed ? 'px-2' : 'px-3')}>
@@ -55,10 +66,11 @@ export function UserCard({ fullName, companyName, avatarUrl }: UserCardProps) {
           <DropdownMenuSeparator />
           <DropdownMenuItem
             className="text-destructive focus:text-destructive"
-            onClick={() => startTransition(() => void signOut())}
+            onClick={handleSignOut}
+            disabled={isSigningOut}
           >
             <LogOut className="mr-2 h-4 w-4" />
-            Sair
+            {isSigningOut ? 'Saindo…' : 'Sair'}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

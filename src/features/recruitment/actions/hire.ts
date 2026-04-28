@@ -180,6 +180,7 @@ export async function hireCandidate(
     .select('id')
     .single();
   if (empErr || !newEmp) {
+    console.error('[recruitment.hireCandidate.createEmployee]', empErr?.message ?? 'no row returned');
     return { ok: false, reason: 'OTHER', message: empErr?.message ?? 'Falha ao criar colaborador.' };
   }
 
