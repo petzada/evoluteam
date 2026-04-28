@@ -43,17 +43,17 @@ Após conferência visual, três pontos divergentes foram decididos e merecem re
 Legenda: **MANTER** = elemento atual fica como está · **REMOVER** = corte explícito · **MUDAR** = refino · **ADICIONAR** = novo (não existe hoje).
 
 ### Header (`LandingHeader.tsx`)
-- **MUDAR** fundo: branco translúcido → **`bg-[#0a0a0a]/80 backdrop-blur-md border-b border-white/10`** (header escuro)
-- **MANTER** sticky, max-w-[1200px], h-16, MobileMenu
-- **MUDAR** logo: passa a usar o **wordmark da área logada** — `<span class="text-white">Evolu</span><span class="text-[#F09469]">team</span>` (sans bold tracking-tight). Sai a Newsreader do logo (decisão atualizada — alinha com identidade do app autenticado)
+- **MANTER** sticky `bg-white/80 backdrop-blur-md border-b border-outline-variant`, max-w-[1200px], h-16, MobileMenu
+- **MUDAR** logo: passa a usar o **wordmark da área logada** — `<span class="text-slate-950">Evolu</span><span class="text-[#F09469]">team</span>` (sans bold tracking-tight). Sai a Newsreader do logo (decisão atualizada — alinha com identidade do app autenticado, no fundo branco "Evolu" usa `text-slate-950`)
 - **MUDAR** nav: 4 links diretos → **3 dropdowns com hover** (HoverCard / @base-ui PreviewCard) com chevron pra baixo:
   - **Produto**: Como funciona (`#como-funciona`), Planos (`#planos`), Dúvidas (`#faq`, renomeado de FAQ)
   - **Empresa**: Sobre (`#fundador`), Contato (`mailto:marcio@marct.co`)
   - **Políticas**: Privacidade (`/privacidade`), Termos de Uso (`/termos`)
-- **MUDAR** "Entrar": text-slate-500 → `text-white/70` (hover branco)
-- **MUDAR** CTA "Agendar demo" invertido: `bg-[#0a0a0a]` → **`bg-white text-[#0a0a0a]`** (contraste em fundo dark)
+- **MANTER** "Entrar" text-slate-500 (hover slate-950)
+- **MUDAR** CTA "Agendar demo": `bg-slate-950` → `bg-[#0a0a0a]` (preto puro)
 - **REMOVER** setinha `ArrowRight` do CTA do header (setinhas só nos CTAs grandes do Hero)
-- `MobileMenu`: também passa a fundo `#0a0a0a`, lista os 3 grupos com headings de seção, CTA "Agendar demo" branco com texto preto
+- Conteúdo dos dropdowns: `bg-white border-outline-variant shadow-md`, itens em `text-slate-600` com hover `bg-slate-100 text-slate-950`
+- `MobileMenu`: fundo branco, lista os 3 grupos com headings de seção (Produto / Empresa / Políticas), CTA "Agendar demo" preto
 
 ### Hero
 - **MANTER** fundo `#fcf8f8`, `pt-section-padding pb-section-padding`, max-w-[1200px], text-center
