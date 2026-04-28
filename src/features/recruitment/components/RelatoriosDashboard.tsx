@@ -5,6 +5,7 @@ import { Users, CheckCircle2, Clock, AlertTriangle } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { HoverCard, HoverCardTrigger, HoverCardContent } from '@/components/ui/hover-card';
+import { BRAND } from '@/lib/brand';
 import type {
   MetricsKpis, FunnelStageRow, OriginBreakdown, StageDuration,
   StalledCandidate, OverdueTask,
@@ -31,18 +32,23 @@ interface Props {
 }
 
 /**
- * Interpola verticalmente entre coral-300->500 no topo do funil e
- * coral-600->900 no fundo. Cada etapa tem seu gradiente proprio, progredindo
+ * Interpola verticalmente entre tons da paleta de marca no topo e no fundo.
+ * Cada etapa tem seu gradiente proprio, progredindo
  * linearmente pelo indice. Intervalo geral: coral-300 -> coral-900.
  */
 function getFunnelBarGradient(idx: number, total: number): string {
-  if (total <= 1) return 'linear-gradient(180deg, #F09469 0%, #E76F3D 100%)';
+  if (total <= 1) {
+    return `linear-gradient(180deg, ${BRAND.colors.coral} 0%, ${BRAND.colors.coralStrong} 100%)`;
+  }
+
   const t = idx / (total - 1);
   const lerp = (a: number, b: number) => Math.round(a + (b - a) * t);
-  // Topo: coral-300 (#F09469) -> coral-600 (#C2410C)
-  const tr = lerp(0xf0, 0xc2), tg = lerp(0x94, 0x41), tb = lerp(0x69, 0x0c);
-  // Fundo: coral-500 (#E76F3D) -> coral-900 (#7C2D12)
-  const br = lerp(0xe7, 0x7c), bg = lerp(0x6f, 0x2d), bb = lerp(0x3d, 0x12);
+  const [topStartR, topStartG, topStartB] = BRAND.rgb.coral;
+  const [topEndR, topEndG, topEndB] = BRAND.rgb.coralRust;
+  const [bottomStartR, bottomStartG, bottomStartB] = BRAND.rgb.coralStrong;
+  const [bottomEndR, bottomEndG, bottomEndB] = BRAND.rgb.coralBurgundy;
+  const tr = lerp(topStartR, topEndR), tg = lerp(topStartG, topEndG), tb = lerp(topStartB, topEndB);
+  const br = lerp(bottomStartR, bottomEndR), bg = lerp(bottomStartG, bottomEndG), bb = lerp(bottomStartB, bottomEndB);
   return `linear-gradient(180deg, rgb(${tr} ${tg} ${tb}) 0%, rgb(${br} ${bg} ${bb}) 100%)`;
 }
 
@@ -128,7 +134,7 @@ export function RelatoriosDashboard({
                             <span className="text-xs text-muted-foreground/50">—</span>
                           )}
                         </div>
-                        <span className="text-[15px] font-bold text-[#9A3412] tabular-nums tracking-tight">
+                        <span className="text-[15px] font-bold text-brand-coral-deep tabular-nums tracking-tight">
                           {stage.conversionFromFirst !== null ? `${stage.conversionFromFirst}%` : '—'}
                         </span>
                       </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import { HoverCard, HoverCardTrigger, HoverCardContent } from '@/components/ui/hover-card';
+import { BRAND } from '@/lib/brand';
 import { cn } from '@/lib/utils';
 import type { StageDuration } from '../../queries/metrics';
 
@@ -12,10 +13,10 @@ const CHART_HEIGHT = 170;
 const PADDING_TOP = 16;
 const DURATION_COLORS = {
   normalLine: 'rgb(240 148 105 / 0.5)',
-  normalDot: '#F09469',
+  normalDot: BRAND.colors.coral,
   emptyLine: 'rgb(240 148 105 / 0.22)',
   bottleneckLine: 'rgb(194 65 12 / 0.55)',
-  bottleneckDot: '#7C2D12',
+  bottleneckDot: BRAND.colors.coralBurgundy,
 };
 
 /**

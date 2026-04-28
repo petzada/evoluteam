@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ChevronDown } from 'lucide-react';
+import { BrandWordmark } from '@/components/brand/BrandWordmark';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { cn } from '@/lib/utils';
 import { navMenus } from '../content';
@@ -58,14 +59,13 @@ export function LandingHeader() {
       className={cn(
         'sticky top-0 z-40 transition-colors duration-200',
         isScrolled
-          ? 'border-b border-outline-variant bg-white/80 backdrop-blur-md'
+          ? 'border-b border-outline-variant bg-white/95 backdrop-blur-md'
           : 'border-b border-transparent bg-transparent',
       )}
     >
       <div className="mx-auto flex h-16 max-w-[1200px] items-center justify-between px-6 md:px-12">
-        <Link href="/" className="font-serif-landing text-2xl font-bold tracking-tighter">
-          <span className="text-slate-950">evolu</span>
-          <span className="text-[#F09469]">team</span>
+        <Link href="/" className="inline-flex">
+          <BrandWordmark />
         </Link>
 
         <nav className="hidden items-center gap-8 md:flex">
@@ -83,7 +83,7 @@ export function LandingHeader() {
           </Link>
           <a
             href="#demo"
-            className="inline-flex h-10 items-center justify-center rounded-xl bg-[#181d26] px-4 text-sm font-medium text-white transition hover:bg-slate-800 active:scale-[0.99]"
+            className="inline-flex h-10 items-center justify-center rounded-xl bg-brand-ink px-4 text-sm font-medium text-white transition hover:bg-slate-800 active:scale-[0.99]"
           >
             Agendar demo
           </a>

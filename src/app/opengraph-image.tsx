@@ -1,4 +1,5 @@
 import { ImageResponse } from 'next/og';
+import { BRAND } from '@/lib/brand';
 
 export const alt = 'Evoluteam — Gestão de pessoas para times que evoluem';
 export const size = { width: 1200, height: 630 };
@@ -15,8 +16,8 @@ export default function OpenGraphImage() {
           flexDirection: 'column',
           justifyContent: 'space-between',
           padding: 80,
-          background: '#0F172A',
-          fontFamily: 'sans-serif',
+          background: BRAND.colors.slate,
+          fontFamily: 'Georgia, serif',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
@@ -34,11 +35,11 @@ export default function OpenGraphImage() {
               letterSpacing: -2,
             }}
           >
-            <span style={{ display: 'flex', color: '#FFFFFF' }}>e</span>
-            <span style={{ display: 'flex', color: '#F09469' }}>t</span>
+            <span style={{ display: 'flex', color: BRAND.colors.white }}>e</span>
+            <span style={{ display: 'flex', color: BRAND.colors.coral }}>t</span>
           </div>
-          <div style={{ display: 'flex', fontSize: 32, fontWeight: 500, color: '#64748B' }}>
-            evolu.team
+          <div style={{ display: 'flex', fontSize: 32, fontWeight: 500, color: BRAND.colors.slateMuted }}>
+            {BRAND.domain}
           </div>
         </div>
 
@@ -52,15 +53,15 @@ export default function OpenGraphImage() {
               lineHeight: 1,
             }}
           >
-            <span style={{ display: 'flex', color: '#FFFFFF' }}>Evolu</span>
-            <span style={{ display: 'flex', color: '#F09469' }}>team</span>
+            <span style={{ display: 'flex', color: BRAND.colors.white }}>evolu</span>
+            <span style={{ display: 'flex', color: BRAND.colors.coral }}>team</span>
           </div>
           <div
             style={{
               display: 'flex',
               fontSize: 40,
               fontWeight: 400,
-              color: '#CBD5E1',
+              color: BRAND.colors.slateSoft,
               letterSpacing: -1,
               lineHeight: 1.2,
               maxWidth: 900,
@@ -71,8 +72,8 @@ export default function OpenGraphImage() {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <div style={{ display: 'flex', width: 48, height: 4, background: '#F09469' }} />
-          <div style={{ display: 'flex', fontSize: 24, color: '#64748B', fontWeight: 500 }}>
+          <div style={{ display: 'flex', width: 48, height: 4, background: BRAND.colors.coral }} />
+          <div style={{ display: 'flex', fontSize: 24, color: BRAND.colors.slateMuted, fontWeight: 500 }}>
             Avaliações · Feedback · PDI · Recrutamento
           </div>
         </div>

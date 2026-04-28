@@ -6,6 +6,7 @@ import { Heading } from './_components/Heading';
 import { Layout } from './_components/Layout';
 import { Text } from './_components/Text';
 import { daysUntil, formatDeadlineDate } from './_lib/format-deadline';
+import { BRAND } from '@/lib/brand';
 
 export interface EmployeeInviteProps {
   inviteUrl: string;
@@ -16,7 +17,7 @@ export interface EmployeeInviteProps {
   expiresAt: Date;
 }
 
-const linkStyle = { color: '#F09469', textDecoration: 'underline' };
+const linkStyle = { color: BRAND.colors.coral, textDecoration: 'underline' };
 const boldStyle = { color: '#171717', fontWeight: 600 };
 
 function firstName(fullName: string): string {

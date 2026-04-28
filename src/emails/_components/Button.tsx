@@ -1,5 +1,6 @@
 import { Button as REButton } from '@react-email/components';
 import type { ReactNode } from 'react';
+import { BRAND } from '@/lib/brand';
 
 export interface ButtonProps {
   href: string;
@@ -7,9 +8,9 @@ export interface ButtonProps {
 }
 
 const buttonStyle = {
-  backgroundColor: '#F09469',
+  backgroundColor: BRAND.colors.coral,
   borderRadius: '8px',
-  color: '#0F172A',
+  color: BRAND.colors.slate,
   display: 'inline-block',
   fontSize: '15px',
   fontWeight: 600,

@@ -9,6 +9,7 @@ import {
   Text,
 } from '@react-email/components';
 import type { ReactNode } from 'react';
+import { BRAND } from '@/lib/brand';
 
 export interface LayoutProps {
   preheader: string;
@@ -18,6 +19,7 @@ export interface LayoutProps {
 
 const FONT_FAMILY =
   "'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+const WORDMARK_FONT_FAMILY = "Georgia, 'Times New Roman', serif";
 
 const bodyStyle = {
   backgroundColor: '#F5F5F5',
@@ -35,6 +37,7 @@ const containerStyle = {
 };
 
 const wordmarkStyle = {
+  fontFamily: WORDMARK_FONT_FAMILY,
   fontSize: '22px',
   fontWeight: 700,
   letterSpacing: '-0.02em',
@@ -63,13 +66,15 @@ export function Layout({ preheader, footerMessage, children }: LayoutProps) {
         <Container style={containerStyle}>
           <Section>
             <Text style={wordmarkStyle}>
-              <span style={{ color: '#0F172A' }}>Evolu</span>
-              <span style={{ color: '#F09469' }}>team</span>
+              <span style={{ color: BRAND.colors.slate }}>evolu</span>
+              <span style={{ color: BRAND.colors.coral }}>team</span>
             </Text>
           </Section>
           {children}
           <Hr style={dividerStyle} />
-          <Text style={footerTextStyle}>Evoluteam · evolu.team</Text>
+          <Text style={footerTextStyle}>
+            {BRAND.displayName} · {BRAND.domain}
+          </Text>
           <Text style={footerTextStyle}>{footerMessage}</Text>
         </Container>
       </Body>

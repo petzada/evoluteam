@@ -13,6 +13,11 @@
   --font-heading: var(--font-sans);
   --color-outline-variant: #c4c7c8;
   --color-on-surface-variant: #444748;
+  --color-brand-coral: var(--brand-coral);
+  --color-brand-ink: var(--brand-ink);
+  --color-brand-coral-soft: var(--brand-coral-soft);
+  --color-brand-coral-deep: var(--brand-coral-deep);
+  --color-brand-cream: var(--brand-cream);
   --spacing-section-padding: 120px;
   --spacing-gutter: 24px;
   --spacing-stack-sm: 8px;
@@ -58,7 +63,13 @@
 }
 
 :root {
-  /* Primary: coral Evoluteam #F09469 (logo wordmark) */
+  --brand-coral: #F09469;
+  --brand-ink: #181d26;
+  --brand-coral-soft: #FCC9B0;
+  --brand-coral-deep: #aa2d00;
+  --brand-cream: #f5e9d4;
+
+  /* Primary: coral Evoluteam */
   --primary: oklch(0.745 0.115 40);
   --primary-foreground: oklch(0.208 0.042 265.755);
 
@@ -79,7 +90,7 @@
   --border: oklch(0.869 0.022 252.894);            /* #CBD5E1 slate-300 */
   --input: oklch(0.869 0.022 252.894);
   --ring: oklch(0.745 0.115 40);                   /* primary */
-  --chart-1: oklch(0.745 0.115 40);                /* coral #F09469 */
+  --chart-1: oklch(0.745 0.115 40);                /* coral */
   --chart-2: oklch(0.745 0.115 40);
   --chart-3: oklch(0.745 0.115 40);
   --chart-4: oklch(0.745 0.115 40);
@@ -96,7 +107,7 @@
 }
 
 .dark {
-  /* Primary: coral #F09469 (mesmo do light) */
+  /* Primary: coral (mesmo do light) */
   --primary: oklch(0.745 0.115 40);
   --primary-foreground: oklch(0.208 0.042 265.755);
   --background: oklch(0.208 0.042 265.755);        /* #0F172A slate-900 */

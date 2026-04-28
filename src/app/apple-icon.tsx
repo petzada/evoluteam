@@ -1,4 +1,5 @@
 import { ImageResponse } from 'next/og';
+import { BRAND } from '@/lib/brand';
 
 export const size = { width: 180, height: 180 };
 export const contentType = 'image/png';
@@ -13,16 +14,16 @@ export default function AppleIcon() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: '#0F172A',
+          background: BRAND.colors.slate,
           borderRadius: 40,
           fontSize: 108,
           fontWeight: 800,
           letterSpacing: -8,
-          fontFamily: 'sans-serif',
+          fontFamily: 'Georgia, serif',
         }}
       >
-        <span style={{ display: 'flex', color: '#FFFFFF' }}>e</span>
-        <span style={{ display: 'flex', color: '#F09469' }}>t</span>
+        <span style={{ display: 'flex', color: BRAND.colors.white }}>e</span>
+        <span style={{ display: 'flex', color: BRAND.colors.coral }}>t</span>
       </div>
     ),
     { ...size },

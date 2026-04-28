@@ -1,6 +1,7 @@
 'use client';
 
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
+import { BRAND } from '@/lib/brand';
 import type { OriginBreakdown } from '../../queries/metrics';
 
 interface Props {
@@ -8,15 +9,15 @@ interface Props {
 }
 
 const DONUT_COLORS = [
-  '#F09469',
-  '#7C2D12',
-  '#F97316',
-  '#9A3412',
-  '#FDBA74',
-  '#C2410C',
-  '#FB923C',
-  '#B45309',
-  '#EA580C',
+  BRAND.colors.coral,
+  BRAND.colors.coralBurgundy,
+  BRAND.colors.coralOrange,
+  BRAND.colors.coralBrown,
+  BRAND.colors.coralLight,
+  BRAND.colors.coralRust,
+  BRAND.colors.coralWarm,
+  BRAND.colors.coralOchre,
+  BRAND.colors.coralVivid,
 ];
 
 interface DatumWithColor extends OriginBreakdown {

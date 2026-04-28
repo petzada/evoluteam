@@ -7,6 +7,7 @@ import {
   Building2, Layers, Briefcase, Star, ScrollText,
   UserPlus, KanbanSquare, BarChart3,
 } from 'lucide-react';
+import { BrandMonogram, BrandWordmark } from '@/components/brand/BrandWordmark';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useSidebar } from '../SidebarContext';
@@ -155,12 +156,9 @@ export function Sidebar({
     >
       <div className="flex h-14 items-center justify-center px-4 border-b border-sidebar-border">
         {collapsed ? (
-          <span className="text-lg font-bold text-white">E</span>
+          <BrandMonogram tone="light" size="sm" />
         ) : (
-          <span className="text-lg font-bold tracking-tight">
-            <span className="text-white">Evolu</span>
-            <span className="text-[#F09469]">team</span>
-          </span>
+          <BrandWordmark tone="light" size="sm" />
         )}
       </div>
 

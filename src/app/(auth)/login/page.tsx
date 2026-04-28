@@ -47,7 +47,7 @@ export default function LoginPage() {
             <FormItem>
               <div className="flex items-center justify-between">
                 <FormLabel>Senha</FormLabel>
-                <Link href="/forgot-password" className="text-xs text-muted-foreground transition hover:text-[#181d26]">
+                <Link href="/forgot-password" className="text-xs text-muted-foreground transition hover:text-brand-ink">
                   Esqueci minha senha
                 </Link>
               </div>
@@ -75,7 +75,7 @@ export default function LoginPage() {
 
           {error && <p className="text-sm text-destructive">{error}</p>}
 
-          <Button type="submit" className="h-10 w-full rounded-xl bg-[#181d26] text-white hover:bg-slate-800" disabled={loading}>
+          <Button type="submit" className="h-10 w-full rounded-xl bg-brand-ink text-white hover:bg-slate-800" disabled={loading}>
             {loading ? 'Entrando…' : 'Entrar'}
           </Button>
         </form>

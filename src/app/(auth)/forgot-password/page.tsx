@@ -33,7 +33,7 @@ export default function ForgotPasswordPage() {
         <p className="mb-6 text-sm text-muted-foreground">
           Se o e-mail existir, enviamos um link de redefinição.
         </p>
-        <Link href="/login" className="text-sm font-medium text-[#181d26] transition hover:text-slate-800 hover:underline">
+        <Link href="/login" className="text-sm font-medium text-brand-ink transition hover:text-slate-800 hover:underline">
           Voltar ao login
         </Link>
       </div>
@@ -54,14 +54,14 @@ export default function ForgotPasswordPage() {
               <FormMessage />
             </FormItem>
           )} />
-          <Button type="submit" className="h-10 w-full rounded-xl bg-[#181d26] text-white hover:bg-slate-800" disabled={loading}>
+          <Button type="submit" className="h-10 w-full rounded-xl bg-brand-ink text-white hover:bg-slate-800" disabled={loading}>
             {loading ? 'Enviando…' : 'Enviar link'}
           </Button>
         </form>
       </Form>
 
       <div className="mt-4 text-center">
-        <Link href="/login" className="text-xs text-muted-foreground transition hover:text-[#181d26]">
+        <Link href="/login" className="text-xs text-muted-foreground transition hover:text-brand-ink">
           Voltar ao login
         </Link>
       </div>

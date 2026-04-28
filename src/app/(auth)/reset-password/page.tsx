@@ -52,7 +52,7 @@ export default function ResetPasswordPage() {
               <FormMessage />
             </FormItem>
           )} />
-          <Button type="submit" className="h-10 w-full rounded-xl bg-[#181d26] text-white hover:bg-slate-800" disabled={loading}>
+          <Button type="submit" className="h-10 w-full rounded-xl bg-brand-ink text-white hover:bg-slate-800" disabled={loading}>
             {loading ? 'Salvando…' : 'Redefinir senha'}
           </Button>
         </form>

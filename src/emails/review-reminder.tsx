@@ -5,6 +5,7 @@ import { Heading } from './_components/Heading';
 import { Layout } from './_components/Layout';
 import { Text } from './_components/Text';
 import { daysUntil, formatDeadlineDate } from './_lib/format-deadline';
+import { BRAND } from '@/lib/brand';
 
 export interface ReviewReminderProps {
   reviewerName?: string;
@@ -14,7 +15,7 @@ export interface ReviewReminderProps {
   cycleUrl: string;
 }
 
-const linkStyle = { color: '#F09469', textDecoration: 'underline' };
+const linkStyle = { color: BRAND.colors.coral, textDecoration: 'underline' };
 
 function firstName(fullName: string): string {
   return fullName.trim().split(/\s+/)[0];

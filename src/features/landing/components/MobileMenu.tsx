@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Menu, X } from 'lucide-react';
+import { BrandWordmark } from '@/components/brand/BrandWordmark';
 import { Button } from '@/components/ui/button';
 import { navMenus } from '../content';
 
@@ -27,11 +28,10 @@ export function MobileMenu() {
             <div className="flex items-center justify-between border-b border-outline-variant pb-4">
               <Link
                 href="/"
-                className="text-xl font-bold tracking-tight"
+                className="inline-flex"
                 onClick={() => setOpen(false)}
               >
-                <span className="text-slate-950">Evolu</span>
-                <span className="text-[#F09469]">team</span>
+                <BrandWordmark size="sm" />
               </Link>
               <Button
                 type="button"
@@ -75,7 +75,7 @@ export function MobileMenu() {
               </Link>
               <a
                 href="#demo"
-                className="inline-flex h-11 items-center justify-center rounded-xl bg-[#181d26] text-sm font-medium text-white hover:bg-slate-800"
+                className="inline-flex h-11 items-center justify-center rounded-xl bg-brand-ink text-sm font-medium text-white hover:bg-slate-800"
                 onClick={() => setOpen(false)}
               >
                 Agendar demo

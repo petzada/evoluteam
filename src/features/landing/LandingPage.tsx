@@ -1,4 +1,5 @@
 import { ArrowRight, Check, Minus } from 'lucide-react';
+import { BrandWordmark } from '@/components/brand/BrandWordmark';
 import { cn } from '@/lib/utils';
 import { featureBullets, flowSteps, footerColumns, painPoints, pricingFeatures } from './content';
 import { FaqAccordion } from './components/FaqAccordion';
@@ -28,7 +29,7 @@ function CtaLink({
       href={href}
       className={cn(
         'inline-flex h-12 items-center justify-center gap-2 rounded-xl px-7 text-sm font-semibold transition active:scale-[0.99]',
-        variant === 'dark' && 'bg-[#181d26] text-white hover:bg-slate-800',
+        variant === 'dark' && 'bg-brand-ink text-white hover:bg-slate-800',
         variant === 'outline' && 'border border-slate-300 bg-transparent text-slate-950 hover:bg-slate-100',
         variant === 'light' && 'bg-white text-slate-950 hover:bg-slate-100',
       )}
@@ -60,7 +61,7 @@ function SectionIntro({
   return (
     <div className={cn(align === 'center' && 'mx-auto max-w-3xl text-center')}>
       {eyebrow ? (
-        <p className={cn(eyebrowClass, light && 'text-[#F09469]')}>{eyebrow}</p>
+        <p className={cn(eyebrowClass, light && 'text-brand-coral')}>{eyebrow}</p>
       ) : null}
       <TitleTag
         className={cn(serifH2, eyebrow && 'mt-4', light && 'text-white', asH1 && 'text-[48px] font-medium leading-[1.1] tracking-[-0.02em]')}
@@ -69,7 +70,7 @@ function SectionIntro({
         {italic ? (
           <>
             {' '}
-            <span className={cn('italic text-slate-500', light && 'text-[#FCC9B0]')}>{italic}</span>
+            <span className={cn('italic text-slate-500', light && 'text-brand-coral-soft')}>{italic}</span>
           </>
         ) : null}
       </TitleTag>
@@ -94,7 +95,7 @@ function BulletList({ items, light = false }: { items: string[]; light?: boolean
     <ul className="mt-8 grid gap-3">
       {items.map((item) => (
         <li key={item} className={cn('flex gap-3 text-sm leading-7 text-slate-600', light && 'text-slate-300')}>
-          <Minus className={cn('mt-3 size-3 shrink-0 text-primary', light && 'text-[#F09469]')} />
+          <Minus className={cn('mt-3 size-3 shrink-0 text-primary', light && 'text-brand-coral')} />
           <span>{item}</span>
         </li>
       ))}
@@ -130,12 +131,12 @@ export function LandingPage() {
           </div>
         </section>
 
-        <section id="produto" className="border-t border-white/20 border-b border-slate-200 bg-[#aa2d00] text-white">
+        <section id="produto" className="border-t border-white/20 border-b border-slate-200 bg-brand-coral-deep text-white">
           <div className={cn(sectionClass, 'grid gap-16 md:grid-cols-2 md:items-center')}>
             <div className="space-y-10">
               <div>
                 <h2 className={cn(serifH2, 'text-white')}>
-                  A planilha é só o sintoma. <span className="italic text-[#FCC9B0]">O problema é outro.</span>
+                  A planilha é só o sintoma. <span className="italic text-brand-coral-soft">O problema é outro.</span>
                 </h2>
                 <p className={cn(bodyClass, 'text-slate-200 mt-5 max-w-2xl')}>
                   Empresas em crescimento já tentaram formulários, documentos soltos e ferramentas grandes demais. No fim do ciclo, as mesmas
@@ -145,7 +146,7 @@ export function LandingPage() {
               <div className="grid gap-8">
                 {painPoints.map((point) => (
                   <article key={point.number} className="flex gap-6 border-t border-white/20 pt-7">
-                    <span className="font-serif-landing text-[32px] font-medium text-[#FCC9B0]">{point.number}</span>
+                    <span className="font-serif-landing text-[32px] font-medium text-brand-coral-soft">{point.number}</span>
                     <div>
                       <h3 className="font-serif-landing text-[32px] font-medium leading-tight text-white">{point.title}</h3>
                       <p className="mt-2 text-lg leading-[1.6] text-slate-200">{point.body}</p>
@@ -187,7 +188,7 @@ export function LandingPage() {
                   <p
                     className={cn(
                       'text-xs font-semibold uppercase tracking-widest',
-                      step.featured ? 'text-[#F09469]' : 'text-slate-500',
+                      step.featured ? 'text-brand-coral' : 'text-slate-500',
                     )}
                   >
                     {step.eyebrow}
@@ -301,7 +302,7 @@ export function LandingPage() {
           </div>
         </section>
 
-        <section id="demo" className="bg-[#181d26]">
+        <section id="demo" className="bg-brand-ink">
           <div className={cn(sectionClass, 'grid gap-14 lg:grid-cols-[0.85fr_1fr] lg:items-center')}>
             <div>
               <SectionIntro
@@ -316,7 +317,7 @@ export function LandingPage() {
                   'Plano de implantação para o primeiro ciclo',
                 ].map((item) => (
                   <li key={item} className="flex gap-3 text-sm leading-7 text-slate-300">
-                    <Check className="mt-1 size-5 shrink-0 text-[#F09469]" />
+                    <Check className="mt-1 size-5 shrink-0 text-brand-coral" />
                     {item}
                   </li>
                 ))}
@@ -330,10 +331,7 @@ export function LandingPage() {
       <footer className="border-t border-outline-variant bg-white">
         <div className="mx-auto grid max-w-[1200px] gap-12 px-6 py-16 sm:grid-cols-2 md:grid-cols-4 md:px-12">
           <div>
-            <p className="font-serif-landing text-2xl font-bold tracking-tighter">
-              <span className="text-[#F09469]">evolu</span>
-              <span className="text-slate-950">team</span>
-            </p>
+            <BrandWordmark />
           </div>
           {footerColumns.map((column) => (
             <div key={column.title}>
@@ -381,7 +379,7 @@ function FeatureSection({
   surface?: 'canvas' | 'cream' | 'dark';
 }) {
   const isDark = surface === 'dark';
-  const bgClass = surface === 'dark' ? 'bg-[#181d26]' : surface === 'cream' ? 'bg-[#f5e9d4]' : 'bg-white';
+  const bgClass = surface === 'dark' ? 'bg-brand-ink' : surface === 'cream' ? 'bg-brand-cream' : 'bg-white';
 
   return (
     <section className={cn('border-b border-slate-200', bgClass)}>
