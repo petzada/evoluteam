@@ -27,8 +27,8 @@ function CtaLink({
     <a
       href={href}
       className={cn(
-        'inline-flex h-12 items-center justify-center gap-2 rounded px-7 text-sm font-semibold transition active:scale-[0.99]',
-        variant === 'dark' && 'bg-[#0a0a0a] text-white hover:bg-neutral-800',
+        'inline-flex h-12 items-center justify-center gap-2 rounded-xl px-7 text-sm font-semibold transition active:scale-[0.99]',
+        variant === 'dark' && 'bg-[#181d26] text-white hover:bg-slate-800',
         variant === 'outline' && 'border border-slate-300 bg-transparent text-slate-950 hover:bg-slate-100',
         variant === 'light' && 'bg-white text-slate-950 hover:bg-slate-100',
       )}
@@ -104,11 +104,11 @@ function BulletList({ items, light = false }: { items: string[]; light?: boolean
 
 export function LandingPage() {
   return (
-    <div className="min-h-screen bg-[#fcf8f8] text-slate-950">
+    <div className="min-h-screen bg-white text-slate-950">
       <LandingHeader />
 
       <main>
-        <section className="border-b border-slate-200 bg-[#fcf8f8]">
+        <section className="border-b border-slate-200 bg-white">
           <div className="mx-auto max-w-[1200px] px-6 py-16 text-center md:px-12 lg:px-12 lg:py-[120px]">
             <h1 className={cn(serifH1, 'mx-auto max-w-4xl text-balance')}>
               Avaliar é fácil. <span className="italic text-slate-500">Desenvolver</span> é difícil.
@@ -130,32 +130,32 @@ export function LandingPage() {
           </div>
         </section>
 
-        <section id="produto" className="border-t border-outline-variant border-b border-slate-200 bg-white">
+        <section id="produto" className="border-t border-white/20 border-b border-slate-200 bg-[#aa2d00] text-white">
           <div className={cn(sectionClass, 'grid gap-16 md:grid-cols-2 md:items-center')}>
             <div className="space-y-10">
               <div>
-                <h2 className={cn(serifH2, 'text-slate-950')}>
-                  A planilha é só o sintoma. <span className="italic text-slate-500">O problema é outro.</span>
+                <h2 className={cn(serifH2, 'text-white')}>
+                  A planilha é só o sintoma. <span className="italic text-[#FCC9B0]">O problema é outro.</span>
                 </h2>
-                <p className={cn(bodyClass, 'mt-5 max-w-2xl')}>
+                <p className={cn(bodyClass, 'text-slate-200 mt-5 max-w-2xl')}>
                   Empresas em crescimento já tentaram formulários, documentos soltos e ferramentas grandes demais. No fim do ciclo, as mesmas
                   tensões voltam.
                 </p>
               </div>
               <div className="grid gap-8">
                 {painPoints.map((point) => (
-                  <article key={point.number} className="flex gap-6 border-t border-slate-200 pt-7">
-                    <span className="font-serif-landing text-[32px] font-medium text-[#c4c7c8]">{point.number}</span>
+                  <article key={point.number} className="flex gap-6 border-t border-white/20 pt-7">
+                    <span className="font-serif-landing text-[32px] font-medium text-[#FCC9B0]">{point.number}</span>
                     <div>
-                      <h3 className="font-serif-landing text-[32px] font-medium leading-tight text-slate-950">{point.title}</h3>
-                      <p className="mt-2 text-lg leading-[1.6] text-on-surface-variant">{point.body}</p>
+                      <h3 className="font-serif-landing text-[32px] font-medium leading-tight text-white">{point.title}</h3>
+                      <p className="mt-2 text-lg leading-[1.6] text-slate-200">{point.body}</p>
                     </div>
                   </article>
                 ))}
               </div>
             </div>
-            <div className="border-l border-outline-variant py-8 pl-8 md:pl-16">
-              <blockquote className="font-serif-landing max-w-md text-2xl font-normal italic leading-[1.4] text-slate-800">
+            <div className="border-l border-white/20 py-8 pl-8 md:pl-16">
+              <blockquote className="font-serif-landing max-w-md text-2xl font-normal italic leading-[1.4] text-white">
                 “A maior parte das avaliações termina em uma planilha arquivada. O Evoluteam existe pra mudar essa última parte.”
               </blockquote>
             </div>
@@ -207,7 +207,7 @@ export function LandingPage() {
           body="Qualquer pessoa registra um feedback em segundos: elogio, ponto de melhoria ou contexto. No ciclo seguinte, tudo aparece ao lado do formulário de avaliação."
           bullets={featureBullets.feedback}
           mockup={<FeedbackMockup />}
-          muted
+          surface="cream"
         />
 
         <FeatureSection
@@ -218,7 +218,7 @@ export function LandingPage() {
           bullets={featureBullets.reviews}
           mockup={<ReviewMockup />}
           reversed
-          muted
+          surface="canvas"
         />
 
         <FeatureSection
@@ -228,7 +228,7 @@ export function LandingPage() {
           body="A partir do resultado, o gestor cria um PDI com ações concretas, prazos e acompanhamento. A nota vira plano; o ciclo fecha com uma próxima ação."
           bullets={featureBullets.pdi}
           mockup={<PdiMockup eyebrow="pdi/id" />}
-          dark
+          surface="dark"
         />
 
         <section id="fundador" className="border-b border-slate-200 bg-white">
@@ -301,7 +301,7 @@ export function LandingPage() {
           </div>
         </section>
 
-        <section id="demo" className="bg-slate-950">
+        <section id="demo" className="bg-[#181d26]">
           <div className={cn(sectionClass, 'grid gap-14 lg:grid-cols-[0.85fr_1fr] lg:items-center')}>
             <div>
               <SectionIntro
@@ -366,8 +366,7 @@ function FeatureSection({
   bullets,
   mockup,
   reversed = false,
-  muted = false,
-  dark = false,
+  surface = 'canvas',
 }: {
   eyebrow: string;
   title: string;
@@ -376,10 +375,10 @@ function FeatureSection({
   bullets: string[];
   mockup: React.ReactNode;
   reversed?: boolean;
-  muted?: boolean;
-  dark?: boolean;
+  surface?: 'canvas' | 'cream' | 'dark';
 }) {
-  const bgClass = dark ? 'bg-[#0a0a0a]' : muted ? 'bg-[#fafafa]' : 'bg-white';
+  const isDark = surface === 'dark';
+  const bgClass = surface === 'dark' ? 'bg-[#181d26]' : surface === 'cream' ? 'bg-[#f5e9d4]' : 'bg-white';
 
   return (
     <section className={cn('border-b border-slate-200', bgClass)}>
@@ -391,10 +390,10 @@ function FeatureSection({
         )}
       >
         <div>
-          <SectionIntro eyebrow={eyebrow} title={title} italic={italic} body={body} light={dark} />
-          <BulletList items={bullets} light={dark} />
+          <SectionIntro eyebrow={eyebrow} title={title} italic={italic} body={body} light={isDark} />
+          <BulletList items={bullets} light={isDark} />
         </div>
-        {dark ? (
+        {isDark ? (
           <div className="rounded-lg border border-white/10 bg-white/5 p-2">{mockup}</div>
         ) : (
           <div className="overflow-hidden rounded-lg border border-outline-variant bg-white p-2 shadow-sm">{mockup}</div>

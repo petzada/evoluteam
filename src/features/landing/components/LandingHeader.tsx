@@ -1,8 +1,10 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ChevronDown } from 'lucide-react';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
+import { cn } from '@/lib/utils';
 import { navMenus } from '../content';
 import { MobileMenu } from './MobileMenu';
 
@@ -43,11 +45,26 @@ function NavDropdown({
 }
 
 export function LandingHeader() {
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => setIsScrolled(window.scrollY > 10);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   return (
-    <header className="sticky top-0 z-40 border-b border-outline-variant bg-white/80 backdrop-blur-md">
+    <header
+      className={cn(
+        'sticky top-0 z-40 transition-colors duration-200',
+        isScrolled
+          ? 'border-b border-outline-variant bg-white/80 backdrop-blur-md'
+          : 'border-b border-transparent bg-transparent',
+      )}
+    >
       <div className="mx-auto flex h-16 max-w-[1200px] items-center justify-between px-6 md:px-12">
-        <Link href="/" className="text-xl font-bold tracking-tight">
-          <span className="text-slate-950">Evolu</span>
+        <Link href="/" className="font-serif-landing text-2xl font-bold tracking-tighter">
+          <span className="text-slate-950">evolu</span>
           <span className="text-[#F09469]">team</span>
         </Link>
 
@@ -66,7 +83,7 @@ export function LandingHeader() {
           </Link>
           <a
             href="#demo"
-            className="inline-flex h-10 items-center justify-center rounded bg-[#0a0a0a] px-4 text-sm font-medium text-white transition hover:bg-neutral-800 active:scale-[0.99]"
+            className="inline-flex h-10 items-center justify-center rounded-xl bg-[#181d26] px-4 text-sm font-medium text-white transition hover:bg-slate-800 active:scale-[0.99]"
           >
             Agendar demo
           </a>

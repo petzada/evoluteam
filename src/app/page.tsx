@@ -14,9 +14,14 @@ export const metadata: Metadata = {
 
 export default async function RootPage() {
   const supabase = await createServerSupabaseClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  let user = null;
+
+  try {
+    const { data } = await supabase.auth.getUser();
+    user = data.user;
+  } catch (error) {
+    // Em caso de token inválido ou erro de sessão, ignoramos para exibir a landing page pública
+  }
 
   if (user) redirect('/dashboard');
 
