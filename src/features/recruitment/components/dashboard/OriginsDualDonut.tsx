@@ -25,8 +25,8 @@ interface DatumWithColor extends OriginBreakdown {
 }
 
 /**
- * 2 donuts lado a lado: candidatos total × contratados, com legenda única
- * (spec 16 §7.6 / mockup aprovado dashboard-final-integrado.html).
+ * 2 donuts lado a lado: candidatos total × contratados.
+ * Cada coluna traz sua própria legenda abaixo do gráfico.
  */
 export function OriginsDualDonut({ origins }: Props) {
   if (origins.length === 0) {
@@ -50,21 +50,9 @@ export function OriginsDualDonut({ origins }: Props) {
     .map((o) => ({ ...o, value: o.hired }));
 
   return (
-    <div>
-      <div className="grid grid-cols-2 gap-4 items-center">
-        <DonutCol title="Candidatos" data={candidatesData} total={totalCandidates} variant="candidates" />
-        <DonutCol title="Contratados" data={hiredData} total={totalHired} variant="hired" />
-      </div>
-
-      {/* Legenda única compartilhada */}
-      <div className="mt-4 pt-3 border-t grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 text-[10.5px]">
-        {enriched.map((o) => (
-          <div key={o.source} className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-sm shrink-0" style={{ background: o.color }} />
-            <span className="text-foreground truncate">{o.label}</span>
-          </div>
-        ))}
-      </div>
+    <div className="grid grid-cols-2 gap-4 items-start">
+      <DonutCol title="Candidatos" data={candidatesData} total={totalCandidates} variant="candidates" />
+      <DonutCol title="Contratados" data={hiredData} total={totalHired} variant="hired" />
     </div>
   );
 }

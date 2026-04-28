@@ -531,7 +531,10 @@ export function EmployeesList({
                       {columns.admission && <TableCell>{formatDate(emp.hire_date)}</TableCell>}
                       {columns.phone && <TableCell>{emp.phone ?? '—'}</TableCell>}
                       <TableCell>
-                        <Badge variant={STATUS_VARIANTS[status]}>
+                        <Badge
+                          variant={STATUS_VARIANTS[status]}
+                          className={status === 'ativo' ? 'bg-emerald-600 text-white hover:bg-emerald-600' : undefined}
+                        >
                           {STATUS_LABELS[status]}
                         </Badge>
                       </TableCell>

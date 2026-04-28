@@ -214,7 +214,10 @@ export function EmployeeProfile({
               <span>{employee.department.name}</span>
             </>}
             <span>·</span>
-            <Badge variant={employee.status === 'active' ? 'default' : 'outline'}>
+            <Badge
+              variant={employee.status === 'active' ? 'default' : 'outline'}
+              className={employee.status === 'active' ? 'bg-emerald-600 text-white hover:bg-emerald-600' : undefined}
+            >
               {STATUS_LABEL[employee.status] ?? employee.status}
             </Badge>
             {role && (

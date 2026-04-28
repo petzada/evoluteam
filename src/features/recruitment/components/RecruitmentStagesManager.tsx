@@ -179,7 +179,7 @@ export function RecruitmentStagesManager({ stages: initialStages, canEdit }: Pro
             {archivedStages.map((stage) => (
               <li key={stage.id} className="flex items-center gap-3 px-4 py-3">
                 <span className="text-sm font-medium text-muted-foreground">{stage.name}</span>
-                <Badge variant="outline" className="text-xs">{KIND_LABELS[stage.kind]}</Badge>
+                <Badge variant="outline" className="text-sm">{KIND_LABELS[stage.kind]}</Badge>
                 {canEdit && (
                   <Button
                     size="sm"
@@ -278,7 +278,7 @@ function StageRowItem({
       ) : (
         <>
           <span className="text-sm font-medium flex-1">{stage.name}</span>
-          <Badge variant="outline" className="text-[10px]">{KIND_LABELS[stage.kind]}</Badge>
+          <Badge variant="outline" className="text-xs">{KIND_LABELS[stage.kind]}</Badge>
           <label
             className={`flex items-center gap-1.5 text-xs text-muted-foreground ${isFixed || !canEdit ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
             title={isFixed ? 'Apenas etapas intermediárias podem notificar o gestor.' : 'Notifica o gestor da vaga quando candidato entra nesta etapa.'}
