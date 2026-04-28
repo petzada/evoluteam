@@ -51,7 +51,7 @@ export async function submitLead(input: LeadInput): Promise<SubmitLeadResult> {
     };
   }
 
-  const recipient = process.env.SALES_LEAD_RECIPIENT_EMAIL || 'contato@evoluteam.com';
+  const recipient = process.env.SALES_LEAD_RECIPIENT_EMAIL || 'marcio@marct.co';
   const email = await sendEmail({
     to: recipient,
     ...(await renderLeadNotification({ ...lead, source })),
