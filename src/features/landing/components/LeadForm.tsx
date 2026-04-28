@@ -161,7 +161,7 @@ export function LeadForm() {
         </p>
       ) : null}
 
-      <Button type="submit" disabled={pending} className="mt-6 h-11 w-full rounded bg-[#0a0a0a] text-white hover:bg-neutral-800">
+      <Button type="submit" disabled={pending} className="mt-6 h-11 w-full rounded-xl bg-[#181d26] text-white hover:bg-slate-800">
         {pending ? <Loader2 className="size-4 animate-spin" /> : null}
         Agendar demonstração
         {!pending ? <ArrowRight className="size-4" /> : null}
