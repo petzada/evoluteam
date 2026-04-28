@@ -36,6 +36,13 @@ import {
 import { MultiSelectFilter } from '@/components/MultiSelectFilter';
 import { formatDate, formatDateTime } from '@/lib/date';
 import { ACTIVITY_LABELS } from '@/lib/activity';
+import { statusClass } from '@/lib/status-colors';
+import {
+  deriveReviewCycleStatus,
+  employeeRecordStatusToken,
+  REVIEW_CYCLE_STATUS_LABELS,
+  reviewCycleStatusToken,
+} from '@/lib/status-mappers';
 import { resendInvite, revokeInvite } from '../actions';
 
 type Employee = {
@@ -133,13 +140,6 @@ function initials(name: string) {
 
 const VALID_TABS = ['dados', 'acesso', 'historico', 'avaliacoes', 'feedbacks', 'pdi'] as const;
 
-const CYCLE_STATUS_LABEL: Record<'draft' | 'published' | 'closed' | 'archived', string> = {
-  draft: 'Rascunho',
-  published: 'Em andamento',
-  closed: 'Encerrado',
-  archived: 'Arquivado',
-};
-
 export function EmployeeProfile({
   employee, directReports, activityLog, role, lastSignInAt, isAdmin, isSelf,
   targetScreenPermissions, currentActorRole, actorIsAdmin, actorScreenPermissions,
@@ -214,10 +214,7 @@ export function EmployeeProfile({
               <span>{employee.department.name}</span>
             </>}
             <span>·</span>
-            <Badge
-              variant={employee.status === 'active' ? 'default' : 'outline'}
-              className={employee.status === 'active' ? 'bg-emerald-600 text-white hover:bg-emerald-600' : undefined}
-            >
+            <Badge className={statusClass(employeeRecordStatusToken(employee.status))}>
               {STATUS_LABEL[employee.status] ?? employee.status}
             </Badge>
             {role && (
@@ -472,6 +469,11 @@ export function EmployeeProfile({
               {reviewCycles.map((c) => {
                 const canView = canSeeResults || (isSelf && c.isReleased);
                 const resultHref = `/avaliacoes/${c.cycleId}/resultados/${employee.id}`;
+                const cycleDerivedStatus = deriveReviewCycleStatus(
+                  c.status,
+                  c.responseStart,
+                  c.responseEnd,
+                );
                 return (
                   <li key={c.cycleId} className="rounded-md border bg-card p-4 shadow-card">
                     <div className="flex items-start justify-between gap-3">
@@ -489,8 +491,8 @@ export function EmployeeProfile({
                         </p>
                       </div>
                       <div className="flex flex-col items-end gap-1 shrink-0">
-                        <Badge variant={c.status === 'closed' ? 'default' : 'outline'}>
-                          {CYCLE_STATUS_LABEL[c.status]}
+                        <Badge className={statusClass(reviewCycleStatusToken(cycleDerivedStatus))}>
+                          {REVIEW_CYCLE_STATUS_LABELS[cycleDerivedStatus]}
                         </Badge>
                         {isSelf && !c.isReleased && (
                           <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
@@ -670,10 +672,12 @@ function FieldRow({ label, value }: { label: string; value: React.ReactNode }) {
 }
 
 function StatusDot({ status }: { status: string }) {
+  const token = employeeRecordStatusToken(status);
   const color =
-    status === 'active' ? 'bg-emerald-500'
-      : status === 'inactive' ? 'bg-muted-foreground/60'
-        : status === 'terminated' ? 'bg-destructive' : 'bg-muted-foreground';
+    token === 'success' ? 'bg-emerald-500'
+      : token === 'warning' ? 'bg-amber-500'
+        : token === 'danger' ? 'bg-red-500'
+          : 'bg-slate-400';
   return <span className={`inline-block size-2 rounded-full ${color}`} />;
 }
 

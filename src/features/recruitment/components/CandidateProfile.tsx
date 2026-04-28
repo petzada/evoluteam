@@ -10,6 +10,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { formatDate } from '@/lib/date';
+import { statusClass } from '@/lib/status-colors';
+import { recruitmentApplicationStatusToken } from '@/lib/status-mappers';
+import { cn } from '@/lib/utils';
 import type { CandidateRow } from '../queries/candidates';
 import type { ApplicationRow, StageHistoryRow } from '../queries/applications';
 import type { CandidateFeedbackRow } from '../queries/feedbacks';
@@ -39,14 +42,6 @@ interface Props {
   isAdmin: boolean;
   applicationsOwnedByCurrentGestor: Set<string>;
   responsibleOptions: { id: string; full_name: string }[];
-}
-
-function statusVariant(status: ApplicationRow['status']): 'default' | 'secondary' | 'outline' | 'destructive' {
-  if (status === 'hired') return 'default';
-  if (status === 'rejected') return 'destructive';
-  if (status === 'withdrawn') return 'secondary';
-  if (status === 'in_progress') return 'default';
-  return 'outline';
 }
 
 export function CandidateProfile({
@@ -178,7 +173,7 @@ export function CandidateProfile({
                         Etapa: {app.current_stage?.name ?? '—'} · entrou em {formatDate(app.stage_entered_at)}
                       </p>
                     </div>
-                    <Badge variant={statusVariant(app.status)}>
+                    <Badge className={cn(statusClass(recruitmentApplicationStatusToken(app.status)))}>
                       {APPLICATION_STATUS_LABELS[app.status]}
                     </Badge>
                   </div>

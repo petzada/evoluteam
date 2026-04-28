@@ -19,6 +19,13 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { formatDate } from '@/lib/date';
+import { statusClass } from '@/lib/status-colors';
+import {
+  REVIEW_ASSIGNMENT_STATUS_LABELS,
+  type ReviewCycleDerivedStatus,
+  reviewAssignmentStatusToken,
+  reviewCycleStatusToken,
+} from '@/lib/status-mappers';
 import {
   closeCycle, archiveCycle, cancelAssignment, removeParticipantAction,
   sendReminders, publishCycle,
@@ -81,11 +88,11 @@ interface Props {
   questions: Question[];
   competencies: { id: string; name: string }[];
   isAdmin: boolean;
-  deriveLabel: string;
+  derivedStatus: { status: ReviewCycleDerivedStatus; label: string };
 }
 
 export function CycleDetail({
-  cycle, participants, assignments, questions, competencies, isAdmin, deriveLabel,
+  cycle, participants, assignments, questions, competencies, isAdmin, derivedStatus,
 }: Props) {
   const router = useRouter();
   const [confirmPublish, setConfirmPublish] = useState(false);
@@ -199,7 +206,9 @@ export function CycleDetail({
           )}
         </div>
         <div className="flex items-center gap-2">
-          <Badge>{deriveLabel}</Badge>
+          <Badge className={statusClass(reviewCycleStatusToken(derivedStatus.status))}>
+            {derivedStatus.label}
+          </Badge>
           {isAdmin && (cycle.status === 'draft' || cycle.status === 'published') && (
             <Link href={`/avaliacoes/${cycle.id}/editar`}>
               <Button variant="outline">
@@ -428,11 +437,11 @@ function AssignmentStatusCell({
   onRemind: (reviewerId: string) => void;
 }) {
   if (!a) return <span className="text-muted-foreground text-sm">—</span>;
-  const label = STATUS_LABEL[a.status] ?? a.status;
-  const variant = STATUS_VARIANT[a.status] ?? 'outline';
+  const label = REVIEW_ASSIGNMENT_STATUS_LABELS[a.status] ?? a.status;
+  const token = reviewAssignmentStatusToken(a.status);
   return (
     <div className="flex items-center gap-2">
-      <Badge variant={variant}>{label}</Badge>
+      <Badge className={statusClass(token)}>{label}</Badge>
       <span className="text-xs text-muted-foreground">
         Rev: {a.reviewer?.full_name ?? '—'}
       </span>
@@ -454,19 +463,6 @@ function AssignmentStatusCell({
     </div>
   );
 }
-
-const STATUS_LABEL: Record<string, string> = {
-  pending: 'Pendente',
-  in_progress: 'Em progresso',
-  submitted: 'Enviado',
-  cancelled: 'Cancelado',
-};
-const STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'outline' | 'destructive'> = {
-  pending: 'outline',
-  in_progress: 'secondary',
-  submitted: 'default',
-  cancelled: 'outline',
-};
 
 function ParticipantsPanel({
   participants, isAdmin, onRemove,

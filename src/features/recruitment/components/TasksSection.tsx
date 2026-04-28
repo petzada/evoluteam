@@ -6,6 +6,8 @@ import { toast } from 'sonner';
 import { ChevronDown, Plus } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { statusClass } from '@/lib/status-colors';
+import { recruitmentApplicationStatusToken } from '@/lib/status-mappers';
 import { cn } from '@/lib/utils';
 import type { TaskRow } from '../queries/tasks';
 import type { ApplicationRow } from '../queries/applications';
@@ -25,14 +27,6 @@ interface Props {
   isAdmin: boolean;
   canManageTasksForApp: (app: ApplicationRow) => boolean;
   responsibleOptions: EmployeeOption[];
-}
-
-function statusVariant(status: ApplicationRow['status']): 'default' | 'secondary' | 'outline' | 'destructive' {
-  if (status === 'hired') return 'default';
-  if (status === 'rejected') return 'destructive';
-  if (status === 'withdrawn') return 'secondary';
-  if (status === 'in_progress') return 'default';
-  return 'outline';
 }
 
 export function TasksSection({
@@ -177,7 +171,12 @@ function TaskAppGroup({
       >
         <ChevronDown className={cn('h-4 w-4 text-muted-foreground transition-transform', !open && '-rotate-90')} />
         <span className="text-sm font-medium flex-1 text-left">{app.job_opening?.title ?? 'Vaga'}</span>
-        <Badge variant={statusVariant(app.status)} className="text-[10px]">
+        <Badge
+          className={cn(
+            'text-[10px] hover:opacity-100',
+            statusClass(recruitmentApplicationStatusToken(app.status)),
+          )}
+        >
           {APPLICATION_STATUS_LABELS[app.status]}
         </Badge>
         <span className="text-xs text-muted-foreground">

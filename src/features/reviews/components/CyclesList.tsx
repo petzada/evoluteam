@@ -11,6 +11,13 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { formatDate } from '@/lib/date';
 import type { CycleRow } from '../queries';
+import { statusClass } from '@/lib/status-colors';
+import {
+  deriveReviewCycleStatus,
+  REVIEW_CYCLE_STATUS_LABELS,
+  type ReviewCycleDerivedStatus,
+  reviewCycleStatusToken,
+} from '@/lib/status-mappers';
 
 export type AssignmentForUser = {
   id: string;
@@ -27,41 +34,14 @@ interface Props {
   isAdmin: boolean;
 }
 
-type DerivedStatus = 'draft' | 'scheduled' | 'in_progress' | 'closed' | 'archived';
-type StatusFilterValue = 'all' | DerivedStatus;
-
-function deriveStatus(cycle: CycleRow): DerivedStatus {
-  if (cycle.status === 'draft') return 'draft';
-  if (cycle.status === 'closed') return 'closed';
-  if (cycle.status === 'archived') return 'archived';
-  const now = new Date();
-  if (new Date(cycle.response_start) > now) return 'scheduled';
-  if (new Date(cycle.response_end) < now) return 'closed';
-  return 'in_progress';
-}
-
-const STATUS_LABELS: Record<DerivedStatus, string> = {
-  draft: 'Rascunho',
-  scheduled: 'Agendado',
-  in_progress: 'Em andamento',
-  closed: 'Encerrado',
-  archived: 'Arquivado',
-};
-
-const STATUS_VARIANTS: Record<DerivedStatus, 'default' | 'secondary' | 'outline' | 'destructive'> = {
-  draft: 'outline',
-  scheduled: 'secondary',
-  in_progress: 'default',
-  closed: 'outline',
-  archived: 'outline',
-};
+type StatusFilterValue = 'all' | ReviewCycleDerivedStatus;
 
 const FILTER_ITEMS = [
   { value: 'all', label: 'Todos' },
-  { value: 'draft', label: 'Rascunho' },
-  { value: 'scheduled', label: 'Agendado' },
   { value: 'in_progress', label: 'Em andamento' },
+  { value: 'scheduled', label: 'Agendado' },
   { value: 'closed', label: 'Encerrado' },
+  { value: 'draft', label: 'Rascunho' },
   { value: 'archived', label: 'Arquivado' },
 ];
 
@@ -90,7 +70,7 @@ export function CyclesList({ cycles, pending, isAdmin }: Props) {
     const lower = search.trim().toLowerCase();
     return cycles.filter((c) => {
       const matchSearch = !lower || c.name.toLowerCase().includes(lower);
-      const derived = deriveStatus(c);
+      const derived = deriveReviewCycleStatus(c.status, c.response_start, c.response_end);
       const matchStatus = status === 'all' || derived === status;
       if (derived === 'archived' && status !== 'archived' && !showArchived) return false;
       return matchSearch && matchStatus;
@@ -99,7 +79,7 @@ export function CyclesList({ cycles, pending, isAdmin }: Props) {
 
   const archivedHiddenCount = useMemo(() => {
     if (showArchived || status === 'archived') return 0;
-    return cycles.filter((c) => deriveStatus(c) === 'archived').length;
+    return cycles.filter((c) => deriveReviewCycleStatus(c.status, c.response_start, c.response_end) === 'archived').length;
   }, [cycles, showArchived, status]);
 
   return (
@@ -197,7 +177,7 @@ export function CyclesList({ cycles, pending, isAdmin }: Props) {
       ) : (
         <ul className="space-y-2">
           {filtered.map((c) => {
-            const derived = deriveStatus(c);
+            const derived = deriveReviewCycleStatus(c.status, c.response_start, c.response_end);
             const progress = c.progress;
             const pct = progress && progress.total > 0
               ? Math.round((progress.submitted / progress.total) * 100)
@@ -212,7 +192,9 @@ export function CyclesList({ cycles, pending, isAdmin }: Props) {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <p className="font-medium truncate">{c.name}</p>
-                      <Badge variant={STATUS_VARIANTS[derived]}>{STATUS_LABELS[derived]}</Badge>
+                      <Badge className={statusClass(reviewCycleStatusToken(derived))}>
+                        {REVIEW_CYCLE_STATUS_LABELS[derived]}
+                      </Badge>
                     </div>
                     <p className="text-sm text-muted-foreground">
                       Período: {formatDate(c.period_start)} – {formatDate(c.period_end)}

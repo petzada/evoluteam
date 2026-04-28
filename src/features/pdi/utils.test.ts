@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computePdiStatus, computeActionStatus, progressFor } from './utils';
+import { actionStatusColor, computeActionStatus, computePdiStatus, pdiStatusColor, progressFor } from './utils';
 
 function daysFromNow(delta: number): string {
   const d = new Date();
@@ -43,5 +43,23 @@ describe('progressFor', () => {
   });
   it('lida com lista vazia', () => {
     expect(progressFor([])).toEqual({ done: 0, total: 0 });
+  });
+});
+
+describe('status colors', () => {
+  it('mapeia PDI para paleta semântica global', () => {
+    expect(pdiStatusColor('nao_iniciado')).toContain('bg-slate');
+    expect(pdiStatusColor('em_andamento')).toContain('bg-amber');
+    expect(pdiStatusColor('atrasado')).toContain('bg-amber');
+    expect(pdiStatusColor('concluido')).toContain('bg-emerald');
+    expect(pdiStatusColor('cancelado')).toContain('bg-red');
+  });
+
+  it('mapeia ação de PDI para paleta semântica global', () => {
+    expect(actionStatusColor('pendente')).toContain('bg-amber');
+    expect(actionStatusColor('em_andamento')).toContain('bg-amber');
+    expect(actionStatusColor('atrasada')).toContain('bg-amber');
+    expect(actionStatusColor('concluida')).toContain('bg-emerald');
+    expect(actionStatusColor('cancelada')).toContain('bg-red');
   });
 });

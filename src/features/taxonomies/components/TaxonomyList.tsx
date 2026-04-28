@@ -23,6 +23,8 @@ import { TaxonomySheet } from './TaxonomySheet';
 import { ConfirmArchiveDialog } from './ConfirmArchiveDialog';
 import { ConfirmDeleteDialog } from './ConfirmDeleteDialog';
 import { archiveTaxonomy, deleteTaxonomy } from '../actions';
+import { statusClass } from '@/lib/status-colors';
+import { taxonomyStatusToken } from '@/lib/status-mappers';
 
 type Kind = 'department' | 'position' | 'competency';
 
@@ -210,7 +212,7 @@ export function TaxonomyList(props: Props) {
                     )}
                   </TableCell>
                   <TableCell>
-                    <Badge variant={row.is_archived ? 'outline' : 'default'}>
+                    <Badge className={statusClass(taxonomyStatusToken(row.is_archived))}>
                       {row.is_archived ? 'Arquivad' + (kind === 'competency' ? 'a' : 'o') : 'Ativ' + (kind === 'competency' ? 'a' : 'o')}
                     </Badge>
                   </TableCell>

@@ -27,6 +27,13 @@ import { resendInvite, revokeInvite } from '../actions';
 import { EmptyState } from '@/components/EmptyState';
 import { PageHeader } from '@/components/PageHeader';
 import { formatDate } from '@/lib/date';
+import { statusClass } from '@/lib/status-colors';
+import {
+  deriveEmployeeListStatus,
+  employeeListStatusToken,
+  type EmployeeListStatus,
+} from '@/lib/status-mappers';
+import { cn } from '@/lib/utils';
 import type { ScreenPermissions } from '@/features/permissions/types';
 
 type Invite = {
@@ -71,26 +78,7 @@ interface Props {
   specialFilterEmployeeIds?: string[];
 }
 
-type DerivedStatus =
-  | 'ativo' | 'inativo' | 'desligado'
-  | 'convite_pendente' | 'convite_expirado' | 'sem_acesso';
-
-function deriveStatus(emp: Employee): DerivedStatus {
-  if (emp.status === 'terminated') return 'desligado';
-  if (emp.status === 'inactive') return 'inativo';
-  if (emp.user_id) return 'ativo';
-  const pending = emp.invite?.find(
-    (i) => !i.accepted_at && !i.revoked_at && new Date(i.expires_at) > new Date(),
-  );
-  if (pending) return 'convite_pendente';
-  const expired = emp.invite?.find(
-    (i) => !i.accepted_at && !i.revoked_at && new Date(i.expires_at) <= new Date(),
-  );
-  if (expired) return 'convite_expirado';
-  return 'sem_acesso';
-}
-
-const STATUS_LABELS: Record<DerivedStatus, string> = {
+const STATUS_LABELS: Record<EmployeeListStatus, string> = {
   ativo: 'Ativo',
   inativo: 'Inativo',
   desligado: 'Desligado',
@@ -99,21 +87,12 @@ const STATUS_LABELS: Record<DerivedStatus, string> = {
   sem_acesso: 'Sem acesso',
 };
 
-const STATUS_VARIANTS: Record<DerivedStatus, 'default' | 'secondary' | 'outline' | 'destructive'> = {
-  ativo: 'default',
-  inativo: 'outline',
-  desligado: 'outline',
-  convite_pendente: 'secondary',
-  convite_expirado: 'outline',
-  sem_acesso: 'outline',
-};
-
 const STATUS_FILTER_ITEMS = [
   { value: 'all', label: 'Todos os status' },
   { value: 'ativo', label: 'Ativo' },
   { value: 'inativo', label: 'Inativo' },
-  { value: 'desligado', label: 'Desligado' },
   { value: 'convite_pendente', label: 'Convite pendente' },
+  { value: 'desligado', label: 'Desligado' },
   { value: 'convite_expirado', label: 'Convite expirado' },
   { value: 'sem_acesso', label: 'Sem acesso' },
 ];
@@ -217,7 +196,7 @@ export function EmployeesList({
     let pendentes = 0;
     let desligados = 0;
     for (const e of employees) {
-      const s = deriveStatus(e);
+      const s = deriveEmployeeListStatus(e);
       if (s === 'ativo') ativos++;
       else if (s === 'convite_pendente') pendentes++;
       else if (s === 'desligado') desligados++;
@@ -227,7 +206,7 @@ export function EmployeesList({
 
   const filtered = useMemo(() => {
     return employees.filter((emp) => {
-      const status = deriveStatus(emp);
+      const status = deriveEmployeeListStatus(emp);
       if (status === 'desligado' && !showTerminated) return false;
       if (specialFilter === 'sem_feedback' && !specialSet.has(emp.id)) return false;
 
@@ -487,7 +466,7 @@ export function EmployeesList({
               </TableHeader>
               <TableBody>
                 {paged.map((emp) => {
-                  const status = deriveStatus(emp);
+                  const status = deriveEmployeeListStatus(emp);
                   const isSelf = emp.user_id === currentUserId;
                   const pendingInvite = emp.invite?.find(
                     (i) => !i.accepted_at && !i.revoked_at && new Date(i.expires_at) > new Date(),
@@ -531,10 +510,7 @@ export function EmployeesList({
                       {columns.admission && <TableCell>{formatDate(emp.hire_date)}</TableCell>}
                       {columns.phone && <TableCell>{emp.phone ?? '—'}</TableCell>}
                       <TableCell>
-                        <Badge
-                          variant={STATUS_VARIANTS[status]}
-                          className={status === 'ativo' ? 'bg-emerald-600 text-white hover:bg-emerald-600' : undefined}
-                        >
+                        <Badge className={cn(statusClass(employeeListStatusToken(status)), 'hover:opacity-100')}>
                           {STATUS_LABELS[status]}
                         </Badge>
                       </TableCell>

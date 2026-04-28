@@ -11,6 +11,8 @@ import { PageHeader } from '@/components/PageHeader';
 import { EmptyState } from '@/components/EmptyState';
 import { MultiSelectFilter } from '@/components/MultiSelectFilter';
 import { formatDate } from '@/lib/date';
+import { statusClass } from '@/lib/status-colors';
+import { recruitmentJobOpeningStatusToken } from '@/lib/status-mappers';
 import { JobOpeningSheet, type JobOpeningInitial } from './JobOpeningSheet';
 import type { JobOpeningRow } from '../queries/jobOpenings';
 import {
@@ -173,7 +175,7 @@ export function JobOpeningsTable({
                         {job.active_candidates_count}
                       </TableCell>
                       <TableCell>
-                        <Badge variant={job.status === 'open' ? 'default' : 'outline'}>
+                        <Badge className={`${statusClass(recruitmentJobOpeningStatusToken(job.status))} hover:opacity-100`}>
                           {JOB_OPENING_STATUS_LABELS[job.status]}
                         </Badge>
                       </TableCell>

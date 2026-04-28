@@ -6,6 +6,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/EmptyState';
 import { formatDate } from '@/lib/date';
+import { statusClass } from '@/lib/status-colors';
+import { recruitmentApplicationStatusToken } from '@/lib/status-mappers';
+import { cn } from '@/lib/utils';
 import type { ApplicationRow } from '../queries/applications';
 import {
   APPLICATION_STATUS_LABELS, REJECTION_REASON_LABELS, WITHDRAWAL_REASON_LABELS,
@@ -15,13 +18,6 @@ import {
 
 interface Props {
   applications: ApplicationRow[];
-}
-
-function statusVariant(status: ApplicationRow['status']): 'default' | 'secondary' | 'outline' | 'destructive' {
-  if (status === 'hired') return 'default';
-  if (status === 'rejected') return 'destructive';
-  if (status === 'withdrawn') return 'secondary';
-  return 'outline';
 }
 
 export function ArchivedApplicationsTable({ applications }: Props) {
@@ -76,7 +72,9 @@ export function ArchivedApplicationsTable({ applications }: Props) {
                 </TableCell>
                 <TableCell className="text-sm">{app.current_stage?.name ?? '—'}</TableCell>
                 <TableCell>
-                  <Badge variant={statusVariant(app.status)}>{APPLICATION_STATUS_LABELS[app.status]}</Badge>
+                  <Badge className={cn(statusClass(recruitmentApplicationStatusToken(app.status)))}>
+                    {APPLICATION_STATUS_LABELS[app.status]}
+                  </Badge>
                 </TableCell>
                 <TableCell className="text-sm text-muted-foreground">{reasonLabel}</TableCell>
                 <TableCell className="text-sm text-muted-foreground">{formatDate(app.updated_at)}</TableCell>

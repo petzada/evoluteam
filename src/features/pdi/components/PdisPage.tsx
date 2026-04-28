@@ -12,7 +12,7 @@ import type { PlanRow } from '../queries';
 import { PdiCard } from './PdiCard';
 import { PdiSheet, type EmployeeOption, type CompetencyOption, type CycleOption } from './PdiSheet';
 import { computePdiStatus } from '../utils';
-import { PDI_STATUSES, PDI_STATUS_LABELS, type PdiComputedStatus } from '../schema';
+import { PDI_STATUS_LABELS, type PdiComputedStatus } from '../schema';
 
 type PeriodFilter = 'all' | '30d' | '90d' | '6m' | '1y';
 
@@ -31,7 +31,13 @@ interface Props {
 }
 
 const PAGE_SIZE = 20;
-const FILTER_STATUSES: PdiComputedStatus[] = [...PDI_STATUSES, 'atrasado'];
+const FILTER_STATUSES: PdiComputedStatus[] = [
+  'concluido',
+  'em_andamento',
+  'atrasado',
+  'cancelado',
+  'nao_iniciado',
+];
 
 function filterByPeriod(rows: PlanRow[], period: PeriodFilter) {
   if (period === 'all') return rows;

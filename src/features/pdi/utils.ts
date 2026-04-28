@@ -1,7 +1,8 @@
 import type {
   PdiStatus, PdiActionStatus, PdiComputedStatus, PdiActionComputedStatus,
 } from './schema';
-import { statusClass, type StatusToken } from '@/lib/status-colors';
+import { statusClass } from '@/lib/status-colors';
+import { pdiActionStatusToken, pdiStatusToken } from '@/lib/status-mappers';
 
 function isPastDate(dateStr: string): boolean {
   const today = new Date().toISOString().slice(0, 10);
@@ -28,32 +29,10 @@ export function progressFor(actions: { status: string }[]): { done: number; tota
   return { done, total };
 }
 
-function pdiStatusToken(status: PdiComputedStatus): StatusToken {
-  switch (status) {
-    case 'em_andamento': return 'progress';
-    case 'atrasado':     return 'warning';
-    case 'concluido':    return 'success';
-    case 'cancelado':    return 'muted';
-    case 'nao_iniciado':
-    default:             return 'neutral';
-  }
-}
-
-function actionStatusToken(status: PdiActionComputedStatus): StatusToken {
-  switch (status) {
-    case 'em_andamento': return 'progress';
-    case 'atrasada':     return 'warning';
-    case 'concluida':    return 'success';
-    case 'cancelada':    return 'muted';
-    case 'pendente':
-    default:             return 'neutral';
-  }
-}
-
 export function pdiStatusColor(status: PdiComputedStatus): string {
   return statusClass(pdiStatusToken(status));
 }
 
 export function actionStatusColor(status: PdiActionComputedStatus): string {
-  return statusClass(actionStatusToken(status));
+  return statusClass(pdiActionStatusToken(status));
 }

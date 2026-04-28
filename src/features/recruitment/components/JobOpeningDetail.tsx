@@ -14,6 +14,8 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { MultiSelectFilter } from '@/components/MultiSelectFilter';
+import { statusClass } from '@/lib/status-colors';
+import { recruitmentJobOpeningStatusToken } from '@/lib/status-mappers';
 import { cn } from '@/lib/utils';
 import { formatDate } from '@/lib/date';
 import type { JobOpeningRow } from '../queries/jobOpenings';
@@ -175,7 +177,7 @@ export function JobOpeningDetail({
       />
 
       <div className="mb-6 flex flex-wrap items-center gap-2 text-sm">
-        <Badge variant={job.status === 'open' ? 'default' : 'outline'}>
+        <Badge className={`${statusClass(recruitmentJobOpeningStatusToken(job.status))} hover:opacity-100`}>
           {JOB_OPENING_STATUS_LABELS[job.status]}
         </Badge>
         {job.department && <span className="text-muted-foreground">{job.department.name}</span>}
