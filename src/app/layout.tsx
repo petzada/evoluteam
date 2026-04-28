@@ -1,11 +1,11 @@
 import type { Metadata } from 'next';
-import { Geist, Newsreader } from 'next/font/google';
+import { Inter, Newsreader } from 'next/font/google';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import './globals.css';
 
-const geist = Geist({
-  variable: '--font-geist-sans',
+const inter = Inter({
+  variable: '--font-inter',
   subsets: ['latin'],
 });
 
@@ -52,7 +52,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR" className={`${geist.variable} ${newsreader.variable} h-full antialiased`} suppressHydrationWarning>
+    <html lang="pt-BR" className={`${inter.variable} ${newsreader.variable} h-full antialiased`} suppressHydrationWarning>
       <body className="h-full bg-background font-sans text-foreground">
         <TooltipProvider delay={300}>
           {children}

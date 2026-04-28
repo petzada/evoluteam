@@ -69,7 +69,7 @@ export default MeuTemplateEmail; // para o `email dev` detectar
 - **Sem Flexbox/Grid**. Usar `<Section>`, `<Row>`, `<Column>` (renderizam tabelas).
 - **Cores em HEX**. Outlook ignora OKLCH.
 - **Imagens**: `width`/`height` explícitos + `alt` obrigatório.
-- **Font stack**: `"Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`.
+- **Font stack**: `"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`.
 
 ## Integração com `sendEmail()`
 
