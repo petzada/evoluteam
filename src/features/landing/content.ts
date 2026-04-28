@@ -7,11 +7,29 @@ import {
   Sparkles,
 } from 'lucide-react';
 
-export const navItems = [
-  { href: '#produto', label: 'Produto' },
-  { href: '#como-funciona', label: 'Como funciona' },
-  { href: '#planos', label: 'Planos' },
-  { href: '#faq', label: 'FAQ' },
+export const navMenus = [
+  {
+    label: 'Produto',
+    items: [
+      { href: '#como-funciona', label: 'Como funciona' },
+      { href: '#planos', label: 'Planos' },
+      { href: '#faq', label: 'Dúvidas' },
+    ],
+  },
+  {
+    label: 'Empresa',
+    items: [
+      { href: '#fundador', label: 'Sobre' },
+      { href: 'mailto:marcio@marct.co', label: 'Contato' },
+    ],
+  },
+  {
+    label: 'Políticas',
+    items: [
+      { href: '/privacidade', label: 'Privacidade' },
+      { href: '/termos', label: 'Termos de Uso' },
+    ],
+  },
 ];
 
 export const painPoints = [
