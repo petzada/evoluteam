@@ -104,31 +104,33 @@ function DonutCol({
         )}
       </div>
       {/* Tabela rápida abaixo com % por origem */}
-      {hasData && (
-        <div className="w-full mt-1 space-y-0.5 text-[10px]">
-          {data.map((d) => (
-            <div key={d.source} className="flex items-center justify-between">
-              <span className="flex items-center gap-1.5 truncate">
-                <span className="h-1.5 w-1.5 rounded-sm shrink-0" style={{ background: d.color }} />
-                <span className="truncate text-muted-foreground">{d.label}</span>
-              </span>
-              <span className="tabular-nums text-foreground font-medium">
-                {d.value}
-                {variant === 'hired' && d.candidates > 0 && (
-                  <span className="text-muted-foreground ml-1">
-                    /{d.candidates} ({Math.round((d.value / d.candidates) * 100)}%)
-                  </span>
-                )}
-                {variant === 'candidates' && total > 0 && (
-                  <span className="text-muted-foreground ml-1">
-                    ({Math.round((d.value / total) * 100)}%)
-                  </span>
-                )}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
+      <div className="w-full mt-1 min-h-[140px]">
+        {hasData && (
+          <div className="space-y-0.5 text-[10px]">
+            {data.map((d) => (
+              <div key={d.source} className="flex items-center justify-between">
+                <span className="flex items-center gap-1.5 truncate">
+                  <span className="h-1.5 w-1.5 rounded-sm shrink-0" style={{ background: d.color }} />
+                  <span className="truncate text-muted-foreground">{d.label}</span>
+                </span>
+                <span className="tabular-nums text-foreground font-medium">
+                  {d.value}
+                  {variant === 'hired' && d.candidates > 0 && (
+                    <span className="text-muted-foreground ml-1">
+                      /{d.candidates} ({Math.round((d.value / d.candidates) * 100)}%)
+                    </span>
+                  )}
+                  {variant === 'candidates' && total > 0 && (
+                    <span className="text-muted-foreground ml-1">
+                      ({Math.round((d.value / total) * 100)}%)
+                    </span>
+                  )}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
