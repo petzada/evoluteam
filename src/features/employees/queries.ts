@@ -1,5 +1,6 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { cache } from 'react';
+import type { Role, ScreenPermissions } from '@/features/permissions/types';
 
 export async function listEmployees(
   companyId: string,
@@ -111,15 +112,38 @@ export function getDepartments(companyId: string, opts: { includeArchived?: bool
   return _getDepartmentsCached(companyId, opts.includeArchived ?? false);
 }
 
-export const getCompanyProfileRoles = cache(async (companyId: string) => {
+export type ProfileAccess = { role: Role; isSupervisor: boolean };
+export type ProfileAccessMap = Record<string, ProfileAccess>;
+
+/**
+ * Mapa userId -> { role, isSupervisor } para todos os profiles da empresa.
+ * `isSupervisor` e UI-only: marca Colaboradores que receberam o toggle
+ * `colaboradores.edit` (rotulados como "Supervisor" na lista/perfil).
+ */
+export const getCompanyProfileAccess = cache(async (companyId: string): Promise<ProfileAccessMap> => {
   const supabase = await createServerSupabaseClient();
-  const { data } = await supabase
-    .from('profiles')
-    .select('id, role')
-    .eq('company_id', companyId);
-  const map: Record<string, 'admin_rh' | 'director' | 'user'> = {};
-  for (const p of data ?? []) {
-    map[p.id] = p.role as 'admin_rh' | 'director' | 'user';
+  const [{ data: profiles }, { data: perms }] = await Promise.all([
+    supabase.from('profiles').select('id, role').eq('company_id', companyId),
+    supabase
+      .from('user_screen_permissions')
+      .select('profile_id, permissions')
+      .eq('company_id', companyId),
+  ]);
+
+  const supervisorIds = new Set<string>();
+  for (const p of perms ?? []) {
+    const screenPerms = p.permissions as ScreenPermissions | null;
+    if (screenPerms?.['colaboradores.edit'] === true) {
+      supervisorIds.add(p.profile_id);
+    }
+  }
+
+  const map: ProfileAccessMap = {};
+  for (const p of profiles ?? []) {
+    map[p.id] = {
+      role: p.role as Role,
+      isSupervisor: supervisorIds.has(p.id),
+    };
   }
   return map;
 });

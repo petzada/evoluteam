@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import {
-  listEmployees, getPositions, getDepartments, getCompanyProfileRoles,
+  listEmployees, getPositions, getDepartments, getCompanyProfileAccess,
   getEmployeeDescendants,
 } from '@/features/employees/queries';
 import { listEmployeesWithoutRecentFeedback } from '@/features/dashboard/queries';
@@ -41,11 +41,11 @@ export default async function ColaboradoresPage({
     scopedIds = visible;
   }
 
-  const [employees, positions, departments, profileRoles, withoutFeedbackIds] = await Promise.all([
+  const [employees, positions, departments, profileAccess, withoutFeedbackIds] = await Promise.all([
     listEmployees(profile.company_id, { scopedIds }),
     getPositions(profile.company_id),
     getDepartments(profile.company_id),
-    getCompanyProfileRoles(profile.company_id),
+    getCompanyProfileAccess(profile.company_id),
     filter === 'sem_feedback'
       ? listEmployeesWithoutRecentFeedback(profile.company_id)
       : Promise.resolve<string[]>([]),
@@ -60,7 +60,7 @@ export default async function ColaboradoresPage({
       canManageEmployees={canDo(actorForGate, 'colaboradores', 'edit')}
       actorIsAdmin={profile.role === 'admin_rh'}
       actorScreenPermissions={gate.screenPermissions}
-      profileRoles={profileRoles}
+      profileAccess={profileAccess}
       initialStatusFilter={params.status ?? null}
       specialFilter={filter}
       specialFilterEmployeeIds={withoutFeedbackIds}

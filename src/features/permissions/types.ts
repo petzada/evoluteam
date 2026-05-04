@@ -9,6 +9,22 @@ export const ROLE_LABELS: Record<Role, string> = {
   user: 'Colaborador',
 };
 
+/**
+ * Label de papel para exibicao em listas/perfil. Apenas UI — nao altera
+ * regras de autorizacao. "Supervisor" e como chamamos um Colaborador que
+ * recebeu o toggle `colaboradores.edit` no convite (pode gerenciar outros
+ * Colaboradores dentro do subset dos proprios toggles).
+ */
+export function getRoleDisplayLabel(
+  role: Role,
+  perms?: ScreenPermissions | null,
+): string {
+  if (role === 'user' && perms?.['colaboradores.edit'] === true) {
+    return 'Supervisor';
+  }
+  return ROLE_LABELS[role];
+}
+
 // =============================================================
 // ScreenPermissions — granularidade por tela da sidebar
 // Spec: docs/dev/21-ft-9-redesign-acessos.md §1.3.

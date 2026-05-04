@@ -7,7 +7,7 @@ import {
   getDisabledGrantPermissionKeys,
   normalizeScreenPermissions,
 } from './permissions';
-import { type Actor, type ScreenPermissions } from './types';
+import { getRoleDisplayLabel, type Actor, type ScreenPermissions } from './types';
 
 const baseActor = (partial: Partial<Actor> = {}): Actor => ({
   userId: 'u1',
@@ -216,6 +216,37 @@ describe('canInviteAs', () => {
 
   it('null actor nao concede nada', () => {
     expect(canInviteAs(null, 'user')).toBe(false);
+  });
+});
+
+describe('getRoleDisplayLabel', () => {
+  it('user sem toggles mostra "Colaborador"', () => {
+    expect(getRoleDisplayLabel('user', null)).toBe('Colaborador');
+    expect(getRoleDisplayLabel('user', {})).toBe('Colaborador');
+    expect(getRoleDisplayLabel('user', undefined)).toBe('Colaborador');
+  });
+
+  it('user com colaboradores.edit vira "Supervisor"', () => {
+    expect(getRoleDisplayLabel('user', { 'colaboradores.edit': true })).toBe('Supervisor');
+    expect(getRoleDisplayLabel('user', {
+      'colaboradores.view': true,
+      'colaboradores.edit': true,
+      'pdi.view': true,
+    })).toBe('Supervisor');
+  });
+
+  it('user com apenas colaboradores.view continua "Colaborador"', () => {
+    expect(getRoleDisplayLabel('user', { 'colaboradores.view': true })).toBe('Colaborador');
+  });
+
+  it('director ignora toggles e mantem "Diretor"', () => {
+    expect(getRoleDisplayLabel('director', null)).toBe('Diretor');
+    expect(getRoleDisplayLabel('director', { 'colaboradores.edit': true })).toBe('Diretor');
+  });
+
+  it('admin_rh sempre "Administrador"', () => {
+    expect(getRoleDisplayLabel('admin_rh', null)).toBe('Administrador');
+    expect(getRoleDisplayLabel('admin_rh', { 'colaboradores.edit': true })).toBe('Administrador');
   });
 });
 

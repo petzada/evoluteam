@@ -34,7 +34,8 @@ import {
   type EmployeeListStatus,
 } from '@/lib/status-mappers';
 import { cn } from '@/lib/utils';
-import type { ScreenPermissions } from '@/features/permissions/types';
+import type { Role, ScreenPermissions } from '@/features/permissions/types';
+import { getRoleDisplayLabel } from '@/features/permissions/types';
 
 type Invite = {
   id: string;
@@ -62,6 +63,8 @@ type Employee = {
 interface Position { id: string; name: string }
 interface Department { id: string; name: string }
 
+type ProfileAccess = { role: Role; isSupervisor: boolean };
+
 interface Props {
   employees: Employee[];
   positions: Position[];
@@ -70,7 +73,7 @@ interface Props {
   canManageEmployees: boolean;
   actorIsAdmin: boolean;
   actorScreenPermissions?: ScreenPermissions | null;
-  profileRoles: Record<string, 'admin_rh' | 'director' | 'user'>;
+  profileAccess: Record<string, ProfileAccess>;
   openSheet?: boolean;
   editingEmployee?: ExistingEmployee | null;
   initialStatusFilter?: string | null;
@@ -97,11 +100,13 @@ const STATUS_FILTER_ITEMS = [
   { value: 'sem_acesso', label: 'Sem acesso' },
 ];
 
-const ROLE_PILL: Record<string, string> = {
-  admin_rh: 'Administrador',
-  director: 'Diretor',
-  rh: 'RH',
-};
+function getRolePill(access: ProfileAccess | undefined): string | null {
+  if (!access) return null;
+  if (access.role === 'admin_rh') return 'Administrador';
+  if (access.role === 'director') return 'Diretor';
+  if (access.role === 'user' && access.isSupervisor) return 'Supervisor';
+  return null;
+}
 
 type ColumnKey = 'email' | 'role' | 'admission' | 'phone';
 const DEFAULT_COLUMNS: Record<ColumnKey, boolean> = {
@@ -137,7 +142,7 @@ export function EmployeesList({
   canManageEmployees,
   actorIsAdmin,
   actorScreenPermissions,
-  profileRoles,
+  profileAccess,
   openSheet = false,
   editingEmployee = null,
   initialStatusFilter = null,
@@ -256,7 +261,7 @@ export function EmployeesList({
   }
 
   function openEdit(emp: Employee) {
-    const role = (emp.user_id && profileRoles[emp.user_id]) || 'user';
+    const role = (emp.user_id && profileAccess[emp.user_id]?.role) || 'user';
     setEditing({
       id: emp.id,
       full_name: emp.full_name,
@@ -474,8 +479,9 @@ export function EmployeesList({
                   const expiredInvite = emp.invite?.find(
                     (i) => !i.accepted_at && !i.revoked_at && new Date(i.expires_at) <= new Date(),
                   );
-                  const role = (emp.user_id && profileRoles[emp.user_id]) || 'user';
-                  const rolePill = ROLE_PILL[role];
+                  const access = (emp.user_id && profileAccess[emp.user_id]) || undefined;
+                  const role = access?.role ?? 'user';
+                  const rolePill = getRolePill(access);
 
                   return (
                     <TableRow
@@ -502,7 +508,7 @@ export function EmployeesList({
                       </TableCell>
                       {columns.role && (
                         <TableCell>
-                          {ROLE_PILL[role] ?? 'Colaborador'}
+                          {getRoleDisplayLabel(role, access?.isSupervisor ? { 'colaboradores.edit': true } : null)}
                         </TableCell>
                       )}
                       <TableCell>{emp.department?.name ?? '—'}</TableCell>

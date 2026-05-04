@@ -14,7 +14,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AccessSheet } from '@/features/permissions/components/AccessSheet';
 import {
-  ROLE_LABELS as CENTRAL_ROLE_LABELS,
+  getRoleDisplayLabel,
   type Role as CentralRole,
   type ScreenPermissions,
 } from '@/features/permissions/types';
@@ -125,8 +125,6 @@ interface Props {
   actorScreenPermissions?: ScreenPermissions;
 }
 
-const ROLE_LABELS: Record<Role, string> = CENTRAL_ROLE_LABELS;
-
 const STATUS_LABEL: Record<string, string> = {
   active: 'Ativo',
   inactive: 'Inativo',
@@ -220,7 +218,7 @@ export function EmployeeProfile({
             {role && (
               <>
                 <span>·</span>
-                <span>{ROLE_LABELS[role]}</span>
+                <span>{getRoleDisplayLabel(role, targetScreenPermissions)}</span>
               </>
             )}
             {recruitmentSource && (
@@ -364,7 +362,7 @@ export function EmployeeProfile({
                 <dl className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <dt className="text-muted-foreground">Papel</dt>
-                    <dd className="font-medium">{role ? ROLE_LABELS[role] : '—'}</dd>
+                    <dd className="font-medium">{role ? getRoleDisplayLabel(role, targetScreenPermissions) : '—'}</dd>
                   </div>
                   <div className="flex justify-between">
                     <dt className="text-muted-foreground">Último login</dt>
@@ -396,7 +394,7 @@ export function EmployeeProfile({
           <div className="space-y-6">
             <section className="rounded-md border bg-card shadow-card divide-y">
               <FieldRow label="E-mail" value={employee.email} />
-              <FieldRow label="Papel atual" value={role ? ROLE_LABELS[role] : '—'} />
+              <FieldRow label="Papel atual" value={role ? getRoleDisplayLabel(role, targetScreenPermissions) : '—'} />
               <FieldRow label="Último login" value={lastSignInAt ? formatDateTime(lastSignInAt) : '—'} />
             </section>
 

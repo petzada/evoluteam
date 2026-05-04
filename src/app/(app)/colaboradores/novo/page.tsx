@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import {
-  listEmployees, getPositions, getDepartments, getCompanyProfileRoles,
+  listEmployees, getPositions, getDepartments, getCompanyProfileAccess,
 } from '@/features/employees/queries';
 import { EmployeesList } from '@/features/employees/components/EmployeesList';
 import { canDo } from '@/features/permissions/permissions';
@@ -12,11 +12,11 @@ export default async function ColaboradoresNovoPage() {
   const canManageEmployees = canDo(actor, 'colaboradores', 'edit');
   if (!canManageEmployees) redirect('/colaboradores');
 
-  const [employees, positions, departments, profileRoles] = await Promise.all([
+  const [employees, positions, departments, profileAccess] = await Promise.all([
     listEmployees(profile.company_id),
     getPositions(profile.company_id),
     getDepartments(profile.company_id),
-    getCompanyProfileRoles(profile.company_id),
+    getCompanyProfileAccess(profile.company_id),
   ]);
 
   return (
@@ -28,7 +28,7 @@ export default async function ColaboradoresNovoPage() {
       canManageEmployees
       actorIsAdmin={profile.role === 'admin_rh'}
       actorScreenPermissions={gate.screenPermissions}
-      profileRoles={profileRoles}
+      profileAccess={profileAccess}
       openSheet
     />
   );
