@@ -90,11 +90,11 @@ export function DashboardFilters({
   const isDialog = variant === 'dialog';
   const wrapClass = isDialog
     ? 'flex flex-col gap-4'
-    : 'mb-4 flex flex-wrap gap-3';
+    : 'mb-4 flex w-full flex-wrap items-center justify-end gap-3';
 
   return (
     <div className={wrapClass}>
-      <div className={cn('relative min-w-0', isDialog ? 'w-full' : 'max-w-xs flex-1 min-w-[240px]')}>
+      <div className={cn('relative min-w-0', isDialog ? 'w-full' : 'min-w-[200px] max-w-xs w-full sm:w-72')}>
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           placeholder="Buscar candidato por nome ou e-mail…"

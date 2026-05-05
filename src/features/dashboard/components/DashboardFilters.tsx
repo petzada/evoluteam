@@ -77,55 +77,52 @@ export function DashboardFilters({
   ];
 
   return (
-    <div className="flex flex-wrap items-end gap-3" data-pending={pending ? '' : undefined}>
-      <div className="flex flex-col gap-1">
-        <label className="text-xs text-muted-foreground">Ciclo</label>
+    <div
+      className="flex w-full flex-wrap items-center justify-end gap-3"
+      data-pending={pending ? '' : undefined}
+    >
+      <Select
+        value={cycleValue}
+        onValueChange={(v) => {
+          if (!hasCycles || !v || v === NO_CYCLE_VALUE) return;
+          if (v === ALL_CYCLES_VALUE) {
+            setParam('cycle_id', 'all');
+            return;
+          }
+          setParam('cycle_id', v);
+        }}
+        items={cycleItems}
+        disabled={!hasCycles}
+      >
+        <SelectTrigger className="w-60">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {cycleItems.map((it) => (
+            <SelectItem key={it.value} value={it.value} disabled={it.value === NO_CYCLE_VALUE}>
+              {it.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      {showDepartmentFilter && (
         <Select
-          value={cycleValue}
-          onValueChange={(v) => {
-            if (!hasCycles || !v || v === NO_CYCLE_VALUE) return;
-            if (v === ALL_CYCLES_VALUE) {
-              setParam('cycle_id', 'all');
-              return;
-            }
-            setParam('cycle_id', v);
-          }}
-          items={cycleItems}
-          disabled={!hasCycles}
+          value={deptValue}
+          onValueChange={(v) => setParam('dept_id', v === ALL_DEPTS_VALUE ? null : (v ?? null))}
+          items={deptItems}
         >
-          <SelectTrigger className="w-60">
+          <SelectTrigger className="w-52">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {cycleItems.map((it) => (
-              <SelectItem key={it.value} value={it.value} disabled={it.value === NO_CYCLE_VALUE}>
+            {deptItems.map((it) => (
+              <SelectItem key={it.value} value={it.value}>
                 {it.label}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
-      </div>
-
-      {showDepartmentFilter && (
-        <div className="flex flex-col gap-1">
-          <label className="text-xs text-muted-foreground">Departamento</label>
-          <Select
-            value={deptValue}
-            onValueChange={(v) => setParam('dept_id', v === ALL_DEPTS_VALUE ? null : (v ?? null))}
-            items={deptItems}
-          >
-            <SelectTrigger className="w-52">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {deptItems.map((it) => (
-                <SelectItem key={it.value} value={it.value}>
-                  {it.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
       )}
     </div>
   );

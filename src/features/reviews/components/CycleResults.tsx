@@ -75,7 +75,7 @@ export function CycleResults({
         </Link>
       </div>
 
-      <div className="flex flex-wrap gap-3 mb-4">
+      <div className="mb-4 flex w-full flex-wrap items-center justify-end gap-3">
         <MultiSelectFilter
           label="Departamentos"
           options={[{ value: '__none__', label: 'Sem departamento' }, ...departments.map((d) => ({ value: d.id, label: d.name }))]}

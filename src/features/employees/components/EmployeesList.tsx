@@ -376,8 +376,8 @@ export function EmployeesList({
       />
 
       <div className="space-y-4">
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="relative flex-1 min-w-[240px] max-w-xs">
+        <div className="flex w-full flex-wrap items-center justify-end gap-3">
+          <div className="relative min-w-[200px] max-w-xs w-full sm:w-72">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Buscar por nome ou e-mail…"

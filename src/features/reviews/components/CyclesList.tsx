@@ -121,8 +121,8 @@ export function CyclesList({ cycles, pending, isAdmin }: Props) {
         </section>
       )}
 
-      <div className="flex items-center gap-3 mb-4">
-        <div className="relative flex-1 max-w-sm">
+      <div className="mb-4 flex w-full flex-wrap items-center justify-end gap-3">
+        <div className="relative w-full max-w-xs sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Buscar ciclo…"
