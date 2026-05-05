@@ -38,28 +38,26 @@ export function TopBarChrome({
 
   return (
     <header
-      className="flex min-h-14 shrink-0 flex-col justify-center border-b border-border/60 bg-background/95 px-4 py-3 backdrop-blur-sm supports-[backdrop-filter]:bg-background/90"
+      className="flex h-14 shrink-0 items-center gap-2 overflow-x-auto border-b border-border/60 bg-background/95 px-4 backdrop-blur-sm supports-[backdrop-filter]:bg-background/90 scrollbar-none"
     >
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1">
-          <h1 className="shrink-0 text-xl font-semibold tracking-tight text-foreground">
-            {resolvedTitle}
-          </h1>
-          {hasCrumbs ? (
-            <>
-              <div className="hidden h-5 w-px shrink-0 bg-border/60 sm:block" aria-hidden />
-              <Breadcrumbs variant="topBar" className="min-w-0 flex-1 sm:flex-initial" />
-            </>
-          ) : null}
-        </div>
-        <div className="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-2">
-          {actions}
-          <NotificationBell
-            userId={userId}
-            initialUnread={initialUnread}
-            initialNotifications={initialNotifications}
-          />
-        </div>
+      <div className="flex min-w-0 flex-1 items-center gap-x-3">
+        <h1 className="shrink-0 text-xl font-semibold tracking-tight text-foreground">
+          {resolvedTitle}
+        </h1>
+        {hasCrumbs ? (
+          <>
+            <div className="hidden h-5 w-px shrink-0 bg-border/60 sm:block" aria-hidden />
+            <Breadcrumbs variant="topBar" className="min-w-0" />
+          </>
+        ) : null}
+      </div>
+      <div className="ml-auto flex shrink-0 items-center gap-2">
+        {actions}
+        <NotificationBell
+          userId={userId}
+          initialUnread={initialUnread}
+          initialNotifications={initialNotifications}
+        />
       </div>
     </header>
   );

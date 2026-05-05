@@ -78,7 +78,7 @@ export function DashboardFilters({
 
   return (
     <div
-      className="flex w-full flex-wrap items-center justify-end gap-3"
+      className="flex shrink-0 flex-nowrap items-center gap-2"
       data-pending={pending ? '' : undefined}
     >
       <Select
@@ -94,7 +94,7 @@ export function DashboardFilters({
         items={cycleItems}
         disabled={!hasCycles}
       >
-        <SelectTrigger className="w-60">
+        <SelectTrigger className="w-[min(100%,13rem)] sm:w-52">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -112,7 +112,7 @@ export function DashboardFilters({
           onValueChange={(v) => setParam('dept_id', v === ALL_DEPTS_VALUE ? null : (v ?? null))}
           items={deptItems}
         >
-          <SelectTrigger className="w-52">
+          <SelectTrigger className="w-[min(100%,11rem)] sm:w-44">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
