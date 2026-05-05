@@ -16,6 +16,10 @@ type ActivityAction =
   | 'department.created' | 'department.updated' | 'department.archived' | 'department.deleted'
   | 'role.created' | 'role.updated' | 'role.archived' | 'role.deleted'
   | 'competency.created' | 'competency.updated' | 'competency.archived' | 'competency.deleted'
+  // FT-10 Unidades
+  | 'business_unit.created' | 'business_unit.updated'
+  | 'business_unit.archived' | 'business_unit.unarchived' | 'business_unit.deleted'
+  | 'employee.unit_changed'
   // FT-7 Recrutamento — declarados na Fundação; disparos nas ondas.
   | 'job_opening.created' | 'job_opening.updated'
   | 'job_opening.status_changed' | 'job_opening.archived'
@@ -106,6 +110,13 @@ export const ACTIVITY_LABELS: Record<string, string> = {
   'competency.updated': 'Competência atualizada',
   'competency.archived': 'Competência arquivada',
   'competency.deleted': 'Competência removida',
+  // FT-10 Unidades
+  'business_unit.created': 'Unidade criada',
+  'business_unit.updated': 'Unidade atualizada',
+  'business_unit.archived': 'Unidade arquivada',
+  'business_unit.unarchived': 'Unidade desarquivada',
+  'business_unit.deleted': 'Unidade removida',
+  'employee.unit_changed': 'Unidade do colaborador alterada',
   // FT-7 Recrutamento
   'job_opening.created': 'Vaga criada',
   'job_opening.updated': 'Vaga atualizada',
@@ -269,6 +280,24 @@ export function humanizeActivityMetadata(
     case 'competency.archived':
     case 'competency.deleted': {
       push('Competência', pickString(meta, 'competency_name', 'name'));
+      break;
+    }
+    case 'business_unit.created':
+    case 'business_unit.archived':
+    case 'business_unit.unarchived':
+    case 'business_unit.deleted': {
+      push('Unidade', pickString(meta, 'unit_name', 'name'));
+      break;
+    }
+    case 'business_unit.updated': {
+      push('De', pickString(meta, 'name_before'));
+      push('Para', pickString(meta, 'name_after'));
+      break;
+    }
+    case 'employee.unit_changed': {
+      push('Colaborador', pickString(meta, 'employee_name'));
+      push('De', pickString(meta, 'unit_name_before'));
+      push('Para', pickString(meta, 'unit_name_after'));
       break;
     }
     // FT-7 Recrutamento

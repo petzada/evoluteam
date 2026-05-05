@@ -29,6 +29,7 @@ import { ScreenPermissionsToggles } from '@/features/permissions/components/Scre
 
 interface Position { id: string; name: string }
 interface Department { id: string; name: string }
+interface Unit { id: string; name: string; is_archived: boolean }
 interface ManagerOption { id: string; full_name: string }
 
 export interface ExistingEmployee {
@@ -38,6 +39,7 @@ export interface ExistingEmployee {
   phone: string | null;
   positionId: string | null;
   departmentId: string | null;
+  unitId: string | null;
   managerId: string | null;
   role: 'admin_rh' | 'director' | 'user';
   hireDate: string;
@@ -51,6 +53,9 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   positions: Position[];
   departments: Department[];
+  // FT-10: lista de unidades para o select. Em modo edit, deve incluir tambem
+  // a unidade arquivada vinculada ao colaborador (para preservar visibilidade).
+  units?: Unit[];
   managers: ManagerOption[];
   employee?: ExistingEmployee | null;
   canManageEmployees: boolean;
@@ -72,6 +77,7 @@ const EMPTY_DEFAULTS: EmployeeInput = {
   positionId: '',
   role: 'user',
   departmentId: null,
+  unitId: null,
   managerId: null,
   hireDate: new Date().toISOString().split('T')[0],
   phone: '',
@@ -85,6 +91,7 @@ export function EmployeeSheet({
   onOpenChange,
   positions,
   departments,
+  units = [],
   managers,
   employee,
   canManageEmployees,
@@ -101,6 +108,10 @@ export function EmployeeSheet({
   const [createPositionOpen, setCreatePositionOpen] = useState(false);
   const [newPositionName, setNewPositionName] = useState('');
   const [creatingPosition, setCreatingPosition] = useState(false);
+  const [createdLocallyUnits, setCreatedLocallyUnits] = useState<Unit[]>([]);
+  const [createUnitOpen, setCreateUnitOpen] = useState(false);
+  const [newUnitName, setNewUnitName] = useState('');
+  const [creatingUnit, setCreatingUnit] = useState(false);
   const isEdit = !!employee;
 
   const localDepartments = useMemo(() => {
@@ -115,8 +126,15 @@ export function EmployeeSheet({
     return [...positions, ...fresh].sort((a, b) => a.name.localeCompare(b.name));
   }, [positions, createdLocallyPositions]);
 
+  const localUnits = useMemo(() => {
+    const existing = new Set(units.map((u) => u.id));
+    const fresh = createdLocallyUnits.filter((c) => !existing.has(c.id));
+    return [...units, ...fresh].sort((a, b) => a.name.localeCompare(b.name));
+  }, [units, createdLocallyUnits]);
+
   const canCreatePositions = actorIsAdmin || actorScreenPermissions?.['cargos.edit'] === true;
   const canCreateDepartments = actorIsAdmin || actorScreenPermissions?.['departamentos.edit'] === true;
+  const canCreateUnits = actorIsAdmin || actorScreenPermissions?.['unidades.edit'] === true;
   const disabledPermissionKeys = actorIsAdmin
     ? []
     : getDisabledGrantPermissionKeys(actorScreenPermissions);
@@ -129,6 +147,16 @@ export function EmployeeSheet({
     { value: '__none__', label: 'Nenhum' },
     ...localDepartments.map((d) => ({ value: d.id, label: d.name })),
     ...(canCreateDepartments ? [{ value: '__create__', label: '+ Criar novo departamento' }] : []),
+  ];
+  // FT-10: items do select de Unidade. Em edit, unidade arquivada vinculada
+  // ao colaborador permanece visivel (preserva historico).
+  const unitItems = [
+    { value: '__none__', label: 'Sem unidade' },
+    ...localUnits.map((u) => ({
+      value: u.id,
+      label: u.is_archived ? `${u.name} (arquivada)` : u.name,
+    })),
+    ...(canCreateUnits ? [{ value: '__create_unit__', label: '+ Nova unidade' }] : []),
   ];
   // FT-9: actor nao-admin so concede Colaborador; Admin/Diretor viram
   // opcoes desabilitadas com tooltip. Admin_rh nunca aparece como opcao
@@ -157,12 +185,15 @@ export function EmployeeSheet({
   useEffect(() => {
     if (!open) return;
     if (employee) {
+      // FT-10: ressincronizar unitId via reset evita o useState(initialProp)
+      // trap (FT-7); a prop muda apos router.refresh() e precisa ser recolhida.
       form.reset({
         fullName: employee.full_name,
         email: employee.email,
         positionId: employee.positionId ?? '',
         role: employee.role,
         departmentId: employee.departmentId,
+        unitId: employee.unitId ?? null,
         managerId: employee.managerId,
         hireDate: employee.hireDate,
         phone: employee.phone ?? '',
@@ -376,32 +407,63 @@ export function EmployeeSheet({
                 </FormItem>
               )} />
 
-              <FormField control={form.control} name="managerId" render={({ field }) => {
-                const managerItems = [
-                  { value: '__none__', label: 'Nenhum' },
-                  ...managerOptions.map((m) => ({ value: m.id, label: m.full_name })),
-                ];
-                return (
+              {/* FT-10: Unidade + Gestor direto na mesma row 2-cols (par "onde fica · a quem reporta"). */}
+              <div className="grid grid-cols-2 gap-4">
+                <FormField control={form.control} name="unitId" render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Gestor direto</FormLabel>
+                    <FormLabel>Unidade</FormLabel>
                     <Select
-                      onValueChange={(v) => field.onChange(v === '__none__' ? null : v)}
+                      onValueChange={(v) => {
+                        if (v === '__create_unit__') {
+                          setNewUnitName('');
+                          setCreateUnitOpen(true);
+                          return;
+                        }
+                        field.onChange(v === '__none__' ? null : v);
+                      }}
                       value={field.value ?? '__none__'}
-                      items={managerItems}
+                      items={unitItems}
                     >
                       <FormControl>
-                        <SelectTrigger className="w-full"><SelectValue placeholder="Nenhum" /></SelectTrigger>
+                        <SelectTrigger className="w-full"><SelectValue placeholder="Sem unidade" /></SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {managerItems.map((m) => (
-                          <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                        {unitItems.map((u) => (
+                          <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                     <FormMessage />
                   </FormItem>
-                );
-              }} />
+                )} />
+
+                <FormField control={form.control} name="managerId" render={({ field }) => {
+                  const managerItems = [
+                    { value: '__none__', label: 'Nenhum' },
+                    ...managerOptions.map((m) => ({ value: m.id, label: m.full_name })),
+                  ];
+                  return (
+                    <FormItem>
+                      <FormLabel>Gestor direto</FormLabel>
+                      <Select
+                        onValueChange={(v) => field.onChange(v === '__none__' ? null : v)}
+                        value={field.value ?? '__none__'}
+                        items={managerItems}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="w-full"><SelectValue placeholder="Nenhum" /></SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {managerItems.map((m) => (
+                            <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }} />
+              </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <FormField control={form.control} name="hireDate" render={({ field }) => (
@@ -530,6 +592,36 @@ export function EmployeeSheet({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={createUnitOpen} onOpenChange={setCreateUnitOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Nova unidade</DialogTitle>
+            <DialogDescription>Fica disponível imediatamente para seleção.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <label className="text-sm font-medium" htmlFor="new-unit-name">Nome *</label>
+            <Input
+              id="new-unit-name"
+              autoFocus
+              value={newUnitName}
+              onChange={(e) => setNewUnitName(e.target.value)}
+              placeholder="Ex: Hugs"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') { e.preventDefault(); void createUnitInline(); }
+              }}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" type="button" onClick={() => setCreateUnitOpen(false)} disabled={creatingUnit}>
+              Cancelar
+            </Button>
+            <Button type="button" onClick={() => void createUnitInline()} disabled={creatingUnit}>
+              {creatingUnit ? 'Criando…' : 'Criar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Sheet>
   );
 
@@ -559,5 +651,20 @@ export function EmployeeSheet({
     form.setValue('positionId', result.id, { shouldDirty: true });
     setCreatePositionOpen(false);
     toast.success('Cargo criado e selecionado.');
+  }
+
+  async function createUnitInline() {
+    const name = newUnitName.trim();
+    if (name.length < 2) { toast.error('Nome muito curto.'); return; }
+    setCreatingUnit(true);
+    // FT-10: createTaxonomy('unit', ...) delega para createUnit em features/units/actions.
+    const result = await createTaxonomy('unit', { name });
+    setCreatingUnit(false);
+    if (result.error || !result.id) { toast.error(result.error ?? 'Erro ao criar.'); return; }
+    const next: Unit = { id: result.id, name, is_archived: false };
+    setCreatedLocallyUnits((prev) => [...prev, next]);
+    form.setValue('unitId', result.id, { shouldDirty: true });
+    setCreateUnitOpen(false);
+    toast.success('Unidade criada e selecionada.');
   }
 }

@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import {
   listEmployees, getPositions, getDepartments, getCompanyProfileAccess,
 } from '@/features/employees/queries';
+import { getUnits } from '@/features/units/queries';
 import { EmployeesList } from '@/features/employees/components/EmployeesList';
 import { canDo } from '@/features/permissions/permissions';
 import { getActorContext } from '@/features/auth/context';
@@ -12,10 +13,11 @@ export default async function ColaboradoresNovoPage() {
   const canManageEmployees = canDo(actor, 'colaboradores', 'edit');
   if (!canManageEmployees) redirect('/colaboradores');
 
-  const [employees, positions, departments, profileAccess] = await Promise.all([
+  const [employees, positions, departments, units, profileAccess] = await Promise.all([
     listEmployees(profile.company_id),
     getPositions(profile.company_id),
     getDepartments(profile.company_id),
+    getUnits(profile.company_id, { includeArchived: true }),
     getCompanyProfileAccess(profile.company_id),
   ]);
 
@@ -24,6 +26,7 @@ export default async function ColaboradoresNovoPage() {
       employees={employees as Parameters<typeof EmployeesList>[0]['employees']}
       positions={positions}
       departments={departments}
+      units={units}
       currentUserId={user.id}
       canManageEmployees
       actorIsAdmin={profile.role === 'admin_rh'}

@@ -99,6 +99,38 @@ export type Database = {
         }
         Relationships: []
       }
+      business_units: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          is_archived: boolean
+          name: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          is_archived?: boolean
+          name: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          is_archived?: boolean
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_units_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       competencies: {
         Row: {
           company_id: string
@@ -181,6 +213,7 @@ export type Database = {
           position_id: string | null
           status: string
           terminated_at: string | null
+          unit_id: string | null
           updated_at: string
           user_id: string | null
         }
@@ -198,6 +231,7 @@ export type Database = {
           position_id?: string | null
           status?: string
           terminated_at?: string | null
+          unit_id?: string | null
           updated_at?: string
           user_id?: string | null
         }
@@ -215,6 +249,7 @@ export type Database = {
           position_id?: string | null
           status?: string
           terminated_at?: string | null
+          unit_id?: string | null
           updated_at?: string
           user_id?: string | null
         }
@@ -247,6 +282,13 @@ export type Database = {
             referencedRelation: "positions"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "employees_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "business_units"
+            referencedColumns: ["id"]
+          },
         ]
       }
       invites: {
@@ -263,6 +305,7 @@ export type Database = {
           screen_permissions: Json | null
           role: string
           token: string
+          unit_id: string | null
         }
         Insert: {
           accepted_at?: string | null
@@ -277,6 +320,7 @@ export type Database = {
           screen_permissions?: Json | null
           role: string
           token: string
+          unit_id?: string | null
         }
         Update: {
           accepted_at?: string | null
@@ -291,6 +335,7 @@ export type Database = {
           screen_permissions?: Json | null
           role?: string
           token?: string
+          unit_id?: string | null
         }
         Relationships: [
           {
@@ -305,6 +350,13 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invites_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "business_units"
             referencedColumns: ["id"]
           },
         ]

@@ -3,6 +3,7 @@ import {
   listEmployees, getPositions, getDepartments, getCompanyProfileAccess,
   getEmployeeDescendants,
 } from '@/features/employees/queries';
+import { getUnits } from '@/features/units/queries';
 import { listEmployeesWithoutRecentFeedback } from '@/features/dashboard/queries';
 import { EmployeesList } from '@/features/employees/components/EmployeesList';
 import { canDo } from '@/features/permissions/permissions';
@@ -12,6 +13,7 @@ type SearchParams = Promise<{
   status?: string;
   department?: string;
   position?: string;
+  unit?: string;
   filter?: string;
 }>;
 
@@ -41,10 +43,14 @@ export default async function ColaboradoresPage({
     scopedIds = visible;
   }
 
-  const [employees, positions, departments, profileAccess, withoutFeedbackIds] = await Promise.all([
+  const [employees, positions, departments, units, profileAccess, withoutFeedbackIds] = await Promise.all([
     listEmployees(profile.company_id, { scopedIds }),
     getPositions(profile.company_id),
     getDepartments(profile.company_id),
+    // FT-10: includeArchived=true para que o filtro consiga selecionar
+    // unidades arquivadas (uteis para olhar historico) e a coluna possa
+    // exibir o nome com sufixo "(arquivada)".
+    getUnits(profile.company_id, { includeArchived: true }),
     getCompanyProfileAccess(profile.company_id),
     filter === 'sem_feedback'
       ? listEmployeesWithoutRecentFeedback(profile.company_id)
@@ -56,12 +62,14 @@ export default async function ColaboradoresPage({
       employees={employees as Parameters<typeof EmployeesList>[0]['employees']}
       positions={positions}
       departments={departments}
+      units={units}
       currentUserId={user.id}
       canManageEmployees={canDo(actorForGate, 'colaboradores', 'edit')}
       actorIsAdmin={profile.role === 'admin_rh'}
       actorScreenPermissions={gate.screenPermissions}
       profileAccess={profileAccess}
       initialStatusFilter={params.status ?? null}
+      initialUnitFilter={params.unit ?? null}
       specialFilter={filter}
       specialFilterEmployeeIds={withoutFeedbackIds}
     />

@@ -256,6 +256,9 @@ export const HireCandidateInputSchema = z.object({
   positionId: z.string().uuid('Cargo obrigatório'),
   departmentId: z.string().uuid().nullable().optional(),
   managerId: z.string().uuid().nullable().optional(),
+  // FT-10: Unidade opcional. Default null; admin atribui no wizard.
+  // Vaga e neutra — sem pre-preenchimento.
+  unitId: z.string().uuid().nullable().optional(),
   hiredAt: z.string().min(1, 'Data de admissão obrigatória'),
   level: z.string().max(100).nullable().optional(),
 

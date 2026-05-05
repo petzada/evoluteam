@@ -28,6 +28,7 @@ const DIRECTOR_BLOCKED_SCREENS: readonly ScreenKey[] = [
   'empresa',
   'cargos',
   'departamentos',
+  'unidades',
   'competencias',
   'auditoria',
 ];

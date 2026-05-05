@@ -40,6 +40,7 @@ import type { HireEligibility } from '../actions/hire';
 import { CandidateQuickSheet } from './CandidateQuickSheet';
 
 interface TaxonomyItem { id: string; name: string }
+interface UnitItem { id: string; name: string; is_archived: boolean }
 interface ManagerItem { id: string; full_name: string }
 
 interface JobContext {
@@ -67,6 +68,8 @@ interface Props {
   job: JobContext;
   positions: TaxonomyItem[];
   departments: TaxonomyItem[];
+  units: UnitItem[];
+  canCreateUnits: boolean;
   managers: ManagerItem[];
 }
 
@@ -79,7 +82,7 @@ export function Kanban({
   stages, applications, canMove, canGiveFeedback, canHire,
   feedbackCounts, scorecardCounts, taskStates,
   feedbacks, scorecards, tasks, currentEmployeeId, isAdmin,
-  job, positions, departments, managers,
+  job, positions, departments, units, canCreateUnits, managers,
 }: Props) {
   const router = useRouter();
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
@@ -293,6 +296,8 @@ export function Kanban({
         context={hireState.context}
         positions={positions}
         departments={departments}
+        units={units}
+        canCreateUnits={canCreateUnits}
         managers={managers}
       />
       <CandidateQuickSheet

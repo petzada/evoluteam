@@ -43,6 +43,7 @@ export type ScreenKey =
   | 'empresa'
   | 'cargos'
   | 'departamentos'
+  | 'unidades'
   | 'competencias'
   | 'auditoria';
 
@@ -62,6 +63,7 @@ export type ScreenPermissionKey =
   | 'empresa.view' | 'empresa.edit'
   | 'cargos.view'  | 'cargos.edit'
   | 'departamentos.view' | 'departamentos.edit'
+  | 'unidades.view' | 'unidades.edit'
   | 'competencias.view'  | 'competencias.edit'
   | 'auditoria.view';
 
@@ -103,8 +105,9 @@ export const SCREEN_PERMISSION_MODULES: {
     section: 'Configurações',
     screens: [
       { key: 'empresa',       label: 'Empresa',       description: 'Dados cadastrais da empresa.',  hasEdit: true  },
-      { key: 'cargos',        label: 'Cargos',        description: 'CRUD de cargos.',               hasEdit: true  },
+      { key: 'unidades',      label: 'Unidades',      description: 'CRUD de unidades do grupo.',    hasEdit: true  },
       { key: 'departamentos', label: 'Departamentos', description: 'CRUD de departamentos.',        hasEdit: true  },
+      { key: 'cargos',        label: 'Cargos',        description: 'CRUD de cargos.',               hasEdit: true  },
       { key: 'competencias',  label: 'Competências',  description: 'CRUD de competências.',         hasEdit: true  },
       { key: 'auditoria',     label: 'Auditoria',     description: 'Logs de atividades do sistema.', hasEdit: false },
     ],
@@ -125,6 +128,7 @@ export const ALL_SCREEN_PERMISSION_KEYS: ScreenPermissionKey[] = [
   'empresa.view',       'empresa.edit',
   'cargos.view',        'cargos.edit',
   'departamentos.view', 'departamentos.edit',
+  'unidades.view',      'unidades.edit',
   'competencias.view',  'competencias.edit',
   'auditoria.view',
 ];

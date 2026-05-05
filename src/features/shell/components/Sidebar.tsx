@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, Home, Users, ClipboardList, MessageSquare, TrendingUp,
-  Building2, Layers, Briefcase, Star, ScrollText,
+  Building2, Building, Layers, Briefcase, Star, ScrollText,
   UserPlus, KanbanSquare, BarChart3,
 } from 'lucide-react';
 import { BrandMonogram, BrandWordmark } from '@/components/brand/BrandWordmark';
@@ -41,6 +41,7 @@ const RECRUITMENT_NAV: NavItem[] = [
 
 const CONFIG_NAV: NavItem[] = [
   { label: 'Empresa',       href: '/configuracoes/empresa',       icon: Building2,  screen: 'empresa' },
+  { label: 'Unidades',      href: '/configuracoes/unidades',      icon: Building,   screen: 'unidades' },
   { label: 'Departamentos', href: '/configuracoes/departamentos', icon: Layers,     screen: 'departamentos' },
   { label: 'Cargos',        href: '/configuracoes/cargos',        icon: Briefcase,  screen: 'cargos' },
   { label: 'Competências',  href: '/configuracoes/competencias',  icon: Star,       screen: 'competencias' },

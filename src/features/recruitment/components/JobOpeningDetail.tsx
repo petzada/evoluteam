@@ -39,6 +39,7 @@ import { AddCandidateSheet } from './AddCandidateSheet';
 import { changeJobStatus } from '../actions/jobOpenings';
 
 interface TaxonomyItem { id: string; name: string }
+interface UnitItem { id: string; name: string; is_archived: boolean }
 interface ManagerItem { id: string; full_name: string }
 
 interface Props {
@@ -60,6 +61,8 @@ interface Props {
   isAdmin: boolean;
   positions: TaxonomyItem[];
   departments: TaxonomyItem[];
+  units: UnitItem[];
+  canCreateUnits: boolean;
   managers: ManagerItem[];
   searchCandidatesAction: (query: string) => Promise<CandidateRow[]>;
 }
@@ -69,7 +72,7 @@ export function JobOpeningDetail({
   canManage, canMove, canGiveFeedback, canHire,
   feedbackCounts, scorecardCounts, taskStates,
   feedbacks, scorecards, tasks, currentEmployeeId, isAdmin,
-  positions, departments, managers,
+  positions, departments, units, canCreateUnits, managers,
   searchCandidatesAction,
 }: Props) {
   const router = useRouter();
@@ -276,6 +279,8 @@ export function JobOpeningDetail({
                 }}
                 positions={positions}
                 departments={departments}
+                units={units}
+                canCreateUnits={canCreateUnits}
                 managers={managers}
               />
             </div>

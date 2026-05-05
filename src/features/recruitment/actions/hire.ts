@@ -77,7 +77,7 @@ export async function checkHireEligibility(applicationId: string): Promise<HireE
 }
 
 export type HireCandidateResult =
-  | { ok: true; employeeId: string; applicationId: string }
+  | { ok: true; employeeId: string; applicationId: string; unitName: string | null }
   | { ok: false; reason: 'EMAIL_ALREADY_EXISTS'; existingEmployee: { id: string; name: string; department: string | null } }
   | { ok: false; reason: 'CANDIDATE_ALREADY_HIRED'; hiredEmployeeId: string }
   | { ok: false; reason: 'OTHER'; message: string };
@@ -163,6 +163,7 @@ export async function hireCandidate(
   }
 
   // 1) Cria employee (user_id=null; convite e manual em Colaboradores)
+  // FT-10: unit_id opcional — vaga e neutra, admin escolhe no wizard.
   const { data: newEmp, error: empErr } = await admin
     .from('employees')
     .insert({
@@ -172,6 +173,7 @@ export async function hireCandidate(
       phone: v.phone ?? null,
       position_id: v.positionId,
       department_id: v.departmentId ?? null,
+      unit_id: v.unitId ?? null,
       manager_id: v.managerId ?? null,
       hire_date: v.hiredAt,
       status: 'active',
@@ -292,9 +294,36 @@ export async function hireCandidate(
     },
   });
 
+  // FT-10: log dedicado quando o wizard atribuiu uma unidade.
+  let unitName: string | null = null;
+  if (v.unitId) {
+    const { data: unit } = await admin
+      .from('business_units')
+      .select('name')
+      .eq('id', v.unitId)
+      .maybeSingle();
+    unitName = unit?.name ?? null;
+    await logActivity({
+      companyId: actor.companyId,
+      actorUserId: actor.userId,
+      action: 'employee.unit_changed',
+      entityType: 'employee',
+      entityId: newEmp.id,
+      metadata: {
+        employee_id: newEmp.id,
+        employee_name: v.name,
+        unit_id_before: null,
+        unit_id_after: v.unitId,
+        unit_name_before: null,
+        unit_name_after: unitName,
+        source: 'hire_candidate',
+      },
+    });
+  }
+
   revalidatePath(`/recrutamento/vagas/${app.job_opening_id}`);
   revalidatePath(`/recrutamento/candidatos/${candidate.id}`);
   revalidatePath('/colaboradores');
   revalidatePath(`/colaboradores/${newEmp.id}`);
-  return { ok: true, employeeId: newEmp.id, applicationId };
+  return { ok: true, employeeId: newEmp.id, applicationId, unitName };
 }

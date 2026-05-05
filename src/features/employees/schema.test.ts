@@ -45,6 +45,24 @@ describe('EmployeeSchema', () => {
   it('rejeita data de admissão vazia', () => {
     expect(EmployeeSchema.safeParse({ ...valid, hireDate: '' }).success).toBe(false);
   });
+
+  describe('unitId (FT-10)', () => {
+    it('aceita unitId omitido', () => {
+      expect(EmployeeSchema.safeParse(valid).success).toBe(true);
+    });
+
+    it('aceita unitId null', () => {
+      expect(EmployeeSchema.safeParse({ ...valid, unitId: null }).success).toBe(true);
+    });
+
+    it('aceita unitId UUID valido', () => {
+      expect(EmployeeSchema.safeParse({ ...valid, unitId: crypto.randomUUID() }).success).toBe(true);
+    });
+
+    it('rejeita unitId nao-UUID', () => {
+      expect(EmployeeSchema.safeParse({ ...valid, unitId: 'nao-uuid' }).success).toBe(false);
+    });
+  });
 });
 
 describe('UpdateRoleSchema', () => {

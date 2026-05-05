@@ -56,12 +56,14 @@ type Employee = {
   manager_id: string | null;
   position: { id: string; name: string } | null;
   department: { id: string; name: string } | null;
+  unit: { id: string; name: string; is_archived: boolean } | null;
   manager: { id: string; full_name: string } | null;
   invite: Invite[] | null;
 };
 
 interface Position { id: string; name: string }
 interface Department { id: string; name: string }
+interface Unit { id: string; name: string; is_archived: boolean }
 
 type ProfileAccess = { role: Role; isSupervisor: boolean };
 
@@ -69,6 +71,8 @@ interface Props {
   employees: Employee[];
   positions: Position[];
   departments: Department[];
+  /** Quando omitido (ex.: chamadas legadas), assume lista vazia — evita SSR com `.map` em undefined. */
+  units?: Unit[];
   currentUserId: string;
   canManageEmployees: boolean;
   actorIsAdmin: boolean;
@@ -77,6 +81,7 @@ interface Props {
   openSheet?: boolean;
   editingEmployee?: ExistingEmployee | null;
   initialStatusFilter?: string | null;
+  initialUnitFilter?: string | null;
   specialFilter?: 'sem_feedback' | null;
   specialFilterEmployeeIds?: string[];
 }
@@ -138,6 +143,7 @@ export function EmployeesList({
   employees,
   positions,
   departments,
+  units = [],
   currentUserId,
   canManageEmployees,
   actorIsAdmin,
@@ -146,6 +152,7 @@ export function EmployeesList({
   openSheet = false,
   editingEmployee = null,
   initialStatusFilter = null,
+  initialUnitFilter = null,
   specialFilter = null,
   specialFilterEmployeeIds = [],
 }: Props) {
@@ -166,6 +173,14 @@ export function EmployeesList({
   const [departmentFilter, setDepartmentFilter] = useState<string[]>(() => {
     const v = searchParams.get('department_id') ?? searchParams.get('department');
     return v ? [v] : [];
+  });
+  // FT-10: filtro multi-select de Unidade. Valor especial '__none__' representa
+  // "Sem unidade" (employee.unit IS NULL).
+  const [unitFilter, setUnitFilter] = useState<string[]>(() => {
+    const fromUrl = searchParams.get('unit');
+    if (fromUrl) return [fromUrl];
+    if (initialUnitFilter) return [initialUnitFilter];
+    return [];
   });
   const [managerFilter, setManagerFilter] = useState<string[]>([]);
   const [showTerminated, setShowTerminated] = useState(false);
@@ -224,11 +239,13 @@ export function EmployeesList({
         || (emp.position?.id ? positionFilter.includes(emp.position.id) : false);
       const matchDep = departmentFilter.length === 0
         || departmentFilter.includes(emp.department?.id ?? '__none__');
+      const matchUnit = unitFilter.length === 0
+        || unitFilter.includes(emp.unit?.id ?? '__none__');
       const matchMgr = managerFilter.length === 0
         || managerFilter.includes(emp.manager_id ?? '__none__');
-      return matchSearch && matchStatus && matchPos && matchDep && matchMgr;
+      return matchSearch && matchStatus && matchPos && matchDep && matchUnit && matchMgr;
     });
-  }, [employees, search, statusFilter, positionFilter, departmentFilter, managerFilter, showTerminated, specialFilter, specialSet]);
+  }, [employees, search, statusFilter, positionFilter, departmentFilter, unitFilter, managerFilter, showTerminated, specialFilter, specialSet]);
 
   const PAGE_SIZE = 20;
   const [page, setPage] = useState(1);
@@ -246,6 +263,7 @@ export function EmployeesList({
   const onStatusFilterChange = (v: string) => { setStatusFilter(v); resetPage(); };
   const onPositionFilterChange = (v: string[]) => { setPositionFilter(v); resetPage(); };
   const onDepartmentFilterChange = (v: string[]) => { setDepartmentFilter(v); resetPage(); };
+  const onUnitFilterChange = (v: string[]) => { setUnitFilter(v); resetPage(); };
   const onManagerFilterChange = (v: string[]) => { setManagerFilter(v); resetPage(); };
   const onShowTerminatedChange = (v: boolean) => { setShowTerminated(v); resetPage(); };
 
@@ -269,6 +287,7 @@ export function EmployeesList({
       phone: emp.phone,
       positionId: emp.position?.id ?? null,
       departmentId: emp.department?.id ?? null,
+      unitId: emp.unit?.id ?? null,
       managerId: emp.manager?.id ?? null,
       role,
       hireDate: emp.hire_date,
@@ -303,6 +322,15 @@ export function EmployeesList({
   const departmentOptions = [
     { value: '__none__', label: 'Sem departamento' },
     ...departments.map((d) => ({ value: d.id, label: d.name })),
+  ];
+  // FT-10: options do filtro de Unidades. Arquivadas aparecem com sufixo
+  // muted no label para diferenciar (mesmo label usado nos selects do form).
+  const unitOptions = [
+    { value: '__none__', label: 'Sem unidade' },
+    ...units.map((u) => ({
+      value: u.id,
+      label: u.is_archived ? `${u.name} (arquivada)` : u.name,
+    })),
   ];
   const managerOptions = [
     { value: '__none__', label: 'Sem gestor' },
@@ -369,6 +397,13 @@ export function EmployeesList({
             value={departmentFilter}
             onChange={onDepartmentFilterChange}
             width="w-48"
+          />
+          <MultiSelectFilter
+            label="Unidades"
+            options={unitOptions}
+            value={unitFilter}
+            onChange={onUnitFilterChange}
+            width="w-44"
           />
           <MultiSelectFilter
             label="Gestores"
@@ -441,7 +476,7 @@ export function EmployeesList({
             icon={Users}
             title="Nenhum colaborador encontrado"
             description={
-              search || statusFilter !== 'all' || positionFilter.length > 0 || departmentFilter.length > 0 || managerFilter.length > 0
+              search || statusFilter !== 'all' || positionFilter.length > 0 || departmentFilter.length > 0 || unitFilter.length > 0 || managerFilter.length > 0
                 ? 'Tente outros filtros.'
                 : 'Adicione o primeiro colaborador.'
             }
@@ -462,6 +497,7 @@ export function EmployeesList({
                   <TableHead>Cargo</TableHead>
                   {columns.role && <TableHead>Papel</TableHead>}
                   <TableHead>Departamento</TableHead>
+                  <TableHead>Unidade</TableHead>
                   <TableHead>Gestor direto</TableHead>
                   {columns.admission && <TableHead>Admissão</TableHead>}
                   {columns.phone && <TableHead>Telefone</TableHead>}
@@ -512,6 +548,18 @@ export function EmployeesList({
                         </TableCell>
                       )}
                       <TableCell>{emp.department?.name ?? '—'}</TableCell>
+                      <TableCell>
+                        {emp.unit ? (
+                          emp.unit.is_archived ? (
+                            <>
+                              {emp.unit.name}{' '}
+                              <span className="text-muted-foreground italic">(arquivada)</span>
+                            </>
+                          ) : (
+                            emp.unit.name
+                          )
+                        ) : '—'}
+                      </TableCell>
                       <TableCell>{emp.manager?.full_name ?? '—'}</TableCell>
                       {columns.admission && <TableCell>{formatDate(emp.hire_date)}</TableCell>}
                       {columns.phone && <TableCell>{emp.phone ?? '—'}</TableCell>}
@@ -595,6 +643,7 @@ export function EmployeesList({
         onOpenChange={(o) => { setSheetOpen(o); if (!o) setEditing(null); }}
         positions={positions}
         departments={departments}
+        units={units}
         managers={potentialManagers}
         employee={editing}
         canManageEmployees={canManageEmployees}

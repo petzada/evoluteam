@@ -86,11 +86,15 @@ export async function updateEmployee(employeeId: string, input: EmployeeInput) {
   const supabase = await createServerSupabaseClient();
   const { data: existing } = await supabase
     .from('employees')
-    .select('user_id')
+    .select('user_id, unit_id, full_name')
     .eq('id', employeeId)
     .eq('company_id', ctx.profile.company_id)
     .single();
   if (!existing) return { error: 'Colaborador não encontrado.' };
+
+  // FT-10: detecta troca de unidade para emitir log dedicado.
+  const newUnitId = input.unitId === undefined ? existing.unit_id : (input.unitId ?? null);
+  const unitChanged = newUnitId !== existing.unit_id;
 
   const update: TablesUpdate<'employees'> = {
     full_name: input.fullName,
@@ -102,6 +106,9 @@ export async function updateEmployee(employeeId: string, input: EmployeeInput) {
     hire_date: input.hireDate,
     updated_at: new Date().toISOString(),
   };
+  if (input.unitId !== undefined) {
+    update.unit_id = input.unitId ?? null;
+  }
   if (ctx.actor.role === 'admin_rh' && input.internalNotes !== undefined) {
     update.internal_notes = input.internalNotes ?? null;
   }
@@ -124,6 +131,33 @@ export async function updateEmployee(employeeId: string, input: EmployeeInput) {
     entityType: 'employee',
     entityId: employeeId,
   });
+
+  if (unitChanged) {
+    const admin = createAdminSupabaseClient();
+    const [{ data: unitBefore }, { data: unitAfter }] = await Promise.all([
+      existing.unit_id
+        ? admin.from('business_units').select('name').eq('id', existing.unit_id).maybeSingle()
+        : Promise.resolve({ data: null }),
+      newUnitId
+        ? admin.from('business_units').select('name').eq('id', newUnitId).maybeSingle()
+        : Promise.resolve({ data: null }),
+    ]);
+    await logActivity({
+      companyId: ctx.profile.company_id,
+      actorUserId: ctx.user.id,
+      action: 'employee.unit_changed',
+      entityType: 'employee',
+      entityId: employeeId,
+      metadata: {
+        employee_id: employeeId,
+        employee_name: input.fullName ?? existing.full_name,
+        unit_id_before: existing.unit_id,
+        unit_id_after: newUnitId,
+        unit_name_before: (unitBefore as { name: string } | null)?.name ?? null,
+        unit_name_after: (unitAfter as { name: string } | null)?.name ?? null,
+      },
+    });
+  }
 
   revalidatePath('/colaboradores');
   revalidatePath(`/colaboradores/${employeeId}`);
@@ -159,6 +193,7 @@ export async function createEmployee(input: EmployeeInput) {
     phone: input.phone ?? null,
     position_id: input.positionId,
     department_id: input.departmentId ?? null,
+    unit_id: input.unitId ?? null,
     manager_id: input.managerId ?? null,
     hire_date: input.hireDate,
     status: 'active',
@@ -192,6 +227,7 @@ export async function createEmployee(input: EmployeeInput) {
       ctx.user.id,
       companyId,
       access.screenPermissionsSnapshot,
+      input.unitId ?? null,
     );
   }
 
@@ -207,6 +243,7 @@ async function sendInviteForEmployee(
   invitedBy: string,
   companyId: string,
   screenPermissionsSnapshot: EmployeeInput['screenPermissions'] | null = null,
+  unitId: string | null = null,
 ) {
   const admin = createAdminSupabaseClient();
   const token = crypto.randomUUID();
@@ -223,6 +260,9 @@ async function sendInviteForEmployee(
       invited_by: invitedBy,
       expires_at: expiresAt,
       screen_permissions: screenPermissionsSnapshot ?? null,
+      // FT-10: snapshot da unidade no convite. Copiada para employees.unit_id
+      // pelo acceptInvite (mesmo padrao do screen_permissions).
+      unit_id: unitId,
     })
     .select('id')
     .single();
@@ -545,7 +585,7 @@ export async function acceptInvite(token: string, data: { fullName: string; pass
 
   const { data: invite } = await admin
     .from('invites')
-    .select('id, company_id, employee_id, email, role, expires_at, accepted_at, revoked_at, invited_by, screen_permissions')
+    .select('id, company_id, employee_id, email, role, expires_at, accepted_at, revoked_at, invited_by, screen_permissions, unit_id')
     .eq('token', token)
     .single();
 
@@ -587,9 +627,55 @@ export async function acceptInvite(token: string, data: { fullName: string; pass
       }, { onConflict: 'profile_id' });
   }
 
-  await admin.from('employees').update({ user_id: userId, full_name: data.fullName, updated_at: new Date().toISOString() }).eq('id', invite.employee_id);
+  // FT-10: cobre dois casos —
+  // 1. employee criado via createEmployee ja gravou unit_id; aqui so reforca
+  //    o snapshot do convite (idempotente);
+  // 2. employee preexistente (legado) sem unit_id ganha o do invite.
+  // Em ambos, se o invite foi com unidade definida, o employee fica com a tag.
+  const employeeUpdate: TablesUpdate<'employees'> = {
+    user_id: userId,
+    full_name: data.fullName,
+    updated_at: new Date().toISOString(),
+  };
+  if (invite.unit_id) {
+    employeeUpdate.unit_id = invite.unit_id;
+  }
+
+  // Pre-leitura para detectar unit_changed (caso o employee ja tinha outra unit).
+  const { data: priorEmployee } = await admin
+    .from('employees')
+    .select('unit_id, full_name')
+    .eq('id', invite.employee_id)
+    .maybeSingle();
+
+  await admin.from('employees').update(employeeUpdate).eq('id', invite.employee_id);
 
   await admin.from('invites').update({ accepted_at: new Date().toISOString() }).eq('id', invite.id);
+
+  if (invite.unit_id && priorEmployee && priorEmployee.unit_id !== invite.unit_id) {
+    const [{ data: unitBefore }, { data: unitAfter }] = await Promise.all([
+      priorEmployee.unit_id
+        ? admin.from('business_units').select('name').eq('id', priorEmployee.unit_id).maybeSingle()
+        : Promise.resolve({ data: null }),
+      admin.from('business_units').select('name').eq('id', invite.unit_id).maybeSingle(),
+    ]);
+    await logActivity({
+      companyId: invite.company_id,
+      actorUserId: userId,
+      action: 'employee.unit_changed',
+      entityType: 'employee',
+      entityId: invite.employee_id,
+      metadata: {
+        employee_id: invite.employee_id,
+        employee_name: data.fullName,
+        unit_id_before: priorEmployee.unit_id,
+        unit_id_after: invite.unit_id,
+        unit_name_before: (unitBefore as { name: string } | null)?.name ?? null,
+        unit_name_after: (unitAfter as { name: string } | null)?.name ?? null,
+        source: 'invite_accepted',
+      },
+    });
+  }
 
   const { data: adminProfile } = await admin
     .from('profiles')

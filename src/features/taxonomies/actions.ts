@@ -7,6 +7,7 @@ import { logActivity } from '@/lib/activity';
 import { getActor } from '@/features/permissions/actor';
 import { canDo } from '@/features/permissions/permissions';
 import type { ScreenKey } from '@/features/permissions/types';
+import { createUnit } from '@/features/units/actions';
 import type { TaxonomyInput } from './schema';
 
 async function getActorContext() {
@@ -19,43 +20,48 @@ async function getActorContext() {
   };
 }
 
-export type Kind = 'department' | 'position' | 'competency';
+// FT-10: 'unit' delega para createUnit (feature units), preservando assinatura
+// (kind, { name }) -> { id?, error? } usada pelos selects com inline-create.
+// Os helpers internos abaixo so trabalham com os kinds da TaxonomyList classica
+// (departments/positions/competencies) — 'unit' tem fluxo proprio em src/features/units.
+export type Kind = 'department' | 'position' | 'competency' | 'unit';
+type ClassicKind = Exclude<Kind, 'unit'>;
 
 // FT-9: cada kind tem sua tela especifica em vez do gate generico can_employees.
-function screenFor(kind: Kind): ScreenKey {
+function screenFor(kind: ClassicKind): ScreenKey {
   if (kind === 'department') return 'departamentos';
   if (kind === 'position') return 'cargos';
   return 'competencias';
 }
 
-function canManageKind(actor: Parameters<typeof canDo>[0], kind: Kind): boolean {
+function canManageKind(actor: Parameters<typeof canDo>[0], kind: ClassicKind): boolean {
   return canDo(actor, screenFor(kind), 'edit');
 }
 
-function tableFor(kind: Kind) {
+function tableFor(kind: ClassicKind) {
   if (kind === 'department') return 'departments';
   if (kind === 'position') return 'positions';
   return 'competencies';
 }
 
-function routeFor(kind: Kind) {
+function routeFor(kind: ClassicKind) {
   if (kind === 'department') return '/configuracoes/departamentos';
   if (kind === 'position') return '/configuracoes/cargos';
   return '/configuracoes/competencias';
 }
 
-function labelFor(kind: Kind) {
+function labelFor(kind: ClassicKind) {
   if (kind === 'department') return 'Departamento';
   if (kind === 'position') return 'Cargo';
   return 'Competência';
 }
 
-function actionFor(kind: Kind, verb: 'created' | 'updated' | 'archived' | 'deleted') {
+function actionFor(kind: ClassicKind, verb: 'created' | 'updated' | 'archived' | 'deleted') {
   const base = kind === 'department' ? 'department' : kind === 'position' ? 'role' : 'competency';
   return `${base}.${verb}` as const;
 }
 
-async function countUsage(kind: Kind, id: string, companyId: string): Promise<number> {
+async function countUsage(kind: ClassicKind, id: string, companyId: string): Promise<number> {
   const admin = createAdminSupabaseClient();
 
   if (kind === 'department' || kind === 'position') {
@@ -80,37 +86,45 @@ async function countUsage(kind: Kind, id: string, companyId: string): Promise<nu
 }
 
 export async function createTaxonomy(kind: Kind, input: TaxonomyInput) {
+  // FT-10: unidades vivem em business_units (lookup separado) e tem schema/policies
+  // proprias. Delegamos para a feature units, mantendo a interface uniforme dos
+  // selects de inline-create.
+  if (kind === 'unit') {
+    return createUnit({ name: input.name });
+  }
+  const classicKind: ClassicKind = kind;
+
   const ctx = await getActorContext();
-  if (!ctx || !canManageKind(ctx.actor, kind)) return { error: 'Sem permissão.' };
+  if (!ctx || !canManageKind(ctx.actor, classicKind)) return { error: 'Sem permissão.' };
 
   const supabase = await createServerSupabaseClient();
   const { data, error } = await supabase
-    .from(tableFor(kind))
+    .from(tableFor(classicKind))
     .insert({ company_id: ctx.profile.company_id, name: input.name.trim() })
     .select('id')
     .single();
 
   if (error) {
     if (error.code === '23505') {
-      return { error: `Já existe ${kind === 'competency' ? 'uma' : 'um'} ${labelFor(kind).toLowerCase()} com esse nome.` };
+      return { error: `Já existe ${classicKind === 'competency' ? 'uma' : 'um'} ${labelFor(classicKind).toLowerCase()} com esse nome.` };
     }
-    return { error: `Erro ao criar ${labelFor(kind).toLowerCase()}.` };
+    return { error: `Erro ao criar ${labelFor(classicKind).toLowerCase()}.` };
   }
 
   await logActivity({
     companyId: ctx.profile.company_id,
     actorUserId: ctx.user.id,
-    action: actionFor(kind, 'created'),
-    entityType: kind,
+    action: actionFor(classicKind, 'created'),
+    entityType: classicKind,
     entityId: data.id,
     metadata: { name: input.name.trim() },
   });
 
-  revalidatePath(routeFor(kind));
+  revalidatePath(routeFor(classicKind));
   return { ok: true, id: data.id };
 }
 
-export async function updateTaxonomy(kind: Kind, id: string, input: TaxonomyInput) {
+export async function updateTaxonomy(kind: ClassicKind, id: string, input: TaxonomyInput) {
   const ctx = await getActorContext();
   if (!ctx || !canManageKind(ctx.actor, kind)) return { error: 'Sem permissão.' };
 
@@ -140,7 +154,7 @@ export async function updateTaxonomy(kind: Kind, id: string, input: TaxonomyInpu
   return { ok: true };
 }
 
-export async function archiveTaxonomy(kind: Kind, id: string, archived: boolean) {
+export async function archiveTaxonomy(kind: ClassicKind, id: string, archived: boolean) {
   const ctx = await getActorContext();
   if (!ctx || !canManageKind(ctx.actor, kind)) return { error: 'Sem permissão.' };
 
@@ -165,7 +179,7 @@ export async function archiveTaxonomy(kind: Kind, id: string, archived: boolean)
   return { ok: true };
 }
 
-export async function deleteTaxonomy(kind: Kind, id: string) {
+export async function deleteTaxonomy(kind: ClassicKind, id: string) {
   const ctx = await getActorContext();
   if (!ctx || !canManageKind(ctx.actor, kind)) return { error: 'Sem permissão.' };
 

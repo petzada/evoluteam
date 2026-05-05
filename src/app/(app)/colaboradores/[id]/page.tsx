@@ -13,6 +13,7 @@ import {
   getDepartments,
   getManagerCandidates,
 } from '@/features/employees/queries';
+import { getUnits } from '@/features/units/queries';
 import { canViewEmployee, canSeeInternalNotes } from '@/features/employees/permissions';
 import { EmployeeProfile } from '@/features/employees/components/EmployeeProfile';
 import { BreadcrumbLabel } from '@/features/shell/components/BreadcrumbLabel';
@@ -65,7 +66,7 @@ export default async function EmployeeProfilePage({
   }
 
   const [
-    directReports, subordinatesCount, activityLog, positions, departments, managers,
+    directReports, subordinatesCount, activityLog, positions, departments, units, managers,
     feedbacks, pdis, reviewCycles,
     { data: pdiEmployees }, { data: pdiCompetencies }, { data: pdiCycles },
   ] = await Promise.all([
@@ -74,6 +75,9 @@ export default async function EmployeeProfilePage({
     getEmployeeActivityLog(profile.company_id, id, employee.user_id),
     getPositions(profile.company_id),
     getDepartments(profile.company_id),
+    // FT-10: includeArchived=true para preservar a unidade vinculada ao
+    // colaborador caso ela tenha sido arquivada apos o vinculo.
+    getUnits(profile.company_id, { includeArchived: true }),
     getManagerCandidates(profile.company_id, id),
     listFeedbacksForEmployee(id),
     listPdisForEmployee(id),
@@ -176,6 +180,7 @@ export default async function EmployeeProfilePage({
       canSeeInternalNotes={showInternalNotes}
       positions={positions}
       departments={departments}
+      units={units}
       managers={managers}
       descendantIds={descendantIds}
       subordinatesCount={subordinatesCount}

@@ -11,6 +11,9 @@ export const EmployeeSchema = z.object({
   positionId: z.string().min(1, 'Cargo obrigatório'),
   role: z.enum(['admin_rh', 'director', 'user']),
   departmentId: z.string().optional().nullable(),
+  // FT-10: Unidade e tag organizacional opcional. UUID quando preenchido,
+  // null/undefined quando o tenant nao usa unidades ou o admin nao atribuiu.
+  unitId: z.string().uuid().nullable().optional(),
   managerId: z.string().optional().nullable(),
   hireDate: z.string().min(1, 'Data obrigatória'),
   phone: z.string().optional().nullable(),

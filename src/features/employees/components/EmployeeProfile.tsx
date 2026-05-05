@@ -57,6 +57,7 @@ type Employee = {
   internal_notes?: string | null;
   position: { id: string; name: string } | null;
   department: { id: string; name: string } | null;
+  unit: { id: string; name: string; is_archived: boolean } | null;
   manager: {
     id: string;
     full_name: string;
@@ -81,6 +82,7 @@ type Role = CentralRole;
 
 interface Position { id: string; name: string }
 interface Department { id: string; name: string }
+interface Unit { id: string; name: string; is_archived: boolean }
 interface ManagerOption { id: string; full_name: string }
 
 interface Props {
@@ -94,6 +96,7 @@ interface Props {
   canSeeInternalNotes: boolean;
   positions: Position[];
   departments: Department[];
+  units: Unit[];
   managers: ManagerOption[];
   descendantIds: string[];
   subordinatesCount: number;
@@ -141,7 +144,7 @@ const VALID_TABS = ['dados', 'acesso', 'historico', 'avaliacoes', 'feedbacks', '
 export function EmployeeProfile({
   employee, directReports, activityLog, role, lastSignInAt, isAdmin, isSelf,
   targetScreenPermissions, currentActorRole, actorIsAdmin, actorScreenPermissions,
-  canSeeInternalNotes, positions, departments, managers, descendantIds,
+  canSeeInternalNotes, positions, departments, units, managers, descendantIds,
   subordinatesCount, actors, feedbacks, reviewCycles, canSeeResults, initialTab,
   pdis, canCreatePdi, pdiEmployees, pdiCompetencies, pdiCycles, actorEmployeeId,
   recruitmentSource,
@@ -164,6 +167,7 @@ export function EmployeeProfile({
     phone: employee.phone,
     positionId: employee.position?.id ?? null,
     departmentId: employee.department?.id ?? null,
+    unitId: employee.unit?.id ?? null,
     managerId: employee.manager?.id ?? null,
     role: role ?? 'user',
     hireDate: employee.hire_date,
@@ -293,6 +297,7 @@ export function EmployeeProfile({
                 <FieldRow label="Telefone" value={employee.phone ?? '—'} />
                 <FieldRow label="Cargo" value={employee.position?.name ?? '—'} />
                 <FieldRow label="Departamento" value={employee.department?.name ?? '—'} />
+                <FieldRow label="Unidade" value={renderUnit(employee.unit)} />
                 <FieldRow
                   label="Gestor direto"
                   value={employee.manager ? (
@@ -615,6 +620,7 @@ export function EmployeeProfile({
         onOpenChange={setSheetOpen}
         positions={positions}
         departments={departments}
+        units={units}
         managers={managers}
         employee={existing}
         canManageEmployees={isAdmin}
@@ -666,6 +672,19 @@ function FieldRow({ label, value }: { label: string; value: React.ReactNode }) {
       <p className="w-40 shrink-0 text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
       <div className="text-sm text-foreground flex-1 min-w-0">{value}</div>
     </div>
+  );
+}
+
+// FT-10: render neutro da unidade. Sem badge colorida — segue o padrao da casa.
+// Unidade arquivada mantem o nome com sufixo muted (vinculo historico preservado).
+function renderUnit(unit: Employee['unit']): React.ReactNode {
+  if (!unit) return '—';
+  if (!unit.is_archived) return unit.name;
+  return (
+    <>
+      {unit.name}{' '}
+      <span className="text-muted-foreground italic">(arquivada)</span>
+    </>
   );
 }
 

@@ -4,16 +4,19 @@ import type { Role, ScreenPermissions } from '@/features/permissions/types';
 
 export async function listEmployees(
   companyId: string,
-  opts?: { search?: string; scopedIds?: string[] | null },
+  opts?: { search?: string; scopedIds?: string[] | null; unitIds?: string[] },
 ) {
   const supabase = await createServerSupabaseClient();
 
+  // FT-10: alias por coluna em `unit:unit_id (...)`. NUNCA usar
+  // `business_units!unit_id` — anti-padrao FT-7 (resolve na direcao errada).
   let query = supabase
     .from('employees')
     .select(`
-      id, full_name, email, phone, status, hire_date, user_id, manager_id, created_at,
+      id, full_name, email, phone, status, hire_date, user_id, manager_id, unit_id, created_at,
       position:positions(id, name),
       department:departments(id, name),
+      unit:unit_id(id, name, is_archived),
       manager:manager_id(id, full_name),
       invite:invites(id, token, role, expires_at, accepted_at, revoked_at, created_at)
     `)
@@ -27,6 +30,22 @@ export async function listEmployees(
   if (opts?.scopedIds) {
     if (opts.scopedIds.length === 0) return [];
     query = query.in('id', opts.scopedIds);
+  }
+
+  // FT-10: filtro multi-valor de unidade. '__none__' representa "Sem unidade"
+  // e mapeia para unit_id IS NULL. Combinacoes aplicam OR via .or().
+  if (opts?.unitIds && opts.unitIds.length > 0) {
+    const ids = opts.unitIds;
+    const includesNone = ids.includes('__none__');
+    const realIds = ids.filter((v) => v !== '__none__');
+    if (includesNone && realIds.length > 0) {
+      const list = realIds.map((id) => `"${id}"`).join(',');
+      query = query.or(`unit_id.is.null,unit_id.in.(${list})`);
+    } else if (includesNone) {
+      query = query.is('unit_id', null);
+    } else {
+      query = query.in('unit_id', realIds);
+    }
   }
 
   const { data, error } = await query;
@@ -44,10 +63,12 @@ export type EmployeeFullRecord = {
   user_id: string | null;
   terminated_at: string | null;
   internal_notes?: string | null;
+  unit_id: string | null;
   created_at: string;
   updated_at: string;
   position: { id: string; name: string } | null;
   department: { id: string; name: string } | null;
+  unit: { id: string; name: string; is_archived: boolean } | null;
   manager: {
     id: string;
     full_name: string;
@@ -64,9 +85,10 @@ export async function getEmployee(
   opts: { includeInternalNotes?: boolean } = {},
 ): Promise<EmployeeFullRecord> {
   const supabase = await createServerSupabaseClient();
-  const baseCols = `id, full_name, email, phone, status, hire_date, user_id, terminated_at, created_at, updated_at,
+  const baseCols = `id, full_name, email, phone, status, hire_date, user_id, terminated_at, unit_id, created_at, updated_at,
       position:positions(id, name),
       department:departments(id, name),
+      unit:unit_id(id, name, is_archived),
       manager:manager_id(id, full_name, position:positions(id, name), department:departments(id, name)),
       invite:invites(id, role, expires_at, accepted_at, revoked_at)`;
   const cols = opts.includeInternalNotes ? `${baseCols}, internal_notes` : baseCols;

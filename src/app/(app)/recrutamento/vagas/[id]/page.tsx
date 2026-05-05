@@ -1,5 +1,6 @@
 import { notFound, redirect } from 'next/navigation';
 import { getDepartments, getPositions } from '@/features/employees/queries';
+import { getUnits } from '@/features/units/queries';
 import {
   getJobOpeningById,
   listHiringManagerOptions,
@@ -44,11 +45,13 @@ export default async function VagaDetailPage({ params }: { params: Params }) {
     isHiringManager: actor.employeeId === job.hiring_manager_id,
   };
 
-  const [active, archived, positions, departments, managers] = await Promise.all([
+  const [active, archived, positions, departments, units, managers] = await Promise.all([
     listActiveApplicationsByJob(id),
     listArchivedApplicationsByJob(id),
     getPositions(profile.company_id),
     getDepartments(profile.company_id),
+    // FT-10: apenas unidades ativas — wizard de contratacao cria com unidade nova/ativa.
+    getUnits(profile.company_id),
     listHiringManagerOptions(profile.company_id),
   ]);
   const stages = job.pipeline_snapshot;
@@ -85,6 +88,8 @@ export default async function VagaDetailPage({ params }: { params: Params }) {
         isAdmin={canManageRecruitment(actor)}
         positions={positions}
         departments={departments}
+        units={units}
+        canCreateUnits={profile.role === 'admin_rh' || gate.screenPermissions?.['unidades.edit'] === true}
         managers={managers}
         searchCandidatesAction={searchCandidatesAction}
       />

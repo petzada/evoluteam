@@ -3,6 +3,7 @@ import {
   JobOpeningInputSchema,
   CandidateInputSchema,
   RecruitmentStageInputSchema,
+  HireCandidateInputSchema,
   STALLED_THRESHOLD_DAYS,
   JOB_OPENING_STATUSES,
   APPLICATION_STATUSES,
@@ -88,5 +89,34 @@ describe('RecruitmentStageInputSchema', () => {
   it('rejeita nome muito curto ou muito longo', () => {
     expect(() => RecruitmentStageInputSchema.parse({ name: 'x' })).toThrow();
     expect(() => RecruitmentStageInputSchema.parse({ name: 'x'.repeat(61) })).toThrow();
+  });
+});
+
+describe('HireCandidateInputSchema · unitId (FT-10)', () => {
+  const valid = () => ({
+    name: 'Maria Silva',
+    email: 'maria@example.com',
+    positionId: crypto.randomUUID(),
+    hiredAt: '2026-05-05',
+    archiveOtherApplications: false,
+  });
+
+  it('aceita unitId omitido', () => {
+    expect(() => HireCandidateInputSchema.parse(valid())).not.toThrow();
+  });
+
+  it('aceita unitId null', () => {
+    expect(() => HireCandidateInputSchema.parse({ ...valid(), unitId: null })).not.toThrow();
+  });
+
+  it('aceita unitId UUID valido', () => {
+    expect(() => HireCandidateInputSchema.parse({
+      ...valid(),
+      unitId: crypto.randomUUID(),
+    })).not.toThrow();
+  });
+
+  it('rejeita unitId que nao e UUID', () => {
+    expect(() => HireCandidateInputSchema.parse({ ...valid(), unitId: 'nao-uuid' })).toThrow();
   });
 });

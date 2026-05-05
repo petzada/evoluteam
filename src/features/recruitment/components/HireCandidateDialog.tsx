@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -20,8 +20,10 @@ import { statusClass } from '@/lib/status-colors';
 import { onInvalidToast } from '@/lib/form';
 import { HireCandidateInputSchema, type HireCandidateInput } from '../schema';
 import { hireCandidate, type HireEligibility } from '../actions/hire';
+import { createTaxonomy } from '@/features/taxonomies/actions';
 
 interface TaxonomyItem { id: string; name: string }
+interface UnitItem { id: string; name: string; is_archived: boolean }
 interface ManagerItem { id: string; full_name: string }
 
 export interface HireContext {
@@ -49,7 +51,12 @@ interface Props {
   context: HireContext | null;
   positions: TaxonomyItem[];
   departments: TaxonomyItem[];
+  // FT-10: lista de unidades (apenas ativas — vaga/contratacao novas).
+  units: UnitItem[];
   managers: ManagerItem[];
+  // FT-10: actor admin pode criar unidade inline. Director/colaborador
+  // sem `unidades.edit` ve o select sem a opcao "+ Nova unidade".
+  canCreateUnits?: boolean;
 }
 
 const NONE = '__none__';
@@ -61,13 +68,23 @@ export function HireCandidateDialog(props: Props) {
 }
 
 function HireCandidateDialogInner({
-  open, onOpenChange, eligibility, context, positions, departments, managers,
+  open, onOpenChange, eligibility, context, positions, departments, units, managers, canCreateUnits = false,
 }: Props) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [conflictEmployee, setConflictEmployee] = useState<{
     id: string; name: string; department: string | null;
   } | null>(null);
+  const [createdLocallyUnits, setCreatedLocallyUnits] = useState<UnitItem[]>([]);
+  const [createUnitOpen, setCreateUnitOpen] = useState(false);
+  const [newUnitName, setNewUnitName] = useState('');
+  const [creatingUnit, setCreatingUnit] = useState(false);
+
+  const localUnits = useMemo(() => {
+    const existing = new Set(units.map((u) => u.id));
+    const fresh = createdLocallyUnits.filter((c) => !existing.has(c.id));
+    return [...units, ...fresh].sort((a, b) => a.name.localeCompare(b.name));
+  }, [units, createdLocallyUnits]);
 
   const form = useForm<HireCandidateInput>({
     resolver: zodResolver(HireCandidateInputSchema),
@@ -82,7 +99,12 @@ function HireCandidateDialogInner({
     try {
       const result = await hireCandidate(context.applicationId, values);
       if (result.ok) {
-        toast.success('Candidato contratado e colaborador criado');
+        // FT-10: toast contextual quando uma unidade foi atribuida no wizard.
+        if (result.unitName) {
+          toast.success(`Candidato contratado e colaborador criado em ${result.unitName}`);
+        } else {
+          toast.success('Candidato contratado e colaborador criado');
+        }
         onOpenChange(false);
         router.refresh();
         return;
@@ -100,6 +122,20 @@ function HireCandidateDialogInner({
     } finally {
       setLoading(false);
     }
+  }
+
+  async function createUnitInline() {
+    const name = newUnitName.trim();
+    if (name.length < 2) { toast.error('Nome muito curto.'); return; }
+    setCreatingUnit(true);
+    const result = await createTaxonomy('unit', { name });
+    setCreatingUnit(false);
+    if (result.error || !result.id) { toast.error(result.error ?? 'Erro ao criar.'); return; }
+    const next: UnitItem = { id: result.id, name, is_archived: false };
+    setCreatedLocallyUnits((prev) => [...prev, next]);
+    form.setValue('unitId', result.id, { shouldDirty: true });
+    setCreateUnitOpen(false);
+    toast.success('Unidade criada e selecionada.');
   }
 
   return (
@@ -196,7 +232,43 @@ function HireCandidateDialogInner({
                       );
                     }} />
                   </div>
+                  {/* FT-10: row Unidade + Gestor direto (par "onde fica · a quem reporta"). */}
                   <div className="grid grid-cols-2 gap-2">
+                    <FormField control={form.control} name="unitId" render={({ field }) => {
+                      const items = [
+                        { value: NONE, label: 'Sem unidade' },
+                        ...localUnits.map((u) => ({
+                          value: u.id,
+                          label: u.is_archived ? `${u.name} (arquivada)` : u.name,
+                        })),
+                        ...(canCreateUnits ? [{ value: '__create_unit__', label: '+ Nova unidade' }] : []),
+                      ];
+                      return (
+                        <FormItem>
+                          <FormLabel>Unidade</FormLabel>
+                          <Select
+                            value={field.value ?? NONE}
+                            onValueChange={(v) => {
+                              if (v === '__create_unit__') {
+                                setNewUnitName('');
+                                setCreateUnitOpen(true);
+                                return;
+                              }
+                              field.onChange(v === NONE ? null : v);
+                            }}
+                            items={items}
+                          >
+                            <FormControl><SelectTrigger className="w-full"><SelectValue /></SelectTrigger></FormControl>
+                            <SelectContent>
+                              {items.map((it) => (
+                                <SelectItem key={it.value} value={it.value}>{it.label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }} />
                     <FormField control={form.control} name="managerId" render={({ field }) => {
                       const items = [
                         { value: NONE, label: 'Sem gestor' },
@@ -217,6 +289,8 @@ function HireCandidateDialogInner({
                         </FormItem>
                       );
                     }} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
                     <FormField control={form.control} name="hiredAt" render={({ field }) => (
                       <FormItem>
                         <FormLabel>Data de admissão *</FormLabel>
@@ -224,16 +298,16 @@ function HireCandidateDialogInner({
                         <FormMessage />
                       </FormItem>
                     )} />
+                    <FormField control={form.control} name="level" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Nível (opcional)</FormLabel>
+                        <FormControl>
+                          <Input value={field.value ?? ''} onChange={field.onChange} placeholder="Ex: Jr, Pleno, Sr" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
                   </div>
-                  <FormField control={form.control} name="level" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nível (opcional)</FormLabel>
-                      <FormControl>
-                        <Input value={field.value ?? ''} onChange={field.onChange} placeholder="Ex: Jr, Pleno, Sr" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
                 </section>
 
                 {context && context.otherActiveApplications.length > 0 && (
@@ -314,6 +388,36 @@ function HireCandidateDialogInner({
           </>
         )}
       </DialogContent>
+
+      <Dialog open={createUnitOpen} onOpenChange={setCreateUnitOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Nova unidade</DialogTitle>
+            <DialogDescription>Fica disponível imediatamente para seleção.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <label className="text-sm font-medium" htmlFor="hire-new-unit-name">Nome *</label>
+            <Input
+              id="hire-new-unit-name"
+              autoFocus
+              value={newUnitName}
+              onChange={(e) => setNewUnitName(e.target.value)}
+              placeholder="Ex: Hugs"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') { e.preventDefault(); void createUnitInline(); }
+              }}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" type="button" onClick={() => setCreateUnitOpen(false)} disabled={creatingUnit}>
+              Cancelar
+            </Button>
+            <Button type="button" onClick={() => void createUnitInline()} disabled={creatingUnit}>
+              {creatingUnit ? 'Criando…' : 'Criar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }
@@ -325,6 +429,8 @@ function defaultsFor(ctx: HireContext | null, emailOverride: string | null): Hir
     phone: ctx?.candidate.phone ?? null,
     positionId: ctx?.job.positionId ?? '',
     departmentId: ctx?.job.departmentId ?? null,
+    // FT-10: vaga e neutra — admin atribui unidade no wizard.
+    unitId: null,
     managerId: ctx?.job.hiringManagerId ?? null,
     hiredAt: new Date().toISOString().slice(0, 10),
     level: null,
