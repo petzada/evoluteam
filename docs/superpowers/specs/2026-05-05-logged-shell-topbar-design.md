@@ -2,8 +2,8 @@
 
 ## Objetivos
 
-1. **TopBar** com altura ~**2×** a anterior (`h-14` → ~`min-h-28` / 112px), fundo `bg-background`, `border-b` fino.
-2. **Conteúdo da TopBar (esq. → dir.):** `<h1>` (título da página) + **breadcrumb** no mesmo grupo flex, à direita do título; **ações** (`ml-auto`); **NotificationBell** no extremo direito.
+1. **TopBar** com **barra de comando**: `border-b` fino, `bg-background/95`, `backdrop-blur-sm`; contraste legível com sidebar e área de conteúdo/cards.
+2. **Conteúdo da TopBar (esq. → dir.):** `<h1>` + **breadcrumb** no **mesmo** grupo flex (à direita do título, separador vertical em `sm+`); **ações** (`ml-auto`); **NotificationBell** no extremo direito.
 3. **Remover** subtítulo/`description` do cabeçalho global; copy essencial vai para o corpo (Alert/parágrafo).
 4. **Sidebar:** toggle de recolher **dentro** da coluna — expandido: wordmark à esquerda (`px-3`), toggle à direita; recolhido: monograma “et”, toggle abaixo com `transition-all duration-200 ease-out`, depois `border-b` e navegação.
 5. **Registro de título/ações:** contexto React + `<SetAppTopBar />` por rota; cleanup no unmount.
@@ -18,16 +18,14 @@
 - O título vem do cliente após `useLayoutEffect` em `SetAppTopBar`; pode haver **um frame** vazio.
 - **Fallback:** mapear pathname → rótulo do último segmento “conhecido” (mesmo vocabulário dos breadcrumbs) quando o contexto ainda não tiver título.
 
-## TopBar — duas linhas internas (filtros largos)
+## TopBar — relatórios
 
-- **Linha 1:** grupo esquerdo (título + breadcrumb) + direita (ações parciais ou vazio) + sino.
-- **Linha 2 (opcional):** `actions` em `w-full` com `flex-wrap` quando necessário; `min-h-28` acomoda quebra sem comprimir o `main`.
+- Em `/recrutamento/relatorios`, chips **7d / 30d / 90d / Personalizado** e botão **Filtros avançados** ficam no slot **`actions`** da TopBar (não no corpo da página).
 
 ## Main
 
-- Manter `p-6` no layout salvo decisão futura de `py-4`; ganho de área vem sobretudo da remoção do bloco `PageHeader` no fluxo.
+- **`px-6 py-4`** no layout da área logada (ganho vertical de conteúdo).
 
 ## Polish opcional (pós-MVP)
 
 - Omitir último crumb se for redundante com o título.
-- `backdrop-blur` leve na TopBar.

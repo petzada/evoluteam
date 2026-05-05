@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { PeriodChips, type PeriodValue } from './PeriodChips';
 
 /**
- * Wrapper dos chips de período: usados na própria página de relatórios (não na TopBar).
+ * Chips de período do relatório de recrutamento — tipicamente no slot `actions` da TopBar.
  * Lê e escreve searchParams diretamente.
  */
 export function DashboardPeriodChips() {
