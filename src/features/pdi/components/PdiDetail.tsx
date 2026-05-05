@@ -23,6 +23,7 @@ import { PDI_STATUS_LABELS } from '../schema';
 import { PdiActionsSection } from './PdiActionsSection';
 import { PdiCommentsSection } from './PdiCommentsSection';
 import { PdiHeaderEditForm } from './PdiHeaderEditForm';
+import { SetAppTopBar } from '@/features/shell/AppTopBarContext';
 
 interface EmployeeOption {
   id: string;
@@ -99,8 +100,53 @@ export function PdiDetail({
     router.push('/pdi');
   }
 
+  const topTitle = plan.employee ? `PDI de ${plan.employee.full_name}` : 'PDI';
+
   return (
     <div>
+      <SetAppTopBar
+        title={topTitle}
+        actions={
+          (canEdit || canConclude || canCancel || canDelete) ? (
+            <div className="flex items-center gap-2 shrink-0">
+              {canEdit && !isClosed && (
+                <Button variant="outline" onClick={() => setEditing((v) => !v)}>
+                  <Pencil className="h-4 w-4 mr-1.5" /> Editar
+                </Button>
+              )}
+              {canConclude && (
+                <Button onClick={() => setConfirmConclude(true)}>
+                  <Check className="h-4 w-4 mr-1.5" /> Encerrar PDI
+                </Button>
+              )}
+              <DropdownMenu>
+                <DropdownMenuTrigger className="flex h-9 w-9 items-center justify-center rounded-md border hover:bg-muted">
+                  <MoreHorizontal className="h-4 w-4" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {canCancel && (
+                    <DropdownMenuItem onClick={() => setConfirmCancel(true)}>
+                      <Ban className="h-4 w-4 mr-2" /> Cancelar PDI
+                    </DropdownMenuItem>
+                  )}
+                  {canDelete && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={() => setConfirmDelete(true)}
+                        className="text-destructive focus:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" /> Remover PDI
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          ) : null
+        }
+      />
+
       <Link
         href="/pdi"
         className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
@@ -115,7 +161,7 @@ export function PdiDetail({
               {plan.employee && (
                 <Link
                   href={`/colaboradores/${plan.employee.id}?tab=pdi`}
-                  className="font-semibold text-lg hover:underline"
+                  className="text-sm font-medium text-muted-foreground hover:text-foreground hover:underline"
                 >
                   {plan.employee.full_name}
                 </Link>
@@ -157,44 +203,6 @@ export function PdiDetail({
               )}
             </div>
           </div>
-
-          {(canEdit || canConclude || canCancel || canDelete) && (
-            <div className="flex items-center gap-2 shrink-0">
-              {canEdit && !isClosed && (
-                <Button variant="outline" onClick={() => setEditing((v) => !v)}>
-                  <Pencil className="h-4 w-4 mr-1.5" /> Editar
-                </Button>
-              )}
-              {canConclude && (
-                <Button onClick={() => setConfirmConclude(true)}>
-                  <Check className="h-4 w-4 mr-1.5" /> Encerrar PDI
-                </Button>
-              )}
-              <DropdownMenu>
-                <DropdownMenuTrigger className="flex h-9 w-9 items-center justify-center rounded-md border hover:bg-muted">
-                  <MoreHorizontal className="h-4 w-4" />
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  {canCancel && (
-                    <DropdownMenuItem onClick={() => setConfirmCancel(true)}>
-                      <Ban className="h-4 w-4 mr-2" /> Cancelar PDI
-                    </DropdownMenuItem>
-                  )}
-                  {canDelete && (
-                    <>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        onClick={() => setConfirmDelete(true)}
-                        className="text-destructive focus:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" /> Remover PDI
-                      </DropdownMenuItem>
-                    </>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          )}
         </div>
 
         {editing && canEdit && (

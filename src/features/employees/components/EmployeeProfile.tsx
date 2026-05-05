@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { ChevronRight, MoreHorizontal } from 'lucide-react';
+import { MoreHorizontal } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -18,6 +18,7 @@ import {
   type Role as CentralRole,
   type ScreenPermissions,
 } from '@/features/permissions/types';
+import { SetAppTopBar } from '@/features/shell/AppTopBarContext';
 import { EmployeeSheet, type ExistingEmployee } from './EmployeeSheet';
 import { ConfirmStatusDialog, type StatusAction } from './ConfirmStatusDialog';
 import { FeedbackCard } from '@/features/feedbacks/components/FeedbackCard';
@@ -196,11 +197,48 @@ export function EmployeeProfile({
   }
   return (
     <div>
-      <nav className="flex items-center gap-1 text-sm text-muted-foreground mb-4">
-        <Link href="/colaboradores" className="hover:text-foreground transition-colors">Colaboradores</Link>
-        <ChevronRight className="h-3.5 w-3.5" />
-        <span className="text-foreground font-medium truncate">{employee.full_name}</span>
-      </nav>
+      <SetAppTopBar
+        title={employee.full_name}
+        actions={
+          isAdmin ? (
+            <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={() => setSheetOpen(true)}>Editar</Button>
+              {!isSelf && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger className="flex h-8 w-8 items-center justify-center rounded-md border border-input hover:bg-muted transition-colors">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    {pendingInvite && (
+                      <DropdownMenuItem onClick={() => handleRevoke(pendingInvite.id)}>Revogar convite</DropdownMenuItem>
+                    )}
+                    {(expiredInvite || (!employee.user_id && !pendingInvite)) && (
+                      <DropdownMenuItem onClick={handleResend}>
+                        {expiredInvite ? 'Reenviar convite' : 'Enviar convite'}
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuSeparator />
+                    {employee.status === 'active' && (
+                      <DropdownMenuItem onClick={() => setStatusAction('deactivate')}>Desativar</DropdownMenuItem>
+                    )}
+                    {employee.status === 'inactive' && (
+                      <DropdownMenuItem onClick={() => setStatusAction('reactivate')}>Reativar</DropdownMenuItem>
+                    )}
+                    {(employee.status === 'active' || employee.status === 'inactive') && (
+                      <DropdownMenuItem
+                        className="text-destructive focus:text-destructive"
+                        onClick={() => setStatusAction('terminate')}
+                      >
+                        Desligar
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+            </div>
+          ) : null
+        }
+      />
 
       <div className="flex items-start gap-4 pb-6 mb-6 border-b">
         <Avatar size="lg" className="size-14">
@@ -208,7 +246,6 @@ export function EmployeeProfile({
           <AvatarFallback className="text-base">{initials(employee.full_name)}</AvatarFallback>
         </Avatar>
         <div className="flex-1 min-w-0">
-          <h1 className="text-lg font-semibold tracking-tight">{employee.full_name}</h1>
           <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
             {employee.position && <span>{employee.position.name}</span>}
             {employee.department && <>
@@ -238,43 +275,6 @@ export function EmployeeProfile({
               </>
             )}
           </div>
-        </div>
-        <div className="flex items-center gap-2">
-          {isAdmin && (
-            <Button variant="outline" onClick={() => setSheetOpen(true)}>Editar</Button>
-          )}
-          {isAdmin && !isSelf && (
-            <DropdownMenu>
-              <DropdownMenuTrigger className="flex h-8 w-8 items-center justify-center rounded-md border border-input hover:bg-muted transition-colors">
-                <MoreHorizontal className="h-4 w-4" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {pendingInvite && (
-                  <DropdownMenuItem onClick={() => handleRevoke(pendingInvite.id)}>Revogar convite</DropdownMenuItem>
-                )}
-                {(expiredInvite || (!employee.user_id && !pendingInvite)) && (
-                  <DropdownMenuItem onClick={handleResend}>
-                    {expiredInvite ? 'Reenviar convite' : 'Enviar convite'}
-                  </DropdownMenuItem>
-                )}
-                <DropdownMenuSeparator />
-                {employee.status === 'active' && (
-                  <DropdownMenuItem onClick={() => setStatusAction('deactivate')}>Desativar</DropdownMenuItem>
-                )}
-                {employee.status === 'inactive' && (
-                  <DropdownMenuItem onClick={() => setStatusAction('reactivate')}>Reativar</DropdownMenuItem>
-                )}
-                {(employee.status === 'active' || employee.status === 'inactive') && (
-                  <DropdownMenuItem
-                    className="text-destructive focus:text-destructive"
-                    onClick={() => setStatusAction('terminate')}
-                  >
-                    Desligar
-                  </DropdownMenuItem>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
         </div>
       </div>
 

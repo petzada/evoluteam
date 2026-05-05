@@ -11,6 +11,7 @@ import { BrandMonogram, BrandWordmark } from '@/components/brand/BrandWordmark';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useSidebar } from '../SidebarContext';
+import { SidebarToggleButton } from './SidebarToggleButton';
 import { canDo } from '@/features/permissions/permissions';
 import type { ScreenKey, ScreenPermissions } from '@/features/permissions/types';
 
@@ -155,11 +156,24 @@ export function Sidebar({
         collapsed ? 'w-14' : 'w-56',
       )}
     >
-      <div className="flex h-14 items-center justify-center px-4 border-b border-sidebar-border">
+      <div
+        className={cn(
+          'flex shrink-0 border-b border-sidebar-border transition-all duration-200 ease-out',
+          collapsed
+            ? 'flex-col items-center gap-2 px-2 py-3'
+            : 'h-14 flex-row items-center justify-between gap-2 px-3',
+        )}
+      >
         {collapsed ? (
-          <BrandMonogram tone="light" size="md" />
+          <>
+            <BrandMonogram tone="light" size="md" />
+            <SidebarToggleButton />
+          </>
         ) : (
-          <BrandWordmark tone="light" size="md" />
+          <>
+            <BrandWordmark tone="light" size="md" className="min-w-0 truncate" />
+            <SidebarToggleButton />
+          </>
         )}
       </div>
 

@@ -5,9 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { PeriodChips, type PeriodValue } from './PeriodChips';
 
 /**
- * Wrapper standalone dos chips de período para ser usado no slot `actions`
- * do PageHeader. Lê e escreve searchParams diretamente — não precisa estar
- * dentro do DashboardFilters.
+ * Wrapper dos chips de período: usados na própria página de relatórios (não na TopBar).
+ * Lê e escreve searchParams diretamente.
  */
 export function DashboardPeriodChips() {
   const router = useRouter();

@@ -15,7 +15,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { PageHeader } from '@/components/PageHeader';
+import { SetAppTopBar } from '@/features/shell/AppTopBarContext';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from '@/components/ui/dialog';
@@ -128,17 +128,19 @@ export function RecruitmentStagesManager({ stages: initialStages, canEdit }: Pro
 
   return (
     <div>
-      <PageHeader
+      <SetAppTopBar
         title="Etapas de recrutamento"
-        description={canEdit
-          ? 'Personalize as etapas do funil usado em vagas novas.'
-          : 'Visualização das etapas do funil de recrutamento.'}
         actions={canEdit ? (
           <Button onClick={() => setCreateOpen(true)}>
             <Plus className="mr-2 h-4 w-4" /> Nova etapa
           </Button>
         ) : undefined}
       />
+      {!canEdit && (
+        <p className="mb-4 text-sm text-muted-foreground">
+          Visualização das etapas do funil de recrutamento.
+        </p>
+      )}
 
       <div className="mb-4 flex items-start gap-2 rounded-md border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
         <Info className="mt-0.5 h-4 w-4 shrink-0 text-foreground/60" />

@@ -4,6 +4,7 @@ import { TopBar } from '@/features/shell/components/TopBar';
 import { UserCard } from '@/features/shell/components/UserCard';
 import { SidebarProvider } from '@/features/shell/SidebarContext';
 import { BreadcrumbProvider } from '@/features/shell/BreadcrumbContext';
+import { AppTopBarProvider } from '@/features/shell/AppTopBarContext';
 import { canAccessDashboard } from '@/features/dashboard/permissions';
 import { getActorContext } from '@/features/auth/context';
 
@@ -24,6 +25,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <SidebarProvider initialCollapsed={initialCollapsed}>
       <BreadcrumbProvider>
+        <AppTopBarProvider>
         <div className="flex h-full">
           <Sidebar
             role={profile.role}
@@ -40,11 +42,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           />
           <div className="flex flex-1 flex-col overflow-hidden">
             <TopBar userId={user.id} />
-            <main className="flex-1 overflow-y-auto p-6">
+            <main className="flex-1 overflow-y-auto px-6 py-4">
               {children}
             </main>
           </div>
         </div>
+        </AppTopBarProvider>
       </BreadcrumbProvider>
     </SidebarProvider>
   );

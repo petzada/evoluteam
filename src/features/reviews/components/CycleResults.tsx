@@ -11,6 +11,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 import { MultiSelectFilter } from '@/components/MultiSelectFilter';
+import { SetAppTopBar } from '@/features/shell/AppTopBarContext';
 import { cn } from '@/lib/utils';
 import { releaseResult, hideResult } from '../actions';
 import type { CycleResultRow } from '../queries';
@@ -63,6 +64,8 @@ export function CycleResults({
 
   return (
     <div>
+      <SetAppTopBar title={`${cycleName} — Resultados`} />
+
       <div className="mb-4">
         <Link
           href={`/avaliacoes/${cycleId}`}
@@ -70,11 +73,6 @@ export function CycleResults({
         >
           <ChevronLeft className="h-3.5 w-3.5" /> Voltar ao ciclo
         </Link>
-      </div>
-
-      <div className="mb-6 pb-4 border-b">
-        <p className="text-sm text-muted-foreground">Ciclo</p>
-        <h1 className="text-xl font-semibold">{cycleName} — Resultados</h1>
       </div>
 
       <div className="flex flex-wrap gap-3 mb-4">

@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getCurrentCompany } from '@/features/company/queries';
 import { CompanyEditForm } from '@/features/company/components/CompanyEditForm';
-import { PageHeader } from '@/components/PageHeader';
+import { SetAppTopBar } from '@/features/shell/AppTopBarContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { canDo } from '@/features/permissions/permissions';
 import { getActorContext } from '@/features/auth/context';
@@ -20,14 +20,12 @@ export default async function EmpresaPage() {
 
   return (
     <div>
-      <PageHeader
-        title="Empresa"
-        description={
-          canEditCompany
-            ? 'Edite os dados da sua empresa.'
-            : 'Visualização somente leitura dos dados da empresa.'
-        }
-      />
+      <SetAppTopBar title="Empresa" />
+      {!canEditCompany && (
+        <p className="mb-4 text-sm text-muted-foreground">
+          Visualização somente leitura dos dados da empresa.
+        </p>
+      )}
       <Card>
         <CardContent>
           <CompanyEditForm

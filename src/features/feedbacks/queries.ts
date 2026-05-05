@@ -25,6 +25,8 @@ export type ListCompanyFeedbacksPageInput = {
   typeFilter?: string[];
   competencyFilter?: string[];
   period?: FeedbackPeriodFilter;
+  /** Busca por nome do remetente ou destinatário (colaborador da empresa). */
+  nameQuery?: string | null;
 };
 
 export type CompanyFeedbacksPage = {
@@ -96,6 +98,25 @@ export async function listCompanyFeedbacksPage(
   const competencyFilter = Array.from(new Set(input.competencyFilter ?? [])).filter(Boolean);
   const period = input.period ?? 'all';
 
+  let matchingEmployeeIds: string[] | null = null;
+  const rawName = input.nameQuery?.trim();
+  if (rawName) {
+    const { data: emps } = await supabase
+      .from('employees')
+      .select('id')
+      .eq('company_id', companyId)
+      .ilike('full_name', `%${rawName}%`);
+    matchingEmployeeIds = (emps ?? []).map((e: { id: string }) => e.id);
+    if (matchingEmployeeIds.length === 0) {
+      return {
+        rows: [],
+        page,
+        pageSize,
+        hasMore: false,
+      };
+    }
+  }
+
   let query = supabase
     .from('feedbacks')
     .select(BASE_SELECT)
@@ -123,6 +144,11 @@ export async function listCompanyFeedbacksPage(
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - PERIOD_DAYS[period]);
     query = query.gte('created_at', cutoff.toISOString());
+  }
+
+  if (matchingEmployeeIds && matchingEmployeeIds.length > 0) {
+    const joined = matchingEmployeeIds.join(',');
+    query = query.or(`sender_id.in.(${joined}),recipient_id.in.(${joined})`);
   }
 
   const from = page * pageSize;

@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { MessageSquare, Plus } from 'lucide-react';
-import { PageHeader } from '@/components/PageHeader';
+import { MessageSquare, Plus, Search } from 'lucide-react';
+import { SetAppTopBar } from '@/features/shell/AppTopBarContext';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { MultiSelectFilter } from '@/components/MultiSelectFilter';
@@ -53,10 +54,31 @@ function filterByPeriod<T extends { created_at: string }>(rows: T[], period: Per
   return rows.filter((row) => new Date(row.created_at) >= cutoff);
 }
 
-function toFilterKey(typeFilter: string[], competencyFilter: string[], period: PeriodFilter) {
+function toFilterKey(
+  typeFilter: string[],
+  competencyFilter: string[],
+  period: PeriodFilter,
+  nameQuery: string,
+) {
   const types = [...typeFilter].sort().join(',');
   const competencies = [...competencyFilter].sort().join(',');
-  return `${types}|${competencies}|${period}`;
+  return `${types}|${competencies}|${period}|${nameQuery.trim()}`;
+}
+
+function filterByParticipantName(
+  rows: FeedbackRow[],
+  raw: string,
+  mode: 'received' | 'sent' | 'team',
+) {
+  const q = raw.trim().toLowerCase();
+  if (!q) return rows;
+  return rows.filter((row) => {
+    const sender = row.sender?.full_name.toLowerCase() ?? '';
+    const recipient = row.recipient?.full_name.toLowerCase() ?? '';
+    if (mode === 'received') return sender.includes(q);
+    if (mode === 'sent') return recipient.includes(q);
+    return sender.includes(q) || recipient.includes(q);
+  });
 }
 
 function appendUniqueFeedbacks(current: FeedbackRow[], next: FeedbackRow[]) {
@@ -96,13 +118,20 @@ export function FeedbacksPage({
   const [companyLoading, setCompanyLoading] = useState(false);
   const [companyError, setCompanyError] = useState<string | null>(null);
   const [companyInitialized, setCompanyInitialized] = useState(false);
+  const [nameSearch, setNameSearch] = useState('');
+  const [debouncedNameSearch, setDebouncedNameSearch] = useState('');
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedNameSearch(nameSearch), 300);
+    return () => clearTimeout(t);
+  }, [nameSearch]);
 
   const presetRecipientId = searchParams.get('recipient');
   const companyRequestRef = useRef(0);
   const companyLoadedFilterKeyRef = useRef('');
   const companyFilterKey = useMemo(
-    () => toFilterKey(typeFilter, competencyFilter, period),
-    [typeFilter, competencyFilter, period],
+    () => toFilterKey(typeFilter, competencyFilter, period, debouncedNameSearch),
+    [typeFilter, competencyFilter, period, debouncedNameSearch],
   );
 
   const applyFilters = useMemo(
@@ -119,9 +148,18 @@ export function FeedbacksPage({
     [typeFilter, competencyFilter, period],
   );
 
-  const filteredReceived = useMemo(() => applyFilters(received), [applyFilters, received]);
-  const filteredSent = useMemo(() => applyFilters(sent), [applyFilters, sent]);
-  const filteredTeam = useMemo(() => applyFilters(team), [applyFilters, team]);
+  const filteredReceived = useMemo(
+    () => filterByParticipantName(applyFilters(received), nameSearch, 'received'),
+    [applyFilters, received, nameSearch],
+  );
+  const filteredSent = useMemo(
+    () => filterByParticipantName(applyFilters(sent), nameSearch, 'sent'),
+    [applyFilters, sent, nameSearch],
+  );
+  const filteredTeam = useMemo(
+    () => filterByParticipantName(applyFilters(team), nameSearch, 'team'),
+    [applyFilters, team, nameSearch],
+  );
 
   const loadCompanyPage = useCallback(async (page: number, replace: boolean) => {
     if (!canReadCompany) return;
@@ -135,6 +173,7 @@ export function FeedbacksPage({
       typeFilter,
       competencyFilter,
       period,
+      nameQuery: debouncedNameSearch.trim() || undefined,
     });
 
     if (requestId !== companyRequestRef.current) return;
@@ -156,7 +195,7 @@ export function FeedbacksPage({
     setCompanyHasMore(result.hasMore);
     setCompanyInitialized(true);
     companyLoadedFilterKeyRef.current = companyFilterKey;
-  }, [canReadCompany, typeFilter, competencyFilter, period, companyFilterKey]);
+  }, [canReadCompany, typeFilter, competencyFilter, period, debouncedNameSearch, companyFilterKey]);
 
   useEffect(() => {
     if (!currentEmployeeId) return;
@@ -184,9 +223,8 @@ export function FeedbacksPage({
 
   return (
     <div>
-      <PageHeader
+      <SetAppTopBar
         title="Feedbacks"
-        description="Registre reconhecimentos, orientacoes e observacoes ao longo do ano."
         actions={(
           <Button onClick={() => setSheetOpen(true)}>
             <Plus className="mr-2 h-4 w-4" /> Enviar feedback
@@ -195,6 +233,16 @@ export function FeedbacksPage({
       />
 
       <div className="mb-4 flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 min-w-[200px] max-w-xs">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar por nome do colaborador…"
+            value={nameSearch}
+            onChange={(e) => setNameSearch(e.target.value)}
+            className="pl-9"
+            aria-label="Buscar por nome do colaborador"
+          />
+        </div>
         <MultiSelectFilter
           label="Tipos"
           options={(FEEDBACK_TYPES as unknown as FeedbackType[]).map((type) => ({

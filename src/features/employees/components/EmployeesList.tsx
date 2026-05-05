@@ -8,6 +8,13 @@ import {
   MoreHorizontal, Plus, Search, UserPlus, Users, Download, Settings2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -25,7 +32,7 @@ import { EmployeeSheet, type ExistingEmployee } from './EmployeeSheet';
 import { ConfirmStatusDialog, type StatusAction } from './ConfirmStatusDialog';
 import { resendInvite, revokeInvite } from '../actions';
 import { EmptyState } from '@/components/EmptyState';
-import { PageHeader } from '@/components/PageHeader';
+import { SetAppTopBar } from '@/features/shell/AppTopBarContext';
 import { formatDate } from '@/lib/date';
 import { statusClass } from '@/lib/status-colors';
 import {
@@ -189,6 +196,7 @@ export function EmployeesList({
   const [statusTarget, setStatusTarget] = useState<
     { id: string; full_name: string; subordinatesCount: number } | null
   >(null);
+  const [advancedFiltersOpen, setAdvancedFiltersOpen] = useState(false);
 
   const subordinatesByManager = useMemo(() => {
     const map: Record<string, number> = {};
@@ -337,11 +345,13 @@ export function EmployeesList({
     ...currentManagers.map((m) => ({ value: m.id, label: m.full_name })),
   ];
 
+  const hasAdvancedFilters =
+    statusFilter !== 'all' || positionFilter.length > 0 || managerFilter.length > 0;
+
   return (
     <div>
-      <PageHeader
+      <SetAppTopBar
         title="Colaboradores"
-        description="Ficha de RH + gerenciamento de acesso ao sistema."
         actions={
           canManageEmployees && (
             <>
@@ -366,7 +376,7 @@ export function EmployeesList({
       />
 
       <div className="space-y-4">
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <div className="relative flex-1 min-w-[240px] max-w-xs">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -376,21 +386,6 @@ export function EmployeesList({
               className="pl-9"
             />
           </div>
-          <Select value={statusFilter} onValueChange={(v) => onStatusFilterChange(v ?? 'all')} items={STATUS_FILTER_ITEMS}>
-            <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {STATUS_FILTER_ITEMS.map((it) => (
-                <SelectItem key={it.value} value={it.value}>{it.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <MultiSelectFilter
-            label="Cargos"
-            options={positionOptions}
-            value={positionFilter}
-            onChange={onPositionFilterChange}
-            width="w-40"
-          />
           <MultiSelectFilter
             label="Departamentos"
             options={departmentOptions}
@@ -405,13 +400,48 @@ export function EmployeesList({
             onChange={onUnitFilterChange}
             width="w-44"
           />
-          <MultiSelectFilter
-            label="Gestores"
-            options={managerOptions}
-            value={managerFilter}
-            onChange={onManagerFilterChange}
-            width="w-44"
-          />
+
+          <Dialog open={advancedFiltersOpen} onOpenChange={setAdvancedFiltersOpen}>
+            <DialogTrigger
+              render={
+                <Button variant={hasAdvancedFilters ? 'secondary' : 'outline'} type="button" />
+              }
+            >
+              Filtros avançados
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md" showCloseButton>
+              <DialogHeader>
+                <DialogTitle>Filtros avançados</DialogTitle>
+              </DialogHeader>
+              <div className="flex flex-col gap-4">
+                <div className="space-y-2">
+                  <span className="text-xs font-medium text-muted-foreground">Status</span>
+                  <Select value={statusFilter} onValueChange={(v) => onStatusFilterChange(v ?? 'all')} items={STATUS_FILTER_ITEMS}>
+                    <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {STATUS_FILTER_ITEMS.map((it) => (
+                        <SelectItem key={it.value} value={it.value}>{it.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <MultiSelectFilter
+                  label="Cargos"
+                  options={positionOptions}
+                  value={positionFilter}
+                  onChange={onPositionFilterChange}
+                  width="w-full"
+                />
+                <MultiSelectFilter
+                  label="Gestores"
+                  options={managerOptions}
+                  value={managerFilter}
+                  onChange={onManagerFilterChange}
+                  width="w-full"
+                />
+              </div>
+            </DialogContent>
+          </Dialog>
 
           <Popover>
             <PopoverTrigger

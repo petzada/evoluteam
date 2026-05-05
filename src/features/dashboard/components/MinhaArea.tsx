@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { PageHeader } from '@/components/PageHeader';
+import { SetAppTopBar } from '@/features/shell/AppTopBarContext';
 import { EmptyState } from '@/components/EmptyState';
 import { Badge } from '@/components/ui/badge';
 import { ClipboardList, Target, MessageSquare, Sparkles, AlertTriangle } from 'lucide-react';
@@ -28,10 +28,7 @@ export function MinhaArea({ firstName, assignments, pdiActions, feedbacks, curre
 
   return (
     <div>
-      <PageHeader
-        title={`Olá, ${firstName}`}
-        description="Aqui está o que precisa da sua atenção."
-      />
+      <SetAppTopBar title={`Olá, ${firstName}`} />
 
       <div className="space-y-8">
         <section aria-labelledby="pendentes-heading" className="space-y-3">

@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
-import { PageHeader } from '@/components/PageHeader';
+import { SetAppTopBar } from '@/features/shell/AppTopBarContext';
 import { getActorContext } from '@/features/auth/context';
 import { getDepartments } from '@/features/employees/queries';
 import {
@@ -98,11 +98,8 @@ export default async function DashboardPage({
   // depois cada secao conforme suas 3 queries resolvem.
   return (
     <div>
-      <PageHeader
+      <SetAppTopBar
         title="Dashboard"
-        description={scope.role === 'gestor'
-          ? 'Indicadores da sua equipe.'
-          : 'Indicadores de gestão de pessoas da empresa.'}
         actions={
           <DashboardFilters
             cycles={cycles}

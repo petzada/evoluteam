@@ -2,9 +2,10 @@
 
 import { useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Plus, TrendingUp } from 'lucide-react';
-import { PageHeader } from '@/components/PageHeader';
+import { Plus, Search, TrendingUp } from 'lucide-react';
+import { SetAppTopBar } from '@/features/shell/AppTopBarContext';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MultiSelectFilter } from '@/components/MultiSelectFilter';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -62,9 +63,14 @@ export function PdisPage({
   const [statusFilter, setStatusFilter] = useState<string[]>(initialStatusFilter);
   const [competencyFilter, setCompetencyFilter] = useState<string[]>([]);
   const [period, setPeriod] = useState<PeriodFilter>('all');
+  const [nameSearch, setNameSearch] = useState('');
 
   const applyFilters = useMemo(() => (rows: PlanRow[]) => {
     let out = rows;
+    const q = nameSearch.trim().toLowerCase();
+    if (q) {
+      out = out.filter((r) => (r.employee?.full_name.toLowerCase() ?? '').includes(q));
+    }
     if (statusFilter.length) {
       out = out.filter((r) => statusFilter.includes(computePdiStatus(r)));
     }
@@ -72,7 +78,7 @@ export function PdisPage({
       out = out.filter((r) => competencyFilter.includes(r.competency_id ?? '__none__'));
     }
     return filterByPeriod(out, period);
-  }, [statusFilter, competencyFilter, period]);
+  }, [nameSearch, statusFilter, competencyFilter, period]);
 
   const filteredMine = useMemo(() => applyFilters(mine), [applyFilters, mine]);
   const filteredTeam = useMemo(() => applyFilters(team), [applyFilters, team]);
@@ -80,9 +86,8 @@ export function PdisPage({
 
   return (
     <div>
-      <PageHeader
+      <SetAppTopBar
         title="PDIs"
-        description="Planos de desenvolvimento individual para transformar avaliações em evolução."
         actions={
           canCreateAny ? (
             <Button onClick={() => setSheetOpen(true)}>
@@ -93,6 +98,16 @@ export function PdisPage({
       />
 
       <div className="flex flex-wrap items-center gap-3 mb-4">
+        <div className="relative flex-1 min-w-[200px] max-w-xs">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar por nome do colaborador…"
+            value={nameSearch}
+            onChange={(e) => setNameSearch(e.target.value)}
+            className="pl-9"
+            aria-label="Buscar por nome do colaborador"
+          />
+        </div>
         <MultiSelectFilter
           label="Status"
           options={FILTER_STATUSES.map((s) => ({ value: s, label: PDI_STATUS_LABELS[s] }))}

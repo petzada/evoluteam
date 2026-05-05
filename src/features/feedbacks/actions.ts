@@ -17,6 +17,7 @@ const LoadCompanyFeedbacksPageInputSchema = z.object({
   typeFilter: z.array(z.string().min(1)).optional(),
   competencyFilter: z.array(z.string().min(1)).optional(),
   period: z.enum(['all', '30d', '6m', '1y']).optional(),
+  nameQuery: z.string().max(200).optional().nullable(),
 });
 
 type LoadCompanyFeedbacksPageInput = z.input<typeof LoadCompanyFeedbacksPageInputSchema>;

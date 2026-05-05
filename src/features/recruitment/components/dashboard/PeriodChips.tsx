@@ -45,7 +45,7 @@ export function PeriodChips({ value, onChange }: Props) {
             'px-3 py-1.5 rounded-md text-xs font-medium border transition-colors',
             isActive(p.key)
               ? 'bg-primary/10 text-primary border-primary/40'
-              : 'bg-background text-muted-foreground border-border hover:bg-muted',
+              : 'bg-card text-muted-foreground border-border hover:bg-muted',
           )}
         >
           {p.label}
@@ -61,7 +61,7 @@ export function PeriodChips({ value, onChange }: Props) {
               'px-3 py-1.5 rounded-md text-xs font-medium border transition-colors flex items-center gap-1.5',
               activeKind === 'custom' || activeKind === 'all'
                 ? 'bg-primary/10 text-primary border-primary/40'
-                : 'bg-background text-muted-foreground border-border hover:bg-muted',
+                : 'bg-card text-muted-foreground border-border hover:bg-muted',
             )}
           >
             <CalendarIcon className="h-3.5 w-3.5" />

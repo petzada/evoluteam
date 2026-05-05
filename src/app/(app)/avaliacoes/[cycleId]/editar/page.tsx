@@ -10,7 +10,7 @@ import {
   type WizardInitialValues,
 } from '@/features/reviews/components/ReviewCycleWizard';
 import { PublishedCycleEditForm } from '@/features/reviews/components/PublishedCycleEditForm';
-import { PageHeader } from '@/components/PageHeader';
+import { SetAppTopBar } from '@/features/shell/AppTopBarContext';
 import { Button } from '@/components/ui/button';
 import { BreadcrumbLabel } from '@/features/shell/components/BreadcrumbLabel';
 import { canCreateCycle } from '@/features/reviews/permissions';
@@ -39,14 +39,15 @@ export default async function EditCyclePage({
     return (
       <div>
         <BreadcrumbLabel segment={cycleId} label={cycle.name} />
-        <PageHeader
-          title="Ciclo não editável"
-          description={
-            cycle.status === 'archived'
-              ? 'Este ciclo está arquivado e não pode ser editado.'
-              : 'Este ciclo já foi encerrado e não pode ser editado.'
-          }
-        />
+        <SetAppTopBar title="Ciclo não editável" />
+        <div
+          role="alert"
+          className="mb-4 rounded-md border border-border bg-muted/50 px-4 py-3 text-sm text-muted-foreground"
+        >
+          {cycle.status === 'archived'
+            ? 'Este ciclo está arquivado e não pode ser editado.'
+            : 'Este ciclo já foi encerrado e não pode ser editado.'}
+        </div>
         <Link href={`/avaliacoes/${cycleId}`}>
           <Button variant="outline">Voltar ao ciclo</Button>
         </Link>
@@ -58,10 +59,10 @@ export default async function EditCyclePage({
     return (
       <div>
         <BreadcrumbLabel segment={cycleId} label={cycle.name} />
-        <PageHeader
-          title={`Editar: ${cycle.name}`}
-          description="Ajustes permitidos após publicação."
-        />
+        <SetAppTopBar title={`Editar: ${cycle.name}`} />
+        <p className="mb-4 text-sm text-muted-foreground">
+          Ajustes permitidos após publicação.
+        </p>
         <PublishedCycleEditForm
           cycleId={cycleId}
           initialDescription={cycle.description}
@@ -129,10 +130,10 @@ export default async function EditCyclePage({
   return (
     <div>
       <BreadcrumbLabel segment={cycleId} label={cycle.name} />
-      <PageHeader
-        title={`Editar: ${cycle.name}`}
-        description="Rascunho — todos os campos podem ser alterados. Você pode salvar como rascunho ou publicar."
-      />
+      <SetAppTopBar title={`Editar: ${cycle.name}`} />
+      <p className="mb-4 text-sm text-muted-foreground">
+        Rascunho — todos os campos podem ser alterados. Você pode salvar como rascunho ou publicar.
+      </p>
       <ReviewCycleWizard
         deps={{
           positions,

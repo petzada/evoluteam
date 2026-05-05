@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { MoreHorizontal, Plus, Search } from 'lucide-react';
-import { PageHeader } from '@/components/PageHeader';
+import { SetAppTopBar } from '@/features/shell/AppTopBarContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -56,7 +56,6 @@ type Props = PropsDepartmentOrPosition | PropsCompetency;
 
 const COPY: Record<Kind, {
   title: string;
-  description: string;
   singular: string;
   searchPlaceholder: string;
   usageColLabel: string;
@@ -64,7 +63,6 @@ const COPY: Record<Kind, {
 }> = {
   department: {
     title: 'Departamentos',
-    description: 'Gerencie os departamentos da empresa.',
     singular: 'departamento',
     searchPlaceholder: 'Buscar departamento…',
     usageColLabel: 'Colaboradores',
@@ -72,7 +70,6 @@ const COPY: Record<Kind, {
   },
   position: {
     title: 'Cargos',
-    description: 'Gerencie os cargos da empresa.',
     singular: 'cargo',
     searchPlaceholder: 'Buscar cargo…',
     usageColLabel: 'Colaboradores',
@@ -80,7 +77,6 @@ const COPY: Record<Kind, {
   },
   competency: {
     title: 'Competências',
-    description: 'Competências avaliadas em ciclos, feedbacks e PDIs.',
     singular: 'competência',
     searchPlaceholder: 'Buscar competência…',
     usageColLabel: 'Em uso',
@@ -147,9 +143,8 @@ export function TaxonomyList(props: Props) {
 
   return (
     <div>
-      <PageHeader
+      <SetAppTopBar
         title={copy.title}
-        description={copy.description}
         actions={canEdit ? (
           <Button onClick={() => { setEditing(null); setSheetOpen(true); }}>
             <Plus className="mr-2 h-4 w-4" />

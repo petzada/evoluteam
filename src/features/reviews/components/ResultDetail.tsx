@@ -13,6 +13,7 @@ import { formatDate } from '@/lib/date';
 import { releaseResult, hideResult } from '../actions';
 import type { ResultOverview, CycleComment, ResultLeadershipComment } from '../queries';
 import { ResultCommentsSection } from './ResultCommentsSection';
+import { SetAppTopBar } from '@/features/shell/AppTopBarContext';
 import type { PlanRow } from '@/features/pdi/queries';
 import {
   PdiSheet, type EmployeeOption as PdiEmployeeOption, type CompetencyOption as PdiCompetencyOption,
@@ -70,6 +71,34 @@ export function ResultDetail({
 
   return (
     <div>
+      <SetAppTopBar
+        title={employee.full_name}
+        actions={(
+          <div className="flex items-center gap-2">
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button variant="outline" disabled>
+                    <Download className="h-3.5 w-3.5 mr-1.5" /> Exportar PDF
+                  </Button>
+                }
+              />
+              <TooltipContent>Em breve</TooltipContent>
+            </Tooltip>
+            {isAdmin && (
+              <Button
+                variant={overview.isReleased ? 'outline' : 'default'}
+                onClick={toggleRelease}
+              >
+                {overview.isReleased
+                  ? <><EyeOff className="h-3.5 w-3.5 mr-1.5" /> Ocultar do colaborador</>
+                  : <><Eye className="h-3.5 w-3.5 mr-1.5" /> Liberar para colaborador</>}
+              </Button>
+            )}
+          </div>
+        )}
+      />
+
       <div className="mb-4 flex items-center justify-between">
         <Link
           href={`/avaliacoes/${cycleId}/resultados`}
@@ -77,36 +106,13 @@ export function ResultDetail({
         >
           <ChevronLeft className="h-3.5 w-3.5" /> Voltar aos resultados
         </Link>
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <Button variant="outline" disabled>
-                <Download className="h-3.5 w-3.5 mr-1.5" /> Exportar PDF
-              </Button>
-            }
-          />
-          <TooltipContent>Em breve</TooltipContent>
-        </Tooltip>
       </div>
 
-      <div className="mb-6 pb-4 border-b flex items-start justify-between gap-4">
-        <div>
-          <p className="text-xs text-muted-foreground">Resultado · {cycleName}</p>
-          <h1 className="text-xl font-semibold mt-1">{employee.full_name}</h1>
-          <p className="text-sm text-muted-foreground">
-            {employee.position?.name ?? '—'} · {employee.department?.name ?? '—'}
-          </p>
-        </div>
-        {isAdmin && (
-          <Button
-            variant={overview.isReleased ? 'outline' : 'default'}
-            onClick={toggleRelease}
-          >
-            {overview.isReleased
-              ? <><EyeOff className="h-3.5 w-3.5 mr-1.5" /> Ocultar do colaborador</>
-              : <><Eye className="h-3.5 w-3.5 mr-1.5" /> Liberar para colaborador</>}
-          </Button>
-        )}
+      <div className="mb-6 pb-4 border-b">
+        <p className="text-xs text-muted-foreground">Resultado · {cycleName}</p>
+        <p className="text-sm text-muted-foreground mt-1">
+          {employee.position?.name ?? '—'} · {employee.department?.name ?? '—'}
+        </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-6">

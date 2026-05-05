@@ -30,6 +30,7 @@ import {
   closeCycle, archiveCycle, cancelAssignment, removeParticipantAction,
   sendReminders, publishCycle,
 } from '../actions';
+import { SetAppTopBar } from '@/features/shell/AppTopBarContext';
 
 type CycleDetailData = {
   id: string;
@@ -188,64 +189,62 @@ export function CycleDetail({
 
   return (
     <div>
-      <div className="flex items-start justify-between gap-4 mb-6 pb-4 border-b">
-        <div className="min-w-0">
-          <div className="flex items-center gap-1.5 text-sm text-muted-foreground mb-1">
-            <Link href="/avaliacoes" className="hover:text-foreground">Avaliações</Link>
-            <span>›</span>
-            <span className="text-foreground">{cycle.name}</span>
-          </div>
-          <h1 className="text-xl font-semibold">{cycle.name}</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Período: {formatDate(cycle.period_start)} – {formatDate(cycle.period_end)}
-            {' · '}
-            Resposta: {formatDate(cycle.response_start)} – {formatDate(cycle.response_end)}
-          </p>
-          {cycle.description && (
-            <p className="text-sm mt-2 max-w-2xl">{cycle.description}</p>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          <Badge className={statusClass(reviewCycleStatusToken(derivedStatus.status))}>
-            {derivedStatus.label}
-          </Badge>
-          {isAdmin && (cycle.status === 'draft' || cycle.status === 'published') && (
-            <Link href={`/avaliacoes/${cycle.id}/editar`}>
-              <Button variant="outline">
-                <Pencil className="h-3.5 w-3.5 mr-1.5" />
-                Editar
+      <SetAppTopBar
+        title={cycle.name}
+        actions={
+          <div className="flex items-center gap-2">
+            <Badge className={statusClass(reviewCycleStatusToken(derivedStatus.status))}>
+              {derivedStatus.label}
+            </Badge>
+            {isAdmin && (cycle.status === 'draft' || cycle.status === 'published') && (
+              <Link href={`/avaliacoes/${cycle.id}/editar`}>
+                <Button variant="outline">
+                  <Pencil className="h-3.5 w-3.5 mr-1.5" />
+                  Editar
+                </Button>
+              </Link>
+            )}
+            {isAdmin && cycle.status === 'draft' && (
+              <Button
+                onClick={() => setConfirmPublish(true)}
+                disabled={activeParticipantsCount === 0 || questionCount === 0}
+              >
+                <Send className="h-3.5 w-3.5 mr-1.5" />
+                Publicar ciclo
               </Button>
-            </Link>
-          )}
-          {isAdmin && cycle.status === 'draft' && (
-            <Button
-              onClick={() => setConfirmPublish(true)}
-              disabled={activeParticipantsCount === 0 || questionCount === 0}
-            >
-              <Send className="h-3.5 w-3.5 mr-1.5" />
-              Publicar ciclo
-            </Button>
-          )}
-          {isAdmin && (
-            <DropdownMenu>
-              <DropdownMenuTrigger className="h-8 w-8 flex items-center justify-center rounded-md border hover:bg-muted">
-                <MoreHorizontal className="h-4 w-4" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {cycle.status === 'published' && (
-                  <DropdownMenuItem onClick={() => setConfirmClose(true)}>
-                    Encerrar ciclo
-                  </DropdownMenuItem>
-                )}
-                {cycle.status !== 'archived' && (
-                  <DropdownMenuItem onClick={() => setConfirmArchive(true)}>
-                    Arquivar
-                  </DropdownMenuItem>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-        </div>
+            )}
+            {isAdmin && (
+              <DropdownMenu>
+                <DropdownMenuTrigger className="h-8 w-8 flex items-center justify-center rounded-md border hover:bg-muted">
+                  <MoreHorizontal className="h-4 w-4" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {cycle.status === 'published' && (
+                    <DropdownMenuItem onClick={() => setConfirmClose(true)}>
+                      Encerrar ciclo
+                    </DropdownMenuItem>
+                  )}
+                  {cycle.status !== 'archived' && (
+                    <DropdownMenuItem onClick={() => setConfirmArchive(true)}>
+                      Arquivar
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
+        }
+      />
+
+      <div className="mb-6 pb-4 border-b">
+        <p className="text-sm text-muted-foreground">
+          Período: {formatDate(cycle.period_start)} – {formatDate(cycle.period_end)}
+          {' · '}
+          Resposta: {formatDate(cycle.response_start)} – {formatDate(cycle.response_end)}
+        </p>
+        {cycle.description && (
+          <p className="text-sm mt-2 max-w-2xl">{cycle.description}</p>
+        )}
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">

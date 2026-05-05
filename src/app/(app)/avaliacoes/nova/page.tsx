@@ -3,7 +3,7 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { getDepartments, getPositions } from '@/features/employees/queries';
 import { getEligibleEmployees } from '@/features/reviews/queries';
 import { ReviewCycleWizard } from '@/features/reviews/components/ReviewCycleWizard';
-import { PageHeader } from '@/components/PageHeader';
+import { SetAppTopBar } from '@/features/shell/AppTopBarContext';
 import { canCreateCycle } from '@/features/reviews/permissions';
 import { getActorContext } from '@/features/auth/context';
 
@@ -32,10 +32,10 @@ export default async function NovaAvaliacaoPage() {
 
   return (
     <div>
-      <PageHeader
-        title="Novo ciclo de avaliação"
-        description="Configure em 5 passos. Você pode salvar como rascunho a qualquer momento."
-      />
+      <SetAppTopBar title="Novo ciclo de avaliação" />
+      <p className="mb-4 text-sm text-muted-foreground">
+        Configure em 5 passos. Você pode salvar como rascunho a qualquer momento.
+      </p>
       <ReviewCycleWizard
         deps={{
           positions,

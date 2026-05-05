@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ClipboardList, Plus, Search } from 'lucide-react';
-import { PageHeader } from '@/components/PageHeader';
+import { SetAppTopBar } from '@/features/shell/AppTopBarContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -84,9 +84,8 @@ export function CyclesList({ cycles, pending, isAdmin }: Props) {
 
   return (
     <div>
-      <PageHeader
+      <SetAppTopBar
         title="Avaliações"
-        description="Ciclos de avaliação de desempenho da empresa."
         actions={isAdmin && (
           <Link href="/avaliacoes/nova">
             <Button><Plus className="h-4 w-4 mr-2" />Novo ciclo</Button>

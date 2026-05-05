@@ -1,6 +1,6 @@
 import { getCurrentProfile, getCurrentUserEmployee } from '@/features/profile/queries';
 import { ProfileForm } from '@/features/profile/components/ProfileForm';
-import { PageHeader } from '@/components/PageHeader';
+import { SetAppTopBar } from '@/features/shell/AppTopBarContext';
 import { getActorContext } from '@/features/auth/context';
 
 export default async function PerfilPage() {
@@ -18,7 +18,7 @@ export default async function PerfilPage() {
 
   return (
     <div>
-      <PageHeader title="Meu perfil" description="Edite suas informações pessoais." />
+      <SetAppTopBar title="Meu perfil" />
       <ProfileForm
         defaultValues={{ fullName: profile.full_name, phone: profile.phone ?? '' }}
         employeeData={employeeWithEmail}

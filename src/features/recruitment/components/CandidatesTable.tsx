@@ -10,7 +10,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { PageHeader } from '@/components/PageHeader';
+import { SetAppTopBar } from '@/features/shell/AppTopBarContext';
 import { EmptyState } from '@/components/EmptyState';
 import { MultiSelectFilter } from '@/components/MultiSelectFilter';
 import { formatDate } from '@/lib/date';
@@ -66,9 +66,8 @@ export function CandidatesTable({ candidates, canCreate }: Props) {
 
   return (
     <div>
-      <PageHeader
+      <SetAppTopBar
         title="Candidatos"
-        description="Banco global de candidatos da empresa."
         actions={canCreate && (
           <Button onClick={() => setSheetOpen(true)}>
             <Plus className="mr-2 h-4 w-4" /> Novo candidato

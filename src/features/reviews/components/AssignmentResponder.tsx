@@ -20,6 +20,7 @@ import type { FeedbackRow } from '@/features/feedbacks/queries';
 import {
   FEEDBACK_TYPE_LABELS, type FeedbackType,
 } from '@/features/feedbacks/schema';
+import { SetAppTopBar } from '@/features/shell/AppTopBarContext';
 
 type Question = {
   id: string;
@@ -200,6 +201,11 @@ export function AssignmentResponder({
 
   return (
     <div>
+      <SetAppTopBar
+        title={`Responda sobre ${headingName}`}
+        actions={<SaveIndicator savingCount={savingCount} lastSavedAt={lastSavedAt} />}
+      />
+
       <div className="mb-4">
         <Link
           href={`/avaliacoes/${assignment.cycle_id}`}
@@ -291,15 +297,9 @@ export function AssignmentResponder({
         </aside>
 
         <main>
-          <div className="flex items-start justify-between mb-5">
-            <div>
-              <h1 className="text-xl font-semibold">Responda sobre {headingName}</h1>
-              <p className="text-sm text-muted-foreground mt-0.5">
-                Suas respostas são salvas automaticamente. Você pode sair e voltar sem perder o progresso.
-              </p>
-            </div>
-            <SaveIndicator savingCount={savingCount} lastSavedAt={lastSavedAt} />
-          </div>
+          <p className="text-sm text-muted-foreground mb-5">
+            Suas respostas são salvas automaticamente. Você pode sair e voltar sem perder o progresso.
+          </p>
 
           <div className="space-y-5">
             {questions

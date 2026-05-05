@@ -1,7 +1,5 @@
 import { getUnreadCount, listRecentNotifications } from '@/features/notifications/queries';
-import { NotificationBell } from '@/features/notifications/components/NotificationBell';
-import { Breadcrumbs } from './Breadcrumbs';
-import { SidebarToggleButton } from './SidebarToggleButton';
+import { TopBarChrome } from './TopBarChrome';
 
 interface TopBarProps {
   userId: string;
@@ -16,16 +14,10 @@ export async function TopBar({ userId }: TopBarProps) {
   ]);
 
   return (
-    <header className="flex h-14 items-center border-b bg-background px-4 gap-3">
-      <SidebarToggleButton />
-      <div className="h-5 w-px bg-border" />
-      <Breadcrumbs />
-      <div className="ml-auto" />
-      <NotificationBell
-        userId={userId}
-        initialUnread={unread}
-        initialNotifications={notifications}
-      />
-    </header>
+    <TopBarChrome
+      userId={userId}
+      initialUnread={unread}
+      initialNotifications={notifications}
+    />
   );
 }

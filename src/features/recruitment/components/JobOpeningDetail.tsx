@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { MoreVertical, Pencil, Play, Pause, CheckCircle2, XCircle, Plus, Search } from 'lucide-react';
 import { toast } from 'sonner';
-import { PageHeader } from '@/components/PageHeader';
+import { SetAppTopBar } from '@/features/shell/AppTopBarContext';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -131,9 +131,8 @@ export function JobOpeningDetail({
 
   return (
     <div>
-      <PageHeader
+      <SetAppTopBar
         title={job.title}
-        description={job.description ?? undefined}
         actions={
           <div className="flex items-center gap-2">
             {canManage && (
@@ -178,6 +177,9 @@ export function JobOpeningDetail({
           </div>
         }
       />
+      {job.description ? (
+        <p className="mb-4 max-w-3xl whitespace-pre-wrap text-sm text-muted-foreground">{job.description}</p>
+      ) : null}
 
       <div className="mb-6 flex flex-wrap items-center gap-2 text-sm">
         <Badge className={`${statusClass(recruitmentJobOpeningStatusToken(job.status))} hover:opacity-100`}>

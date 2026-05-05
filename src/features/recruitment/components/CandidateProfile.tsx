@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Pencil, ExternalLink, UserX, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
-import { PageHeader } from '@/components/PageHeader';
+import { SetAppTopBar } from '@/features/shell/AppTopBarContext';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -66,9 +66,8 @@ export function CandidateProfile({
 
   return (
     <div>
-      <PageHeader
+      <SetAppTopBar
         title={candidate.name}
-        description={candidate.email}
         actions={canManage && (
           <div className="flex items-center gap-2">
             <Button variant="outline" onClick={() => setEditOpen(true)}>
@@ -82,6 +81,7 @@ export function CandidateProfile({
           </div>
         )}
       />
+      <p className="mb-4 text-sm text-muted-foreground">{candidate.email}</p>
 
       {isHired && (
         <div className="mb-5 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm flex items-center gap-3">

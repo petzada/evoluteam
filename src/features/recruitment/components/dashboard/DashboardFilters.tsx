@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { MultiSelectFilter } from '@/components/MultiSelectFilter';
+import { cn } from '@/lib/utils';
 import type { JobOption, EmployeeOption } from '../../queries/metrics';
 
 interface Props {
@@ -12,15 +13,20 @@ interface Props {
   employees: EmployeeOption[];
   /** Se gestor, não mostra MultiSelect de Responsável. */
   hideManagerFilter?: boolean;
+  /** `toolbar`: linha com mb-4 (legado). `dialog`: coluna para uso dentro do modal. */
+  variant?: 'toolbar' | 'dialog';
 }
 
 /**
- * Barra de filtros do dashboard (spec 16 §7.3). Busca + MultiSelect Vaga +
- * MultiSelect Responsável. Os chips de período vão no slot actions do
- * PageHeader via <DashboardPeriodChips/>.
- * Padrão visual alinhado com EmployeesList: sem card wrapping.
+ * Filtros avançados do dashboard de recrutamento (spec 16 §7.3): busca + vagas +
+ * responsáveis. Chips de período ficam fora, em <DashboardPeriodChips/>.
  */
-export function DashboardFilters({ jobs, employees, hideManagerFilter }: Props) {
+export function DashboardFilters({
+  jobs,
+  employees,
+  hideManagerFilter,
+  variant = 'toolbar',
+}: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [, startTransition] = useTransition();
@@ -30,6 +36,10 @@ export function DashboardFilters({ jobs, employees, hideManagerFilter }: Props) 
   const initialQ = searchParams.get('q') ?? '';
 
   const [searchText, setSearchText] = useState(initialQ);
+
+  useEffect(() => {
+    setSearchText(initialQ);
+  }, [initialQ]);
 
   const push = useCallback(
     (mutator: (sp: URLSearchParams) => void) => {
@@ -77,9 +87,14 @@ export function DashboardFilters({ jobs, employees, hideManagerFilter }: Props) 
     [employees],
   );
 
+  const isDialog = variant === 'dialog';
+  const wrapClass = isDialog
+    ? 'flex flex-col gap-4'
+    : 'mb-4 flex flex-wrap gap-3';
+
   return (
-    <div className="flex flex-wrap gap-3 mb-4">
-      <div className="relative flex-1 min-w-[240px] max-w-xs">
+    <div className={wrapClass}>
+      <div className={cn('relative min-w-0', isDialog ? 'w-full' : 'max-w-xs flex-1 min-w-[240px]')}>
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           placeholder="Buscar candidato por nome ou e-mail…"
@@ -94,7 +109,7 @@ export function DashboardFilters({ jobs, employees, hideManagerFilter }: Props) 
         options={jobOptions}
         value={jobIds}
         onChange={onJobsChange}
-        width="w-48"
+        width={isDialog ? 'w-full' : 'w-48'}
         emptyText="Nenhuma vaga"
       />
       {!hideManagerFilter && (
@@ -104,7 +119,7 @@ export function DashboardFilters({ jobs, employees, hideManagerFilter }: Props) 
           options={empOptions}
           value={ownerIds}
           onChange={onOwnersChange}
-          width="w-48"
+          width={isDialog ? 'w-full' : 'w-48'}
           emptyText="Nenhum responsável"
         />
       )}

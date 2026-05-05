@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { PageHeader } from '@/components/PageHeader';
+import { SetAppTopBar } from '@/features/shell/AppTopBarContext';
 import { EmptyState } from '@/components/EmptyState';
 import { MultiSelectFilter } from '@/components/MultiSelectFilter';
 import { formatDate } from '@/lib/date';
@@ -80,9 +80,8 @@ export function JobOpeningsTable({
 
   return (
     <div>
-      <PageHeader
+      <SetAppTopBar
         title="Vagas"
-        description="Gerencie as vagas em aberto do seu processo seletivo."
         actions={canCreate && (
           <Button onClick={() => setSheetOpen(true)}>
             <Plus className="mr-2 h-4 w-4" /> Nova vaga

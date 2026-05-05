@@ -1,7 +1,16 @@
 'use client';
 
 import Link from 'next/link';
+import { useState } from 'react';
 import { Users, CheckCircle2, Clock, AlertTriangle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { HoverCard, HoverCardTrigger, HoverCardContent } from '@/components/ui/hover-card';
@@ -11,7 +20,7 @@ import type {
   StalledCandidate, OverdueTask,
   JobOption, EmployeeOption,
 } from '../queries/metrics';
-import { PageHeader } from '@/components/PageHeader';
+import { SetAppTopBar } from '@/features/shell/AppTopBarContext';
 import { KpiCard } from '@/features/dashboard/components/KpiCard';
 import { DashboardFilters } from './dashboard/DashboardFilters';
 import { DashboardPeriodChips } from './dashboard/DashboardPeriodChips';
@@ -57,20 +66,31 @@ export function RelatoriosDashboard({
   jobsForFilter, employeesForFilter, hideManagerFilter,
 }: Props) {
   const maxFunnel = Math.max(...funnel.map((f) => f.count), 1);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
 
   return (
     <div>
-      <PageHeader
-        title="Relatórios"
-        description="Indicadores de gestão de recrutamentos da empresa."
-        actions={<DashboardPeriodChips />}
-      />
+      <SetAppTopBar title="Relatórios" />
 
-      <DashboardFilters
-        jobs={jobsForFilter}
-        employees={employeesForFilter}
-        hideManagerFilter={hideManagerFilter}
-      />
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <DashboardPeriodChips />
+        <Dialog open={advancedOpen} onOpenChange={setAdvancedOpen}>
+          <DialogTrigger render={<Button variant="outline" />}>
+            Filtros avançados
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-md" showCloseButton>
+            <DialogHeader>
+              <DialogTitle>Filtros avançados</DialogTitle>
+            </DialogHeader>
+            <DashboardFilters
+              variant="dialog"
+              jobs={jobsForFilter}
+              employees={employeesForFilter}
+              hideManagerFilter={hideManagerFilter}
+            />
+          </DialogContent>
+        </Dialog>
+      </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-8">
         <KpiCard

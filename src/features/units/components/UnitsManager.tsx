@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { MoreHorizontal, Plus, Search } from 'lucide-react';
-import { PageHeader } from '@/components/PageHeader';
+import { SetAppTopBar } from '@/features/shell/AppTopBarContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -83,9 +83,8 @@ export function UnitsManager({ units, canEdit }: Props) {
 
   return (
     <div>
-      <PageHeader
+      <SetAppTopBar
         title="Unidades"
-        description="Empresas/unidades do grupo."
         actions={canEdit ? (
           <Button onClick={() => { setEditing(null); setSheetOpen(true); }}>
             <Plus className="mr-2 h-4 w-4" />

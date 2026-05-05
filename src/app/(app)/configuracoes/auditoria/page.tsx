@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { listActivityLogs, ACTIVITY_PAGE_SIZE } from '@/features/activity/queries';
 import { ActivityLogList } from '@/features/activity/components/ActivityLogList';
-import { PageHeader } from '@/components/PageHeader';
+import { SetAppTopBar } from '@/features/shell/AppTopBarContext';
 import { canDo } from '@/features/permissions/permissions';
 import { getActorContext } from '@/features/auth/context';
 
@@ -23,7 +23,7 @@ export default async function AuditoriaPage({
 
   return (
     <div>
-      <PageHeader title="Auditoria" description="Histórico de ações da equipe." />
+      <SetAppTopBar title="Auditoria" />
       <ActivityLogList
         logs={rows}
         total={total}
