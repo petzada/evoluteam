@@ -2,6 +2,7 @@ import { cookies } from 'next/headers';
 import { Sidebar } from '@/features/shell/components/Sidebar';
 import { TopBar } from '@/features/shell/components/TopBar';
 import { UserCard } from '@/features/shell/components/UserCard';
+import { HelpBanner } from '@/features/help/components/HelpBanner';
 import { SidebarProvider } from '@/features/shell/SidebarContext';
 import { BreadcrumbProvider } from '@/features/shell/BreadcrumbContext';
 import { AppTopBarProvider } from '@/features/shell/AppTopBarContext';
@@ -32,6 +33,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             screenPermissions={gate.screenPermissions}
             isOperationalOnly={isOperationalOnly}
             isHiringManager={isHiringManager}
+            helpBanner={<HelpBanner />}
             footer={
               <UserCard
                 fullName={profile.full_name}
