@@ -12,6 +12,10 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      // server-only e' uma proteção de bundling do Next; em vitest (Node)
+      // resolvemos para um modulo vazio para nao quebrar import de helpers
+      // RSC sob teste.
+      'server-only': path.resolve(__dirname, './src/test/server-only-shim.ts'),
     },
   },
 });
