@@ -2,7 +2,7 @@
 
 ## Objetivos
 
-1. **Banner "Ajuda"** fixo na sidebar logada, posicionado acima do `UserCard` (footer) e abaixo do `<nav>` rolável; clicável → `/ajuda`.
+1. **Botão circular "?"** fixo nas rotas logadas, no canto inferior direito; clicável → `/ajuda`.
 2. **Página `/ajuda`** em layout 2-colunas: lista de tópicos à esquerda; vídeo + descrição MDX à direita. URL canônica por tópico (`/ajuda/[slug]`) com link compartilhável.
 3. **Conteúdo MDX versionado** em `content/help/*.mdx`; descrição rica ao lado do player; sem CMS, sem banco.
 4. **Visibilidade alinhada ao FT-9**: tutoriais aparecem conforme `canDo(actor, screen, 'view')` (mesmo padrão da Sidebar) + flag `adminOnly`. Tutorial sem gate é baseline (todos os autenticados veem).
@@ -57,20 +57,20 @@ Slug existente mas oculto pelo filtro → `notFound()` (mesmo tratamento que slu
 - CORS no bucket libera origens da app (produção + `localhost:3000`), métodos `GET`/`HEAD`, header `Range` exposto (necessário para seek do `<video>`).
 - Sem AWS SDK, sem env vars, sem rota proxy. Custo de implementação < custo do A (privado + assinada). Risco aceito: link vazado funciona fora da app — irrelevante para material educacional.
 
-### Banner na sidebar
+### Botão flutuante de ajuda
 
-- Cartão expandido (~72px): `bg-sidebar-accent/40` + borda sutil, ícone `LifeBuoy` + título "Precisa de ajuda?" + subtítulo "Tutoriais em vídeo".
-- Estado colapsado: ícone 36×36 com `Tooltip` "Ajuda" — mesmo padrão dos itens de nav.
-- Posicionado **fora** do `<nav>` rolável → fica naturalmente fixo acima do footer; nav rola por trás dele.
-- Componente em `src/features/help/components/HelpBanner.tsx`; injetado pelo `(app)/layout.tsx` via novo prop `helpBanner` da `Sidebar`.
+- O acesso à ajuda não fica mais na sidebar. A sidebar segue dedicada à navegação principal e ao `UserCard`.
+- Botão circular fixo no canto inferior direito das rotas autenticadas dentro de `(app)`, com conteúdo visual apenas `?`, `aria-label="Ajuda"` e tooltip "Ajuda".
+- Estado ativo quando a rota atual for `/ajuda` ou `/ajuda/*`; `z-40`, abaixo de dialogs/sheets (`z-50`).
+- Componente em `src/features/help/components/HelpFloatingButton.tsx`; renderizado por `src/app/(app)/layout.tsx` fora da `Sidebar`.
 
 ## Estrutura de arquivos
 
 ```
 content/
   help/
-    onboarding.mdx
-    criar-vaga.mdx
+    .gitkeep
+    <slug>.mdx
     ...
 
 src/features/help/
@@ -79,7 +79,7 @@ src/features/help/
   schema.ts                   # Zod schema do frontmatter
   types.ts                    # HelpTopic, HelpFrontmatter
   components/
-    HelpBanner.tsx            # cliente — respeita collapsed
+    HelpFloatingButton.tsx    # cliente — atalho global para /ajuda
     HelpTopicList.tsx         # cliente — coluna esquerda, marca ativo
     HelpVideoPlayer.tsx       # cliente — <video controls preload="metadata">
     HelpMdxComponents.tsx     # mapa de tags MDX → estilo do projeto
@@ -100,8 +100,8 @@ src/app/(app)/ajuda/
 
 ## Mudanças em arquivos existentes
 
-- **`src/features/shell/components/Sidebar.tsx`** — adiciona prop opcional `helpBanner?: React.ReactNode`. Renderiza num bloco com `border-t border-sidebar-border` entre `</nav>` e `{footer}`. Telas que não passam o prop não são afetadas.
-- **`src/app/(app)/layout.tsx`** — passa `helpBanner={<HelpBanner />}` para a `Sidebar`.
+- **`src/features/shell/components/Sidebar.tsx`** — não recebe nem renderiza acesso de Ajuda; mantém apenas navegação e footer.
+- **`src/app/(app)/layout.tsx`** — renderiza `<HelpFloatingButton />` nas rotas autenticadas, dentro dos providers do shell e fora da `Sidebar`.
 
 ## Fluxo de dados
 
@@ -132,7 +132,7 @@ layout.tsx (server)         carrega visibleTopics e renderiza <HelpTopicList /> 
 
 | Cenário | Comportamento |
 |---|---|
-| `content/help/` vazio | `<EmptyState>` "Nenhum tutorial disponível ainda." Banner permanece visível |
+| `content/help/` vazio | `<EmptyState>` "Nenhum tutorial disponível ainda." Botão flutuante permanece visível |
 | Frontmatter inválido (Zod) | Arquivo descartado, `console.warn`, demais carregam |
 | Slug inválido / inexistente | `notFound()` |
 | Slug existe mas filtrado pela visibilidade | `notFound()` (sem revelar existência) |
@@ -179,7 +179,7 @@ Vitest, alinhado ao padrão do projeto:
 - **`visibility.test.ts`** — matriz de combinações (baseline / `screen` / `adminOnly` / `screen + adminOnly`) × actores fixtures (admin, gestor, colaborador puro, colaborador-com-toggle).
 - **`content.test.ts`** — fixtures em `__fixtures__/help/` (não conteúdo real). Frontmatter válido, frontmatter inválido descartado, ordenação, slug derivado de filename, slug guard contra path traversal.
 
-Sem testes E2E ou de componente para MVP — Sidebar/banner/player são thin wrappers em `<Link>` e `<video>` HTML5; valor está na lógica pura.
+Sem testes E2E ou de componente para MVP — botão flutuante/player são thin wrappers em `<Link>` e `<video>` HTML5; valor está na lógica pura.
 
 ## Setup do Cloudflare R2 — passo a passo
 
@@ -204,11 +204,11 @@ Vai virar um README em `docs/help-r2-setup.md` durante a implementação.
 4. **Encodar o vídeo.** H.264 + AAC, MP4, ≤1080p, ~3–5 Mbps (HandBrake serve). Tutoriais ≤30 min cabem confortavelmente em MP4 progressivo.
 5. **Subir o vídeo.** Bucket → Objects → Upload. Usar key com prefixo `help/` (ex.: `help/onboarding.mp4`). Copiar a URL pública gerada.
 6. **(Opcional, futuro) Custom Domain.** Quando o rate limit do `r2.dev` virar incômodo: Settings → Public access → Custom Domains → adicionar `cdn.seudominio.com.br` (precisa estar em zone Cloudflare). Atualizar base URL nos MDX.
-7. **Criar o primeiro MDX.** `content/help/onboarding.mdx` com frontmatter apontando para a URL copiada no passo 5. Commit + deploy.
+7. **Criar o primeiro MDX somente quando houver URL real.** `content/help/<slug>.mdx` deve apontar para a URL copiada no passo 5. Até lá, manter apenas `.gitkeep` e deixar `/ajuda` exibir o empty state.
 
 ## Sucesso
 
-- Banner "Ajuda" aparece em todas as telas autenticadas, fixo acima do `UserCard`, respeitando colapso da sidebar.
+- Botão circular "?" aparece em todas as telas autenticadas, fixo no canto inferior direito, e navega para `/ajuda`.
 - `/ajuda` lista todos os tutoriais visíveis ao actor (filtragem por `screen`/`adminOnly` correta) e redireciona para o primeiro.
 - `/ajuda/<slug>` reproduz o vídeo do R2 com controles HTML5 nativos; descrição MDX renderizada ao lado.
 - Adicionar um novo tutorial = criar um `.mdx` em `content/help/` + subir vídeo no R2 + commit. Sem migração, sem env var, sem rebuild de schema.

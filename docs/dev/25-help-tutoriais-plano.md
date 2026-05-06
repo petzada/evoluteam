@@ -15,10 +15,10 @@ Plano detalhado para implementar a Central de Ajuda. Acompanha o spec `docs/supe
 | 1 | Dependências e estrutura inicial | 15 min | `next-mdx-remote` + `gray-matter` instalados; pastas criadas |
 | 2 | Schema Zod + tipos + helpers de I/O | 45 min | `schema.ts`, `types.ts`, `content.ts` com testes |
 | 3 | Lógica de visibilidade | 30 min | `visibility.ts` com matriz de testes verde |
-| 4 | Banner na sidebar | 30 min | `HelpBanner.tsx` + prop em `Sidebar` + injeção no layout |
+| 4 | Botão flutuante de ajuda | 30 min | `HelpFloatingButton.tsx` fixo no shell logado |
 | 5 | Página `/ajuda` (layout, page raiz, [slug]/page) | 1h | Rotas server-side + redirect + `notFound()` |
 | 6 | Componentes de UI (`HelpTopicList`, `HelpVideoPlayer`, `HelpMdxComponents`) | 1h | Componentes cliente renderizados pela página |
-| 7 | Conteúdo seed + setup do R2 | 30 min | 1 MDX de exemplo + bucket criado + `docs/help-r2-setup.md` |
+| 7 | Setup do R2 sem seed real | 30 min | `docs/help-r2-setup.md`; seed MDX fica para quando houver URL real |
 | 8 | Smoke test manual + ajustes finais | 20 min | Checklist manual passou; suite Vitest verde |
 
 **Total estimado:** ~4h45 de implementação concentrada.
@@ -154,46 +154,33 @@ Plano detalhado para implementar a Central de Ajuda. Acompanha o spec `docs/supe
 
 ---
 
-## Fase 4 — Banner na sidebar
+## Fase 4 — Botão flutuante de ajuda
 
-**Objetivo:** banner apareça em todas as telas autenticadas, fixo acima do `UserCard`, sem mexer no resto da sidebar.
+**Objetivo:** acesso à ajuda aparece em todas as rotas autenticadas sem ocupar espaço da sidebar.
 
 **Arquivos:**
-- `src/features/help/components/HelpBanner.tsx` (novo)
-- `src/features/shell/components/Sidebar.tsx` (modificado)
-- `src/app/(app)/layout.tsx` (modificado)
+- `src/features/help/components/HelpFloatingButton.tsx` (novo)
+- `src/features/shell/components/Sidebar.tsx` (remove contrato antigo de ajuda)
+- `src/app/(app)/layout.tsx` (renderiza o botão flutuante)
 
 **Passo a passo:**
 
-1. **`HelpBanner.tsx`** (cliente):
-   - `'use client'` + `useSidebar` + `usePathname`.
+1. Remover `HelpBanner.tsx`, a prop `helpBanner?: React.ReactNode` da `Sidebar` e o bloco renderizado entre `</nav>` e `{footer}`.
+2. Criar **`HelpFloatingButton.tsx`** (cliente):
+   - `'use client'` + `usePathname`.
    - `active = pathname === '/ajuda' || pathname.startsWith('/ajuda/')`.
-   - Renderiza:
-     - `collapsed`: `<Tooltip>` com ícone `LifeBuoy` 36×36 (mesmo tamanho dos itens de nav). Hover: `bg-sidebar-accent`. Active: `bg-sidebar-accent text-sidebar-accent-foreground`.
-     - `!collapsed`: cartão `Link` para `/ajuda` com `bg-sidebar-accent/40` + borda sutil + ícone `LifeBuoy` à esquerda + bloco com `<span>Precisa de ajuda?</span>` (peso medium) + `<span>Tutoriais em vídeo</span>` (text-xs muted).
-2. **`Sidebar.tsx`** — adicionar:
-   - Prop `helpBanner?: React.ReactNode` na interface.
-   - Render entre `</nav>` e `{footer}`:
-     ```tsx
-     {helpBanner && (
-       <div className={cn(
-         'shrink-0 border-t border-sidebar-border',
-         collapsed ? 'px-2 py-2' : 'px-3 py-3',
-       )}>
-         {helpBanner}
-       </div>
-     )}
-     ```
-3. **`(app)/layout.tsx`** — passar `helpBanner={<HelpBanner />}` para a `Sidebar`. Importar do feature.
+   - Renderizar `Link` para `/ajuda`, circular, fixo no canto inferior direito, com conteúdo visual apenas `?`.
+   - Usar `aria-label="Ajuda"`, tooltip "Ajuda" e `z-40` para ficar abaixo de dialogs/sheets.
+3. Em **`(app)/layout.tsx`**, importar e renderizar `<HelpFloatingButton />` dentro dos providers do shell autenticado, fora da `Sidebar`.
 
 **Critérios de aceite:**
-- Banner aparece em todas as rotas dentro de `(app)`, fixo acima do `UserCard`.
-- Quando colapsada, banner vira só ícone com tooltip "Ajuda".
-- Click navega para `/ajuda` (que ainda 404 nesta fase — esperado).
-- Sidebar continua rolando normalmente quando o nav excede o viewport (banner não rola junto).
+- Botão circular `?` aparece em rotas dentro de `(app)` e não aparece em login/rotas públicas.
+- Click navega para `/ajuda`.
+- Estado ativo aparece em `/ajuda` e `/ajuda/*`.
+- Sidebar não contém item, banner ou prop relacionada a Ajuda.
 - `pnpm tsc --noEmit` passa.
 
-**Commit:** `feat(help): banner Ajuda fixo na sidebar`
+**Commit:** `feat(help): adiciona botao flutuante de ajuda`
 
 ---
 
@@ -276,56 +263,33 @@ Plano detalhado para implementar a Central de Ajuda. Acompanha o spec `docs/supe
 
 ---
 
-## Fase 7 — Conteúdo seed + setup do R2
+## Fase 7 — Setup do R2 sem seed real
 
-**Objetivo:** ter o primeiro tutorial real funcionando em produção e documentação operacional.
+**Objetivo:** documentar a operação de vídeos no R2 sem publicar um tutorial quebrado antes de existir URL HTTPS real.
 
 **Arquivos:**
-- `content/help/onboarding.mdx` (novo)
 - `docs/help-r2-setup.md` (novo)
+- `content/help/.gitkeep` (mantido; nenhum `onboarding.mdx` por enquanto)
 
-**Passo a passo (no Cloudflare Dashboard):**
+**Passo a passo:**
 
-1. R2 → "Create bucket". Nome: `evoluteam-help`. Região: `Automatic`.
-2. Bucket → Settings → Public access → R2.dev subdomain → "Allow Access". Anotar URL `https://pub-<hash>.r2.dev`.
-3. Bucket → Settings → CORS Policy → Add (substituindo o domínio real):
-   ```json
-   [
-     {
-       "AllowedOrigins": ["https://app.seudominio.com.br", "http://localhost:3000"],
-       "AllowedMethods": ["GET", "HEAD"],
-       "AllowedHeaders": ["Range", "Content-Type"],
-       "ExposeHeaders": ["Content-Length", "Content-Range", "Accept-Ranges"],
-       "MaxAgeSeconds": 3600
-     }
-   ]
-   ```
-4. Encodar o vídeo de boas-vindas (HandBrake, H.264 + AAC, ≤1080p, ~3–5 Mbps).
-5. Bucket → Objects → Upload com key `help/onboarding.mp4`. Copiar a URL pública.
-
-**Passo a passo (no repo):**
-
-6. Criar `content/help/onboarding.mdx`:
-   ```mdx
-   ---
-   title: Boas-vindas ao Evoluteam
-   description: Visão geral em 2 minutos da plataforma.
-   videoUrl: https://pub-<hash>.r2.dev/help/onboarding.mp4
-   duration: 120
-   order: 1
-   ---
-
-   Bem-vindo! Neste vídeo você vai conhecer...
-   ```
-7. Criar `docs/help-r2-setup.md` com a versão estável do passo a passo (sem segredos), idêntico ao §"Setup do Cloudflare R2" do spec, mais a seção "Como adicionar um novo tutorial" (criar MDX + upload no R2 + commit).
+1. Criar `docs/help-r2-setup.md` com:
+   - criação do bucket `evoluteam-help`;
+   - habilitação de subdomínio público R2.dev;
+   - política CORS com `GET`/`HEAD`, `Range` e headers expostos;
+   - recomendações de encode H.264 + AAC em MP4;
+   - upload com key `help/<slug>.mp4`;
+   - teste de Range com `curl -I -H "Range: bytes=0-100" <url>`;
+   - template MDX para quando houver URL real.
+2. Não criar `content/help/onboarding.mdx` nesta fase sem URL pública real.
+3. Registrar que adicionar tutorial depois é: subir vídeo no R2, criar `content/help/<slug>.mdx`, commitar e deployar.
 
 **Critérios de aceite:**
-- Bucket criado e acessível por URL pública.
-- CORS permite Range request (testar com `curl -I -H "Range: bytes=0-100" <url>` → 206 Partial Content).
-- `/ajuda/onboarding` reproduz o vídeo localmente em `pnpm dev`.
-- `docs/help-r2-setup.md` autocontido — uma pessoa nova consegue subir o segundo tutorial só lendo ele.
+- `docs/help-r2-setup.md` é autocontido e não contém segredos.
+- `/ajuda` continua mostrando empty state quando só existe `.gitkeep`.
+- O primeiro `onboarding.mdx` fica para commit separado quando a URL HTTPS real existir.
 
-**Commit:** `feat(help): seed onboarding + README de setup do R2`
+**Commit:** `docs(help): documenta setup do R2 para tutoriais`
 
 ---
 
@@ -335,23 +299,23 @@ Plano detalhado para implementar a Central de Ajuda. Acompanha o spec `docs/supe
 
 **Checklist manual:**
 
-- [ ] Banner "Ajuda" aparece em `/dashboard`, `/colaboradores`, `/configuracoes/empresa`.
-- [ ] Sidebar colapsada → banner vira ícone com tooltip "Ajuda".
-- [ ] Click em "Ajuda" → cai em `/ajuda/onboarding` (ou primeiro tópico).
+- [ ] Botão circular `?` aparece em `/dashboard`, `/colaboradores`, `/configuracoes/empresa`.
+- [ ] Login e rotas públicas não exibem o botão `?`.
+- [ ] Click no botão `?` → cai em `/ajuda` e redireciona para o primeiro tópico quando existir conteúdo.
 - [ ] Coluna esquerda lista tópicos visíveis ao actor.
 - [ ] Vídeo reproduz com controles nativos. Avançar/retroceder funciona (Range).
 - [ ] Trocar de tópico via lista → navegação instantânea (prefetch).
 - [ ] Logar como colaborador puro → tópicos `adminOnly` não aparecem.
 - [ ] Acessar URL direta de tópico oculto → 404.
 - [ ] Acessar URL `/ajuda/foo-inexistente` → 404 com link "Ver tutoriais disponíveis".
-- [ ] Deletar `content/help/onboarding.mdx` localmente → `/ajuda` mostra `<EmptyState>`.
+- [ ] Com apenas `content/help/.gitkeep` → `/ajuda` mostra `<EmptyState>`.
 - [ ] Inserir frontmatter inválido em um MDX → arquivo sumiu da lista, demais carregaram. `console.warn` no terminal do dev server.
 - [ ] `pnpm test:run` passa.
 - [ ] `pnpm lint` passa.
 - [ ] `pnpm build` passa.
 
 **Ajustes que podem aparecer:**
-- Espaçamento do banner colapsado/expandido vs `UserCard` — afinar `py` se necessário.
+- Posição do botão `?` vs ações fixas de páginas específicas — ajustar `bottom/right` se necessário.
 - Largura `w-72` da coluna esquerda em telas médias — ajustar para `w-64` se ficar apertada.
 - Mensagem do `EmptyState` — refinar copy.
 
