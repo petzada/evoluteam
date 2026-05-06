@@ -6,15 +6,12 @@ import { logActivity } from '@/lib/activity';
 import { notify } from '@/lib/notifications';
 import { getActor } from '@/features/permissions/actor';
 import { canDo } from '@/features/permissions/permissions';
-import type { Actor } from '@/features/permissions/types';
 import { canCommentOnPdi } from './permissions';
 import {
   PdiInputSchema, PdiActionInputSchema, PdiActionStatusSchema, PdiCommentSchema,
   type PdiInput, type PdiActionInput, type PdiCommentInput,
   PDI_ACTION_STATUSES, type PdiActionStatus,
 } from './schema';
-
-type Ctx = Actor;
 
 export async function createPdi(input: PdiInput) {
   const ctx = await getActor();

@@ -19,7 +19,7 @@ export default async function RootPage() {
   try {
     const { data } = await supabase.auth.getUser();
     user = data.user;
-  } catch (error) {
+  } catch {
     // Em caso de token inválido ou erro de sessão, ignoramos para exibir a landing page pública
   }
 

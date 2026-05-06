@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useTransition, useEffect, useCallback } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useTransition } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -34,12 +34,7 @@ export function DashboardFilters({
   const jobIds = readList(searchParams, 'job_ids');
   const ownerIds = readList(searchParams, 'owner_ids');
   const initialQ = searchParams.get('q') ?? '';
-
-  const [searchText, setSearchText] = useState(initialQ);
-
-  useEffect(() => {
-    setSearchText(initialQ);
-  }, [initialQ]);
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const push = useCallback(
     (mutator: (sp: URLSearchParams) => void) => {
@@ -52,17 +47,27 @@ export function DashboardFilters({
     [router, searchParams, startTransition],
   );
 
-  // Debounce da busca
   useEffect(() => {
-    if (searchText === initialQ) return;
-    const t = setTimeout(() => {
-      push((sp) => {
-        if (searchText.trim()) sp.set('q', searchText.trim());
-        else sp.delete('q');
-      });
-    }, 300);
-    return () => clearTimeout(t);
-  }, [searchText, initialQ, push]);
+    return () => {
+      if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    };
+  }, []);
+
+  const onSearchChange = useCallback(
+    (next: string) => {
+      const value = next.trim();
+      if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+      if (value === initialQ) return;
+
+      searchTimerRef.current = setTimeout(() => {
+        push((sp) => {
+          if (value) sp.set('q', value);
+          else sp.delete('q');
+        });
+      }, 300);
+    },
+    [initialQ, push],
+  );
 
   function onJobsChange(next: string[]) {
     push((sp) => {
@@ -94,12 +99,18 @@ export function DashboardFilters({
 
   return (
     <div className={wrapClass}>
-      <div className={cn('relative min-w-0', isDialog ? 'w-full' : 'min-w-[200px] max-w-xs w-full sm:w-72')}>
+      <div
+        className={cn(
+          'relative min-w-0',
+          isDialog ? 'w-full' : 'min-w-[200px] max-w-xs w-full sm:w-72',
+        )}
+      >
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
+          key={initialQ}
           placeholder="Buscar candidato por nome ou e-mail…"
-          value={searchText}
-          onChange={(e) => setSearchText(e.target.value)}
+          defaultValue={initialQ}
+          onChange={(e) => onSearchChange(e.target.value)}
           className="pl-9"
         />
       </div>
