@@ -5,6 +5,8 @@ import { notFound } from 'next/navigation';
 import { MDXRemote } from 'next-mdx-remote/rsc';
 import { SetAppTopBar } from '@/features/shell/AppTopBarContext';
 import { actorFromContext, getActorContext } from '@/features/auth/context';
+import { helpMdxComponents } from '@/features/help/components/HelpMdxComponents';
+import { HelpVideoPlayer } from '@/features/help/components/HelpVideoPlayer';
 import { getHelpTopic } from '@/features/help/content';
 import { isTopicVisible } from '@/features/help/visibility';
 
@@ -27,11 +29,9 @@ export default async function HelpTopicPage({
     <>
       <SetAppTopBar title={frontmatter.title} />
       <article className="space-y-4">
-        <video
-          src={frontmatter.videoUrl}
-          controls
-          preload="metadata"
-          className="w-full rounded-lg bg-black aspect-video"
+        <HelpVideoPlayer
+          videoUrl={frontmatter.videoUrl}
+          title={frontmatter.title}
         />
         <header>
           <h1 className="text-xl font-semibold">{frontmatter.title}</h1>
@@ -40,7 +40,7 @@ export default async function HelpTopicPage({
           </p>
         </header>
         <div className="prose prose-sm max-w-none">
-          <MDXRemote source={source} />
+          <MDXRemote source={source} components={helpMdxComponents} />
         </div>
       </article>
     </>

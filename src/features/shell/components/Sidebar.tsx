@@ -54,12 +54,11 @@ interface SidebarProps {
   screenPermissions?: ScreenPermissions | null;
   isOperationalOnly: boolean;
   isHiringManager?: boolean;
-  helpBanner?: React.ReactNode;
   footer?: React.ReactNode;
 }
 
 export function Sidebar({
-  role, screenPermissions, isOperationalOnly, isHiringManager = false, helpBanner, footer,
+  role, screenPermissions, isOperationalOnly, isHiringManager = false, footer,
 }: SidebarProps) {
   const pathname = usePathname();
   const { collapsed } = useSidebar();
@@ -212,16 +211,6 @@ export function Sidebar({
           </div>
         )}
       </nav>
-      {helpBanner && (
-        <div
-          className={cn(
-            'shrink-0 border-t border-sidebar-border',
-            collapsed ? 'px-2 py-2' : 'px-3 py-3',
-          )}
-        >
-          {helpBanner}
-        </div>
-      )}
       {footer}
     </aside>
   );

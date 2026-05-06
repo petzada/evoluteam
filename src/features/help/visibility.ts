@@ -10,13 +10,29 @@
 // tratamento que slug inexistente).
 
 import { canDo, type CanDoActor } from '@/features/permissions/permissions';
-import type { ScreenKey } from '@/features/permissions/types';
+import {
+  ALL_SCREEN_PERMISSION_KEYS,
+  type ScreenKey,
+  type ScreenPermissionKey,
+} from '@/features/permissions/types';
 import type { HelpTopic } from './types';
+
+const VALID_VIEW_PERMISSION_KEYS = new Set<ScreenPermissionKey>(
+  ALL_SCREEN_PERMISSION_KEYS.filter((key) => key.endsWith('.view')),
+);
+
+function toKnownScreen(screen: string): ScreenKey | null {
+  const viewKey = `${screen}.view` as ScreenPermissionKey;
+  if (!VALID_VIEW_PERMISSION_KEYS.has(viewKey)) return null;
+  return screen as ScreenKey;
+}
 
 export function isTopicVisible(topic: HelpTopic, actor: CanDoActor): boolean {
   if (topic.adminOnly && actor.role !== 'admin_rh') return false;
   if (topic.screen) {
-    return canDo(actor, topic.screen as ScreenKey, 'view');
+    const screen = toKnownScreen(topic.screen);
+    if (!screen) return false;
+    return canDo(actor, screen, 'view');
   }
   return true;
 }

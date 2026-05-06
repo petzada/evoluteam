@@ -84,14 +84,11 @@ describe('isTopicVisible — screen + adminOnly (ambos exigidos)', () => {
 describe('isTopicVisible — screen desconhecido', () => {
   const topic = baseTopic({ screen: 'screen-que-nao-existe' });
 
-  it('admin vê (bypass de canDo)', () =>
-    expect(isTopicVisible(topic, adminActor)).toBe(true));
+  it('admin NÃO vê (screen desconhecido fica oculto)', () =>
+    expect(isTopicVisible(topic, adminActor)).toBe(false));
 
-  it('director NÃO vê (screen nao mapeada cai em canDo=false)', () =>
-    // canDo de director em screen desconhecida: nao bate com DIRECTOR_BLOCKED;
-    // como passou por screen != edit, retorna true. Comportamento aceito —
-    // testando aqui pra documentar.
-    expect(isTopicVisible(topic, directorActor)).toBe(true));
+  it('director NÃO vê (screen desconhecido fica oculto)', () =>
+    expect(isTopicVisible(topic, directorActor)).toBe(false));
 
   it('user NÃO vê (sem toggle correspondente)', () =>
     expect(isTopicVisible(topic, userPuroActor)).toBe(false));
@@ -103,9 +100,10 @@ describe('filterTopicsForActor', () => {
     baseTopic({ slug: 'admin-only', title: 'B', adminOnly: true }),
     baseTopic({ slug: 'recruta', title: 'C', screen: 'recrutamento_candidatos' }),
     baseTopic({ slug: 'auditoria', title: 'D', screen: 'auditoria' }),
+    baseTopic({ slug: 'unknown', title: 'E', screen: 'screen-que-nao-existe' }),
   ];
 
-  it('admin vê todos', () => {
+  it('admin vê todos os tópicos com screen conhecida', () => {
     expect(filterTopicsForActor(topics, adminActor).map((t) => t.slug)).toEqual([
       'baseline', 'admin-only', 'recruta', 'auditoria',
     ]);
